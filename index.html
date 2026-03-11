@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pakan CBL</title>
+    <link rel="manifest" href="manifest.json">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+      body { font-family: 'Poppins', sans-serif; background-color: #f5f5f5; margin: 0; padding-bottom: 80px; }
+      .container { max-width: 500px; margin: auto; background: white; min-height: 100vh; padding: 15px; box-sizing: border-box; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+      h2 { color: #1a5c40; margin-bottom: 5px; text-align: center; font-size: 22px; }
+      .sub-header { color: #888; font-size: 13px; margin-bottom: 20px; text-align: center;}
+      
+      .form-group { margin-bottom: 15px; width: 100%; }
+      label { display: block; font-size: 12px; font-weight: 600; color: #555; margin-bottom: 5px; }
+      input, select, textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-family: 'Poppins', sans-serif;}
+      
+      #login-screen { display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 100vh; margin-top: 0; box-sizing: border-box; }
+      .pin-input { font-size: 24px; padding: 15px; width: 200px; text-align: center; letter-spacing: 10px; font-weight: bold; border: 2px solid #1a5c40; }
+      
+      .radio-group { display: flex; gap: 8px; flex-wrap: wrap; padding-bottom: 5px;}
+      .radio-group input[type="radio"] { display: none; }
+      .radio-group label { background: #eee; padding: 10px; border-radius: 8px; cursor: pointer; flex: 1 1 45%; text-align: center; white-space: nowrap; font-size: 12px; margin: 0; box-sizing: border-box; }
+      .radio-group input[type="radio"]:checked + label { background: #1a5c40; color: white; }
+
+      .menu-item { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #eee; }
+      .item-info { flex: 1; }
+      .item-name { font-weight: 600; font-size: 14px; color: #333; }
+      .item-price { font-size: 11px; color: #e91e63; font-weight: bold; margin-top: 4px; }
+      
+      .counter-box { display: flex; align-items: center; gap: 5px; }
+      .btn-qty { width: 30px; height: 30px; border: 1px solid #ccc; background: white; border-radius: 6px; font-weight: bold; color: #1a5c40; cursor: pointer; display: flex; justify-content: center; align-items: center; font-size: 18px;}
+      .qty-input { width: 45px; height: 30px; text-align: center; font-weight: bold; border: 1px solid #ccc; border-radius: 6px; padding: 0; margin: 0; font-size: 14px;}
+      
+      .calc-input { width: 100% !important; text-align: left !important; padding-left: 10px !important; font-size: 13px; font-weight: normal; }
+      .hasil-calc { font-size: 13px; font-weight: bold; color: #1a5c40; min-width: 40px; text-align: right; }
+
+      .footer-action { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 15px; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); display: flex; justify-content: center; }
+      .btn-submit { background: #1a5c40; color: white; border: none; padding: 12px 40px; border-radius: 25px; font-weight: bold; font-size: 16px; width: 100%; max-width: 460px; cursor: pointer; }
+      
+      .hidden { display: none !important; }
+      .loader { text-align: center; padding: 20px; color: #888; font-style: italic; font-size: 12px;}
+      
+      .form-row { display: flex; gap: 10px; flex-wrap: wrap; }
+      .form-row > div { flex: 1 1 calc(50% - 10px); min-width: 140px; }
+      
+      #koneksi-badge { padding: 5px; text-align: center; font-size: 11px; font-weight: bold; color: white; background: #4CAF50; margin-bottom: 10px; border-radius: 4px;}
+      .offline-badge { background: #f44336 !important; }
+    </style>
+  </head>
+  <body>
+
+    <div class="container" id="login-screen">
+        <h2>Sistem Input Pakan</h2>
+        <div class="sub-header">Masukkan PIN Akses Anda</div>
+        <input type="password" id="pin" class="pin-input" inputmode="numeric" maxlength="4" placeholder="••••">
+        <button class="btn-submit" style="margin-top: 20px;" onclick="cekLogin()">Masuk Aplikasi</button>
+        <p id="login-error" style="color: red; font-size: 12px; display: none; margin-top: 10px;">PIN tidak valid!</p>
+    </div>
+
+    <div id="app-screen" class="hidden">
+        <div class="container">
+          <h2>Input Pakan Harian</h2>
+          <div id="koneksi-badge">🟢 ONLINE: Sinkronisasi Aktif</div>
+          <div class="sub-header">Petugas Aktif: <b id="nama-petugas" style="color:#1a5c40;"></b></div>
+
+          <div class="form-group">
+            <label>Pilih Lokasi Gudang/Kandang</label>
+            <div class="radio-group" onchange="gantiLokasi()">
+                <input type="radio" id="loc_pm" name="lokasi" value="/pm" checked>
+                <label for="loc_pm">Gudang PM</label>
+                <input type="radio" id="loc_kandang" name="lokasi" value="/kandang">
+                <label for="loc_kandang">Kandang PM</label>
+                <input type="radio" id="loc_spn" name="lokasi" value="/spn">
+                <label for="loc_spn">Gudang SPN</label>
+                <input type="radio" id="loc_rph" name="lokasi" value="/rph">
+                <label for="loc_rph">RPH</label>
+            </div>
+          </div>
+
+          <div class="form-row">
+              <div class="form-group"><label>Tgl (Kosong = Hari ini)</label><input type="date" id="tanggal"></div>
+              <div class="form-group"><label>Status</label><select id="status"><option value="Keluar">Keluar</option><option value="Masuk">Masuk</option><option value="Retur">Retur</option></select></div>
+          </div>
+
+          <div class="form-group"><label>Nama Relasi / Kandang Sapi</label><input type="text" id="relasi" placeholder="Cth: Bpk Budi / Sapi Laktasi"></div>
+
+          <div class="form-row">
+              <div class="form-group"><label>Ekor / Alamat</label><input type="text" id="ekor" placeholder="Cth: 10 atau Jln.."></div>
+              <div class="form-group"><label>Ongkir/Dari (Opsional)</label><input type="text" id="ongkir" placeholder="Keterangan ongkir..."></div>
+          </div>
+
+          <hr style="border: 0; border-top: 1px dashed #ddd; margin: 15px 0;">
+          <label style="font-size: 13px; text-transform: uppercase;">Daftar Pakan</label>
+          <div id="product-list"><div class="loader">Memuat data...</div></div>
+          <div class="form-group" style="margin-top: 20px;"><label>Catatan Khusus (Opsional)</label><textarea id="catatan" rows="2" placeholder="Tambahkan pesan di sini..."></textarea></div>
+        </div>
+
+        <div class="footer-action">
+          <button class="btn-submit" id="btn-kirim" onclick="kirimData()">Kirim Laporan</button>
+        </div>
+    </div>
+
+    <script>
+      // ==========================================
+      // WAJIB GANTI DENGAN URL API GOOGLE SCRIPT ANDA
+      // ==========================================
+      const API_URL = "https://script.google.com/macros/s/AKfycbxm8APTPE4lgMIimnOOUetQPY2vWiNqkL5_4afV_jY5AoC_bPVp2z1IsMKImJXOroi0/exec";
+      const NOMOR_WA_ADMIN = "6281234567890"; // Ganti No WA
+      
+      const USERS = { "1234": "Admin Pusat", "5678": "Petugas Lapangan", "0000": "Tim SPN", "8888": "Jinan" };
+      let activeUser = ""; let currentItems = []; 
+
+      // Mendaftarkan Service Worker untuk Offline
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js').then(() => console.log('Service Worker OK'));
+      }
+
+      // Deteksi Online/Offline
+      window.addEventListener('online', updateStatusKoneksi);
+      window.addEventListener('offline', updateStatusKoneksi);
+
+      function updateStatusKoneksi() {
+          let badge = document.getElementById('koneksi-badge');
+          if (navigator.onLine) {
+              badge.innerText = "🟢 ONLINE: Menyinkronkan Data...";
+              badge.classList.remove('offline-badge');
+              sinkronisasiAntrianLokal(); // Tembak data tertunda
+          } else {
+              let antrian = JSON.parse(localStorage.getItem('antrian_pakan')) || [];
+              badge.innerText = `🔴 OFFLINE: ${antrian.length} Laporan Menunggu Sinyal`;
+              badge.classList.add('offline-badge');
+          }
+      }
+
+      function cekLogin() {
+          let pin = document.getElementById('pin').value;
+          if (USERS[pin]) {
+              activeUser = USERS[pin];
+              document.getElementById('nama-petugas').innerText = activeUser;
+              document.getElementById('login-screen').classList.add('hidden');
+              document.getElementById('app-screen').classList.remove('hidden');
+              updateStatusKoneksi();
+              gantiLokasi(); 
+          } else { document.getElementById('login-error').style.display = 'block'; }
+      }
+
+      function gantiLokasi() {
+          let lokasi = document.querySelector('input[name="lokasi"]:checked').value;
+          
+          // 1. Ambil dari Memori HP Dulu (Biar Offline bisa buka)
+          let cachedData = localStorage.getItem('pakan_data_' + lokasi);
+          if (cachedData) renderPakan(JSON.parse(cachedData));
+          else document.getElementById('product-list').innerHTML = '<div class="loader">Membutuhkan koneksi internet untuk muat awal...</div>';
+
+          // 2. Jika Online, ambil data terbaru dari server & simpan ke HP
+          if (navigator.onLine) {
+              fetch(`${API_URL}?action=getPakan&lokasi=${lokasi}`)
+                  .then(res => res.json())
+                  .then(res => {
+                      if(res.status === 'success') {
+                          localStorage.setItem('pakan_data_' + lokasi, JSON.stringify(res));
+                          renderPakan(res);
+                      }
+                  }).catch(e => console.log("Gagal fetch data pakan terbaru"));
+          }
+      }
+
+      function renderPakan(response) {
+          currentItems = response.data; let html = '';
+          if(currentItems.length === 0) html = '<div class="loader">Tidak ada data pakan</div>';
+          else {
+              currentItems.forEach(function(item, index) {
+                  let formatHarga = new Intl.NumberFormat('id-ID').format(item.harga);
+                  let labelInput = item.satuan || "Kg"; 
+                  if (item.kemasan > 0) {
+                      let stepValue = item.kemasan; 
+                      html += `<div class="menu-item"><div class="item-info"><div class="item-name">${item.nama}</div>${item.harga > 0 ? '<div class="item-price">Rp '+formatHarga+' / Kg</div>' : ''}</div><div class="counter-box"><div class="btn-qty" onclick="ubahQty(${index}, -${stepValue})">-</div><input type="number" id="qty-${index}" class="qty-input" value="0" min="0" step="${stepValue}"><div class="btn-qty" onclick="ubahQty(${index}, ${stepValue})">+</div><span style="font-size:12px; font-weight:bold; margin-left:5px;">${labelInput}</span></div></div>`;
+                  } else {
+                      html += `<div class="menu-item"><div class="item-info" style="flex: 1;"><div class="item-name">${item.nama}</div>${item.harga > 0 ? '<div class="item-price">Rp '+formatHarga+' / Kg</div>' : ''}</div><div class="counter-box" style="flex: 1.5; justify-content: flex-end;"><input type="text" inputmode="decimal" id="qty-${index}" class="qty-input calc-input" placeholder="Cth: 35+28" oninput="hitungCalc(${index})" data-total="0"><span id="hasil-${index}" class="hasil-calc">= 0</span><span style="font-size:12px; font-weight:bold; margin-left:5px;">${labelInput}</span></div></div>`;
+                  }
+              });
+          }
+          document.getElementById('product-list').innerHTML = html;
+      }
+
+      function ubahQty(index, delta) { let el = document.getElementById('qty-' + index); let newVal = (parseFloat(el.value) || 0) + delta; el.value = newVal < 0 ? 0 : newVal; }
+      function hitungCalc(index) { let el = document.getElementById('qty-' + index); let val = el.value.replace(/[^0-9+\-*/.,]/g, ''); if(el.value !== val) el.value = val; let mathStr = val.replace(/,/g, '.'); let total = 0; try { while(mathStr.endsWith('+') || mathStr.endsWith('-') || mathStr.endsWith('*') || mathStr.endsWith('/')) mathStr = mathStr.slice(0, -1); if(mathStr) total = new Function('return (' + mathStr + ')')(); } catch(e) { total = 0; } document.getElementById('hasil-' + index).innerText = "= " + (total || 0).toLocaleString('id-ID'); el.setAttribute('data-total', total || 0); }
+
+      function kirimData() {
+          let inputVal = document.getElementById('ekor').value.trim();
+          let isAngka = !isNaN(inputVal) && inputVal !== "";
+
+          let payload = {
+              petugas: activeUser, lokasi: document.querySelector('input[name="lokasi"]:checked').value,
+              tanggal: document.getElementById('tanggal').value, status: document.getElementById('status').value,
+              relasi: document.getElementById('relasi').value, ekor: isAngka ? parseFloat(inputVal) : 0,    
+              alamat: !isAngka ? inputVal : "", ongkir: document.getElementById('ongkir').value,
+              catatan: document.getElementById('catatan').value, items: {}
+          };
+
+          if (!payload.relasi) { alert("Nama Relasi tidak boleh kosong!"); return; }
+          let totalItem = 0;
+          currentItems.forEach(function(item, index) {
+              let qtyInput = document.getElementById('qty-' + index);
+              let qty = qtyInput.hasAttribute('data-total') ? parseFloat(qtyInput.getAttribute('data-total')) : parseFloat(qtyInput.value);
+              if (qty > 0) { payload.items[item.nama] = qty || 0; totalItem++; }
+          });
+          if (totalItem === 0) { alert("Harap isi pakan!"); return; }
+
+          // --- BUKA WHATSAPP ---
+          if (payload.lokasi !== '/kandang') {
+              let ringkasanItem = ""; let grandTotal = 0;
+              for(let key in payload.items) {
+                  let qtyKg = payload.items[key]; grandTotal += qtyKg;
+                  let itemObj = currentItems.find(i => i.nama === key);
+                  let kemasan = (itemObj && itemObj.kemasan > 0) ? itemObj.kemasan : 0;
+                  let satuan = (itemObj && itemObj.satuan) ? itemObj.satuan : "Kg";
+                  if (kemasan > 0) {
+                      let namaKemasan = (satuan.toLowerCase() === 'ltr' || key.toLowerCase().includes('bio smart')) ? "Jirigen" : "Karung";
+                      ringkasanItem += `- ${key}: ${qtyKg.toLocaleString('id-ID')} Kg | ${qtyKg/kemasan} ${namaKemasan}\n`;
+                  } else { ringkasanItem += `- ${key}: ${qtyKg.toLocaleString('id-ID')} Kg\n`; }
+              }
+              let d = payload.tanggal ? new Date(payload.tanggal) : new Date();
+              let tglFormat = ("0"+d.getDate()).slice(-2)+"/"+("0"+(d.getMonth()+1)).slice(-2)+"/"+d.getFullYear();
+              let infoAlamat = payload.alamat ? payload.alamat : (payload.ekor > 0 ? payload.ekor + " Ekor" : "-");
+
+              let teksWA = `*LAPORAN ORDERAN ${payload.relasi.toUpperCase()}, ${tglFormat}*\n\nTanggal: ${tglFormat}\n👤 Relasi: *${payload.relasi}*\n📍 Alamat: ${infoAlamat}\n`;
+              if (payload.ongkir) teksWA += `🚛 Ongkir: ${payload.ongkir}\n`;
+              teksWA += `📂 Status: ${payload.status}\nRincian:\n\`\`\`\n${ringkasanItem}\`\`\`\nTotal: ${grandTotal.toLocaleString('id-ID')} Kg`;
+              if (payload.catatan) teksWA += `\n📝 Catatan: ${payload.catatan}`;
+              teksWA += `\n\nPetugas: _${payload.petugas}_`;
+              
+              let a = document.createElement('a');
+              a.href = `https://wa.me/${NOMOR_WA_ADMIN}?text=${encodeURIComponent(teksWA)}`;
+              a.target = '_blank'; document.body.appendChild(a); a.click();
+          } else { alert("✅ Data Kandang ditampung/dikirim."); }
+
+          // --- PROSES DATA KE SERVER / OFFLINE ANTRIAN ---
+          if (navigator.onLine) {
+              // Langsung tembak ke server
+              fetch(API_URL, { method: 'POST', body: JSON.stringify({ source: 'pwa_cbl', payload: payload }) });
+          } else {
+              // Jika offline, simpan di Ruang Tunggu HP
+              let antrian = JSON.parse(localStorage.getItem('antrian_pakan')) || [];
+              antrian.push(payload);
+              localStorage.setItem('antrian_pakan', JSON.stringify(antrian));
+              updateStatusKoneksi();
+          }
+
+          // Reset Form Instan
+          document.getElementById('relasi').value = ""; document.getElementById('ekor').value = "";
+          document.getElementById('ongkir').value = ""; document.getElementById('catatan').value = "";
+          currentItems.forEach((item, index) => { 
+              let el = document.getElementById('qty-'+index);
+              el.value = el.hasAttribute('data-total') ? "" : "0";
+              if (el.hasAttribute('data-total')) { el.setAttribute('data-total', "0"); document.getElementById('hasil-'+index).innerText = "= 0"; }
+          });
+      }
+
+      function sinkronisasiAntrianLokal() {
+          let antrian = JSON.parse(localStorage.getItem('antrian_pakan')) || [];
+          if (antrian.length === 0) {
+              document.getElementById('koneksi-badge').innerText = "🟢 ONLINE: Sinkronisasi Selesai";
+              return;
+          }
+          // Tembak semua data yang tertunda saat offline
+          let janjiKirim = antrian.map(payload => {
+              return fetch(API_URL, { method: 'POST', body: JSON.stringify({ source: 'pwa_cbl', payload: payload }) });
+          });
+
+          Promise.all(janjiKirim).then(() => {
+              localStorage.removeItem('antrian_pakan'); // Kosongkan memori HP
+              updateStatusKoneksi();
+          }).catch(e => console.log("Gagal sinkron, coba lagi nanti."));
+      }
+    </script>
+  </body>
+</html>
