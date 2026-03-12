@@ -12,16 +12,16 @@
       h2 { color: #1a5c40; margin-bottom: 5px; text-align: center; font-size: 22px; }
       .sub-header { color: #888; font-size: 13px; margin-bottom: 20px; text-align: center;}
       
-      /* ==== CSS UNTUK LOGO ==== */
+      /* ==== CSS UNTUK LOGO DI LOGIN ==== */
       .logo-login { width: 100px; height: auto; margin-bottom: 15px; }
-      .logo-header { width: 60px; height: auto; margin-bottom: -10px; margin-top: 10px; }
       .text-center { text-align: center; }
       
       .form-group { margin-bottom: 15px; width: 100%; }
       label { display: block; font-size: 12px; font-weight: 600; color: #555; margin-bottom: 5px; }
       input, select, textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-family: 'Poppins', sans-serif;}
       
-      #login-screen { display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 100vh; margin-top: 0; box-sizing: border-box; }
+      /* CSS LOGIN: Logo di Atas Tengah, PIN di Tengah */
+      #login-screen { display: flex; flex-direction: column; justify-content: flex-start; align-items: center; min-height: 100vh; padding-top: 30px; margin-top: 0; box-sizing: border-box; }
       .pin-input { font-size: 24px; padding: 15px; width: 200px; text-align: center; letter-spacing: 10px; font-weight: bold; border: 2px solid #1a5c40; }
       
       .radio-group { display: flex; gap: 8px; flex-wrap: wrap; padding-bottom: 5px;}
@@ -72,19 +72,18 @@
     <div class="container" id="login-screen">
         <img src="https://raw.githubusercontent.com/wildansyif/pakan-cbl/2e732398572a6ac7d3512559c4344d40ab0902f9/Logo%20CBL.png" alt="Logo CBL" class="logo-login">
         
-        <h2>Sistem Pakan CBL</h2>
-        <div class="sub-header">Masukkan PIN Akses Anda</div>
-        <input type="password" id="pin" class="pin-input" inputmode="numeric" maxlength="4" placeholder="••••">
-        <button class="btn-submit" style="margin-top: 20px;" onclick="cekLogin()">Masuk Aplikasi</button>
-        <p id="login-error" style="color: red; font-size: 12px; display: none; margin-top: 10px;">PIN tidak valid!</p>
+        <div style="margin: auto 0; width: 100%; text-align: center; display: flex; flex-direction: column; align-items: center;">
+            <h2>Sistem Pakan CBL</h2>
+            <div class="sub-header">Masukkan PIN Akses Anda</div>
+            <input type="password" id="pin" class="pin-input" inputmode="numeric" maxlength="4" placeholder="••••">
+            <button class="btn-submit" style="margin-top: 20px;" onclick="cekLogin()">Masuk Aplikasi</button>
+            <p id="login-error" style="color: red; font-size: 12px; display: none; margin-top: 10px;">PIN tidak valid!</p>
+        </div>
     </div>
 
     <div id="app-screen" class="hidden">
         
         <div id="page-input" class="container">
-          <div class="text-center">
-             <img src="https://raw.githubusercontent.com/wildansyif/pakan-cbl/2e732398572a6ac7d3512559c4344d40ab0902f9/Logo%20CBL.png" alt="Logo CBL" class="logo-header">
-          </div>
           <h2>Input Pakan Harian</h2>
           
           <div id="koneksi-badge">🟢 ONLINE: Sinkronisasi Aktif</div>
@@ -119,9 +118,6 @@
         </div>
 
         <div id="page-rekap" class="container hidden">
-            <div class="text-center">
-               <img src="https://raw.githubusercontent.com/wildansyif/pakan-cbl/2e732398572a6ac7d3512559c4344d40ab0902f9/Logo%20CBL.png" alt="Logo CBL" class="logo-header">
-            </div>
             <h2>Rekap Pakan Harian</h2>
             <div class="sub-header">Berdasarkan Database Spreadsheet</div>
             
@@ -155,12 +151,12 @@
 
     <script>
       // ==========================================
-      // ⚠️ WAJIB ISI URL & NO WA (Jangan lupa diisi lagi bos!)
+      // ⚠️ WAJIB ISI URL & NO WA (Jangan lupa bos!)
       const API_URL = "https://script.google.com/macros/s/AKfycbxm8APTPE4lgMIimnOOUetQPY2vWiNqkL5_4afV_jY5AoC_bPVp2z1IsMKImJXOroi0/exec";
       const NOMOR_WA_ADMIN = "6282143601114"; 
       // ==========================================
       
-      const USERS = { "1234": "Admin Pusat", "5678": "Petugas Lapangan", "0000": "Pak Agus", "8888": "Jinan" };
+      const USERS = { "1234": "Admin Pusat", "5678": "Petugas Lapangan", "0000": "Tim SPN", "8888": "Jinan" };
       let activeUser = ""; let currentItems = []; 
 
       if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
