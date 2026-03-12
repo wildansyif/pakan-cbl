@@ -154,7 +154,7 @@
       const NOMOR_WA_ADMIN = "6282143601114"; 
       // ==========================================
       
-      const USERS = { "1234": "Admin Pusat", "5678": "Petugas Lapangan", "0000": "Tim SPN", "8888": "Jinan" };
+      const USERS = { "1234": "Admin Pusat", "5678": "Pak Agus", "0000": "Tim SPN", "8888": "Jinan" };
       let activeUser = ""; let currentItems = []; 
 
       if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
@@ -350,16 +350,25 @@
                   let qtyKg = payload.items[key]; grandTotal += qtyKg;
                   let itemObj = currentItems.find(i => i.nama === key);
                   let kemasan = (itemObj && itemObj.kemasan > 0) ? itemObj.kemasan : 0; let satuan = (itemObj && itemObj.satuan) ? itemObj.satuan : "Kg";
-                  if (kemasan > 0) { let namaKemasan = (satuan.toLowerCase() === 'ltr' || key.toLowerCase().includes('bio smart')) ? "Jirigen" : "Karung"; ringkasanItem += `- ${key}: ${qtyKg.toLocaleString('id-ID')} Kg | ${qtyKg/kemasan} ${namaKemasan}\n`; } 
-                  else { ringkasanItem += `- ${key}: ${qtyKg.toLocaleString('id-ID')} Kg\n`; }
+                  if (kemasan > 0) { 
+                      let namaKemasan = (satuan.toLowerCase() === 'ltr' || key.toLowerCase().includes('bio smart')) ? "Jirigen" : "Karung"; 
+                      ringkasanItem += `• ${key}: ${qtyKg.toLocaleString('id-ID')} Kg | ${qtyKg/kemasan} ${namaKemasan}\n`; 
+                  } else { 
+                      ringkasanItem += `• ${key}: ${qtyKg.toLocaleString('id-ID')} Kg\n`; 
+                  }
               }
               let d = payload.tanggal ? new Date(payload.tanggal) : new Date(); let tglFormat = ("0"+d.getDate()).slice(-2)+"/"+("0"+(d.getMonth()+1)).slice(-2)+"/"+d.getFullYear();
               let infoAlamat = payload.alamat ? payload.alamat : (payload.ekor > 0 ? payload.ekor + " Ekor" : "-");
 
-              let teksWA = `LAPORAN ORDERAN ${payload.relasi.toUpperCase()}, ${tglFormat}\n\nTanggal: ${tglFormat}\nRelasi: *${payload.relasi}*\nAlamat: ${infoAlamat}\n`;
+              // FORMAT BARU YANG LEBIH RINGKAS
+              let teksWA = `LAPORAN ORDERAN ${payload.relasi.toUpperCase()}, ${tglFormat}\n`;
+              teksWA += `Alamat: ${infoAlamat}\n`;
               if (payload.ongkir) teksWA += `Ongkir: ${payload.ongkir}\n`;
-              teksWA += `Status: ${payload.status}\nRincian:\n${ringkasanItem}\nTotal: ${grandTotal.toLocaleString('id-ID')} Kg`;
-              if (payload.catatan) teksWA += `\nCatatan: ${payload.catatan}`; teksWA += `\n\nPetugas: _${payload.petugas}_`;
+              teksWA += `Status: ${payload.status}\n\n`;
+              teksWA += `${ringkasanItem}\n`;
+              teksWA += `Total: ${grandTotal.toLocaleString('id-ID')} Kg`;
+              if (payload.catatan) teksWA += `\nCatatan: ${payload.catatan}`; 
+              teksWA += `\n\nPetugas: ${payload.petugas}`;
               
               let a = document.createElement('a'); a.href = `https://wa.me/${NOMOR_WA_ADMIN}?text=${encodeURIComponent(teksWA)}`; a.target = '_blank'; document.body.appendChild(a); a.click();
           } else { alert("✅ Data Kandang ditampung/dikirim."); }
