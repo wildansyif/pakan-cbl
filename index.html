@@ -31,7 +31,7 @@
       
       .counter-box { display: flex; align-items: center; gap: 5px; }
       .btn-qty { width: 30px; height: 30px; border: 1px solid #ccc; background: white; border-radius: 6px; font-weight: bold; color: #1a5c40; cursor: pointer; display: flex; justify-content: center; align-items: center; font-size: 18px;}
-      .qty-input { width: 45px; height: 30px; text-align: center; font-weight: bold; border: 1px solid #ccc; border-radius: 6px; padding: 0; margin: 0; font-size: 14px;}
+      .qty-input { width: 45px; height: 30px; text-align: center !important; font-weight: bold; border: 1px solid #ccc; border-radius: 6px; padding: 0 !important; margin: 0; font-size: 14px;}
       
       .calc-input { width: 100% !important; text-align: left !important; padding-left: 10px !important; font-size: 13px; font-weight: normal; }
       .hasil-calc { font-size: 13px; font-weight: bold; color: #1a5c40; min-width: 40px; text-align: right; }
@@ -47,6 +47,16 @@
       
       #koneksi-badge { padding: 5px; text-align: center; font-size: 11px; font-weight: bold; color: white; background: #4CAF50; margin-bottom: 10px; border-radius: 4px;}
       .offline-badge { background: #f44336 !important; }
+
+      /* ==== UPDATE: MENGHILANGKAN PANAH VERTIKAL SECARA PAKSA ==== */
+      input[type="number"]::-webkit-outer-spin-button,
+      input[type="number"]::-webkit-inner-spin-button { 
+          -webkit-appearance: none !important; 
+          margin: 0 !important; 
+      }
+      input[type="number"] { 
+          -moz-appearance: textfield !important; 
+      }
     </style>
   </head>
   <body>
@@ -104,20 +114,18 @@
 
     <script>
       // ==========================================
-      // WAJIB GANTI DENGAN URL API GOOGLE SCRIPT ANDA
+      // ⚠️ WAJIB ISI URL GOOGLE SCRIPT DI BAWAH INI
       // ==========================================
       const API_URL = "https://script.google.com/macros/s/AKfycbxm8APTPE4lgMIimnOOUetQPY2vWiNqkL5_4afV_jY5AoC_bPVp2z1IsMKImJXOroi0/exec";
-      const NOMOR_WA_ADMIN = "6281234567890"; // Ganti No WA
+      const NOMOR_WA_ADMIN = "6282143601114"; // Ganti No WA
       
       const USERS = { "1234": "Admin Pusat", "5678": "Petugas Lapangan", "0000": "Tim SPN", "8888": "Jinan" };
       let activeUser = ""; let currentItems = []; 
 
-      // Mendaftarkan Service Worker untuk Offline
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('sw.js').then(() => console.log('Service Worker OK'));
       }
 
-      // Deteksi Online/Offline
       window.addEventListener('online', updateStatusKoneksi);
       window.addEventListener('offline', updateStatusKoneksi);
 
@@ -126,7 +134,7 @@
           if (navigator.onLine) {
               badge.innerText = "🟢 ONLINE: Menyinkronkan Data...";
               badge.classList.remove('offline-badge');
-              sinkronisasiAntrianLokal(); // Tembak data tertunda
+              sinkronisasiAntrianLokal(); 
           } else {
               let antrian = JSON.parse(localStorage.getItem('antrian_pakan')) || [];
               badge.innerText = `🔴 OFFLINE: ${antrian.length} Laporan Menunggu Sinyal`;
@@ -149,12 +157,10 @@
       function gantiLokasi() {
           let lokasi = document.querySelector('input[name="lokasi"]:checked').value;
           
-          // 1. Ambil dari Memori HP Dulu (Biar Offline bisa buka)
           let cachedData = localStorage.getItem('pakan_data_' + lokasi);
           if (cachedData) renderPakan(JSON.parse(cachedData));
           else document.getElementById('product-list').innerHTML = '<div class="loader">Membutuhkan koneksi internet untuk muat awal...</div>';
 
-          // 2. Jika Online, ambil data terbaru dari server & simpan ke HP
           if (navigator.onLine) {
               fetch(`${API_URL}?action=getPakan&lokasi=${lokasi}`)
                   .then(res => res.json())
@@ -209,7 +215,6 @@
           });
           if (totalItem === 0) { alert("Harap isi pakan!"); return; }
 
-          // --- BUKA WHATSAPP ---
           if (payload.lokasi !== '/kandang') {
               let ringkasanItem = ""; let grandTotal = 0;
               for(let key in payload.items) {
@@ -237,19 +242,15 @@
               a.target = '_blank'; document.body.appendChild(a); a.click();
           } else { alert("✅ Data Kandang ditampung/dikirim."); }
 
-          // --- PROSES DATA KE SERVER / OFFLINE ANTRIAN ---
           if (navigator.onLine) {
-              // Langsung tembak ke server
               fetch(API_URL, { method: 'POST', body: JSON.stringify({ source: 'pwa_cbl', payload: payload }) });
           } else {
-              // Jika offline, simpan di Ruang Tunggu HP
               let antrian = JSON.parse(localStorage.getItem('antrian_pakan')) || [];
               antrian.push(payload);
               localStorage.setItem('antrian_pakan', JSON.stringify(antrian));
               updateStatusKoneksi();
           }
 
-          // Reset Form Instan
           document.getElementById('relasi').value = ""; document.getElementById('ekor').value = "";
           document.getElementById('ongkir').value = ""; document.getElementById('catatan').value = "";
           currentItems.forEach((item, index) => { 
@@ -265,13 +266,12 @@
               document.getElementById('koneksi-badge').innerText = "🟢 ONLINE: Sinkronisasi Selesai";
               return;
           }
-          // Tembak semua data yang tertunda saat offline
           let janjiKirim = antrian.map(payload => {
               return fetch(API_URL, { method: 'POST', body: JSON.stringify({ source: 'pwa_cbl', payload: payload }) });
           });
 
           Promise.all(janjiKirim).then(() => {
-              localStorage.removeItem('antrian_pakan'); // Kosongkan memori HP
+              localStorage.removeItem('antrian_pakan'); 
               updateStatusKoneksi();
           }).catch(e => console.log("Gagal sinkron, coba lagi nanti."));
       }
