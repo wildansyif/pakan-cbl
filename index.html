@@ -4,26 +4,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Pakan CBL</title>
-    
-    <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/wildansyif/pakan-cbl/2e732398572a6ac7d3512559c4344d40ab0902f9/Logo%20CBL.png">
-    
+    <link rel="apple-touch-icon" href="[https://raw.githubusercontent.com/wildansyif/pakan-cbl/2e732398572a6ac7d3512559c4344d40ab0902f9/Logo%20CBL.png](https://raw.githubusercontent.com/wildansyif/pakan-cbl/2e732398572a6ac7d3512559c4344d40ab0902f9/Logo%20CBL.png)">
     <link rel="manifest" href="manifest.json">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <link href="[https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap](https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap)" rel="stylesheet">
     <style>
       body { font-family: 'Poppins', sans-serif; background-color: #f5f5f5; margin: 0; padding-bottom: 70px; }
       .container { max-width: 500px; margin: auto; background: white; min-height: 100vh; padding: 15px; box-sizing: border-box; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
       h2 { color: #1a5c40; margin-bottom: 5px; text-align: center; font-size: 22px; }
       .sub-header { color: #888; font-size: 13px; margin-bottom: 20px; text-align: center;}
       
-      /* ==== CSS UNTUK LOGO DI LOGIN ==== */
       .logo-login { width: 100px; height: auto; margin-bottom: 15px; }
+      .logo-header { width: 60px; height: auto; margin-bottom: -10px; margin-top: 10px; }
       .text-center { text-align: center; }
       
       .form-group { margin-bottom: 15px; width: 100%; }
       label { display: block; font-size: 12px; font-weight: 600; color: #555; margin-bottom: 5px; }
       input, select, textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-family: 'Poppins', sans-serif;}
       
-      /* CSS LOGIN: Logo di Atas Tengah, PIN di Tengah */
       #login-screen { display: flex; flex-direction: column; justify-content: flex-start; align-items: center; min-height: 100vh; padding-top: 30px; margin-top: 0; box-sizing: border-box; }
       .pin-input { font-size: 24px; padding: 15px; width: 200px; text-align: center; letter-spacing: 10px; font-weight: bold; border: 2px solid #1a5c40; }
       
@@ -73,7 +70,7 @@
   <body>
 
     <div class="container" id="login-screen">
-        <img src="https://raw.githubusercontent.com/wildansyif/pakan-cbl/2e732398572a6ac7d3512559c4344d40ab0902f9/Logo%20CBL.png" alt="Logo CBL" class="logo-login">
+        <img src="[https://raw.githubusercontent.com/wildansyif/pakan-cbl/2e732398572a6ac7d3512559c4344d40ab0902f9/Logo%20CBL.png](https://raw.githubusercontent.com/wildansyif/pakan-cbl/2e732398572a6ac7d3512559c4344d40ab0902f9/Logo%20CBL.png)" alt="Logo CBL" class="logo-login">
         
         <div style="margin: auto 0; width: 100%; text-align: center; display: flex; flex-direction: column; align-items: center;">
             <h2>Sistem Pakan CBL</h2>
@@ -154,7 +151,7 @@
 
     <script>
       // ==========================================
-      // ⚠️ WAJIB ISI URL & NO WA (Jangan lupa bos!)
+      // ⚠️ WAJIB ISI URL & NO WA 
       const API_URL = "https://script.google.com/macros/s/AKfycbxm8APTPE4lgMIimnOOUetQPY2vWiNqkL5_4afV_jY5AoC_bPVp2z1IsMKImJXOroi0/exec";
       const NOMOR_WA_ADMIN = "6282143601114"; 
       // ==========================================
@@ -223,57 +220,64 @@
           }
 
           let html = '';
-          let textWA = `*REKAP ${labelGudang.toUpperCase()}*\nTanggal: ${tanggal.split('-').reverse().join('/')}\n\n`;
+          let textWA = `REKAP ${labelGudang.toUpperCase()}\nTanggal: ${tanggal.split('-').reverse().join('/')}\n\n`;
 
           if (isKandang) {
               for (let relasi in data) {
                   let d = data[relasi];
                   html += `<div class="rekap-card">`;
                   html += `<div class="rekap-title">🐄 Kelompok: ${relasi} <span style="color:#666; font-weight:normal;">(${d.ekor} ekor)</span></div>`;
-                  textWA += `📌 *${relasi}* (${d.ekor} ekor)\n\`\`\``;
+                  
+                  // WA Format
+                  textWA += `📌 *${relasi}* (${d.ekor} ekor)\n\n`;
                   
                   for (let pakan in d.items) {
                       html += `<div class="rekap-item"><span>${pakan}</span><span>${d.items[pakan].toLocaleString('id-ID')} Kg</span></div>`;
-                      textWA += `\n- ${pakan}: ${d.items[pakan].toLocaleString('id-ID')} Kg`;
+                      textWA += `- ${pakan}: ${d.items[pakan].toLocaleString('id-ID')} Kg\n`;
                   }
                   
                   html += `<div class="rekap-total"><span>Total Pakan</span><span>${d.total_qty.toLocaleString('id-ID')} Kg</span></div>`;
-                  textWA += `\n\nTotal: ${d.total_qty.toLocaleString('id-ID')} Kg\`\`\``;
+                  textWA += `\n*Total: ${d.total_qty.toLocaleString('id-ID')} Kg*\n`;
                   
                   if (d.total_biaya > 0) {
                       let formatBiaya = new Intl.NumberFormat('id-ID').format(d.total_biaya);
                       html += `<div class="rekap-biaya">💰 Biaya: Rp ${formatBiaya}</div>`;
-                      textWA += `\n💰 Biaya: Rp ${formatBiaya}`;
+                      textWA += `💰 Biaya: Rp ${formatBiaya}\n`;
                       if(d.ekor > 0) {
                          let rataRata = Math.round(d.total_biaya / d.ekor);
                          html += `<div class="rekap-item" style="color:#888;">Rata-rata</div><div class="rekap-item" style="color:#888; font-weight:bold;">Rp ${new Intl.NumberFormat('id-ID').format(rataRata)} / ekor</div>`;
-                         textWA += `\n📊 Rata-rata: Rp ${new Intl.NumberFormat('id-ID').format(rataRata)} / ekor`;
+                         textWA += `📊 Rata-rata: Rp ${new Intl.NumberFormat('id-ID').format(rataRata)} / ekor\n`;
                       }
                   }
                   html += `</div>`;
-                  textWA += `\n------------------\n`;
+                  textWA += `\n--------------------\n\n`;
               }
           } else {
               for (let status in data) {
                   html += `<div class="rekap-card" style="border-top: 4px solid ${status==='Masuk'?'#4CAF50':(status==='Keluar'?'#e91e63':'#FF9800')}">`;
                   html += `<div class="rekap-title" style="font-size:16px;">📂 Status: ${status.toUpperCase()}</div>`;
-                  textWA += `📂 *STATUS: ${status.toUpperCase()}*\n`;
+                  
+                  // WA Format
+                  textWA += `📂 STATUS: ${status.toUpperCase()}\n`;
                   
                   for (let relasi in data[status].rincian) {
                       html += `<div style="font-weight:600; font-size:13px; margin-top:10px; color:#444;">👤 ${relasi}</div>`;
-                      textWA += `👤 ${relasi}\n\`\`\``;
+                      textWA += `👤 ${relasi}\n\n`;
                       
                       let rincian = data[status].rincian[relasi];
                       for (let pakan in rincian.items) {
                            html += `<div class="rekap-item"><span style="padding-left:15px;">- ${pakan}</span><span>${rincian.items[pakan].toLocaleString('id-ID')} Kg</span></div>`;
-                           textWA += `\n- ${pakan}: ${rincian.items[pakan].toLocaleString('id-ID')} Kg`;
+                           textWA += `- ${pakan}: ${rincian.items[pakan].toLocaleString('id-ID')} Kg\n`;
                       }
                       html += `<div class="rekap-item" style="font-weight:bold; font-size:12px; border-bottom:1px solid #eee; margin-bottom:10px; padding-bottom:5px;"><span style="padding-left:15px;">Sub Total</span><span>${rincian.sub_qty.toLocaleString('id-ID')} Kg</span></div>`;
-                      textWA += `\n\nSub Total: ${rincian.sub_qty.toLocaleString('id-ID')} Kg\`\`\`\n\n`;
+                      
+                      textWA += `\n*Sub Total: ${rincian.sub_qty.toLocaleString('id-ID')} Kg*\n\n`;
                   }
                   html += `<div class="rekap-total"><span>Grand Total ${status}</span><span>${data[status].total_qty.toLocaleString('id-ID')} Kg</span></div>`;
                   html += `</div>`;
-                  textWA += `*Grand Total ${status}: ${data[status].total_qty.toLocaleString('id-ID')} Kg*\n====================\n\n`;
+                  
+                  let capStatus = status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
+                  textWA += `*_Grand Total ${capStatus}: ${data[status].total_qty.toLocaleString('id-ID')} Kg_*\n====================\n\n`;
               }
           }
 
@@ -356,7 +360,7 @@
 
               let teksWA = `LAPORAN ORDERAN ${payload.relasi.toUpperCase()}, ${tglFormat}\n\nTanggal: ${tglFormat}\nRelasi: *${payload.relasi}*\nAlamat: ${infoAlamat}\n`;
               if (payload.ongkir) teksWA += `Ongkir: ${payload.ongkir}\n`;
-              teksWA += `Status: ${payload.status}\nRincian:\n\`\`\`\n${ringkasanItem}\`\`\`\nTotal: ${grandTotal.toLocaleString('id-ID')} Kg`;
+              teksWA += `Status: ${payload.status}\nRincian:\n${ringkasanItem}\nTotal: ${grandTotal.toLocaleString('id-ID')} Kg`;
               if (payload.catatan) teksWA += `\nCatatan: ${payload.catatan}`; teksWA += `\n\nPetugas: _${payload.petugas}_`;
               
               let a = document.createElement('a'); a.href = `https://wa.me/${NOMOR_WA_ADMIN}?text=${encodeURIComponent(teksWA)}`; a.target = '_blank'; document.body.appendChild(a); a.click();
