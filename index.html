@@ -50,6 +50,10 @@
       #koneksi-badge { padding: 5px; text-align: center; font-size: 11px; font-weight: bold; color: white; background: #4CAF50; margin-bottom: 10px; border-radius: 4px;}
       .offline-badge { background: #f44336 !important; }
 
+      input[type="number"]::-webkit-outer-spin-button,
+      input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none !important; margin: 0 !important; }
+      input[type="number"] { -moz-appearance: textfield !important; }
+
       .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: white; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); display: flex; justify-content: space-around; padding: 10px 0; padding-bottom: env(safe-area-inset-bottom); z-index: 1000; }
       .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; color: #888; cursor: pointer; font-size: 11px; flex: 1; }
       .nav-item.active { color: #1a5c40; font-weight: bold; }
@@ -61,7 +65,7 @@
       .rekap-total { display: flex; justify-content: space-between; font-size: 14px; font-weight: bold; margin-top: 10px; color: #333; border-top: 1px dashed #ddd; padding-top: 5px;}
       .rekap-biaya { font-size: 12px; color: #e91e63; font-weight: bold; margin-top: 5px; }
 
-      /* ==== CSS CUSTOM KEYBOARD (Diperbarui dengan tombol Koma) ==== */
+      /* ==== CSS CUSTOM KEYBOARD ==== */
       #custom-keyboard { position: fixed; bottom: -400px; left: 0; right: 0; background: #e0e0e0; padding: 15px; padding-bottom: calc(15px + env(safe-area-inset-bottom)); transition: bottom 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); z-index: 2000; box-shadow: 0 -4px 15px rgba(0,0,0,0.1); border-top-left-radius: 20px; border-top-right-radius: 20px; display: flex; flex-direction: column; gap: 10px; max-width: 500px; margin: auto;}
       #custom-keyboard.show { bottom: 0; }
       .key-row { display: flex; gap: 10px; }
@@ -170,8 +174,8 @@
             <button class="key-btn" onclick="ketikKeyboard('9')">9</button>
         </div>
         <div class="key-row">
-            <button class="key-btn" onclick="ketikKeyboard('0')">0</button>
             <button class="key-btn" style="font-size: 26px;" onclick="ketikKeyboard(',')">,</button>
+            <button class="key-btn" onclick="ketikKeyboard('0')">0</button>
             <button class="key-btn action" onclick="ketikKeyboard('+')">+</button>
         </div>
         <div class="key-row">
@@ -240,7 +244,7 @@
               let el = document.getElementById('qty-' + activeKeyboardIndex);
               if (val === '+' && el.value.endsWith('+')) return; 
               if (val === '+' && el.value === '') return; 
-              if (val === ',' && el.value.endsWith(',')) return; // Mencegah double koma (,,)
+              if (val === ',' && el.value.endsWith(',')) return; 
               el.value += val;
               hitungCalc(activeKeyboardIndex);
           }
@@ -268,7 +272,6 @@
           let val = el.value.replace(/[^0-9+\-*/.,]/g, ''); 
           if(el.value !== val) el.value = val; 
           
-          // Mengubah koma jadi titik biar bisa dihitung sama JavaScript
           let mathStr = val.replace(/,/g, '.'); 
           let total = 0; 
           try { 
@@ -286,7 +289,7 @@
           let lblKarung = document.getElementById('lbl-karung-' + index);
           let hasilEl = document.getElementById('hasil-' + index);
 
-          // LOGIKA UNTUK MAKO DKK (Kemasan Teratur)
+          // LOGIKA UNTUK MAKO DKK
           if (kemasan > 0) {
               let jmlKarung = total / kemasan;
               el.setAttribute('data-karung', jmlKarung);
@@ -300,18 +303,13 @@
                   }
               }
           } 
-          // LOGIKA UNTUK RAPEN DKK (Kemasan Bebas / Kalkulator)
+          // LOGIKA UNTUK RAPEN DKK
           else {
-              // Menghitung berapa kali petugas masukkan angka yang dipisah tanda tambah (+)
               let jmlKarung = val.split(/[+\-*/]/).filter(x => parseFloat(x) > 0).length;
               el.setAttribute('data-karung', jmlKarung);
               
               if (hasilEl) {
-                  // Format titik ala Indonesia untuk hasil angka ribuan
-                  // Tapi kalau hasilnya ada koma desimal, kita pakai format khusus
                   let textHasil = "= " + Number(total || 0).toLocaleString('id-ID'); 
-                  
-                  // Munculkan tulisan (3 Krg) di samping total kalau ada nilainya
                   if (total > 0 && jmlKarung > 0) {
                       textHasil += ` (${jmlKarung} Krg)`;
                   }
@@ -487,7 +485,6 @@
                   
                   if (jmlKarung > 0) { 
                       let formatKr = Number.isInteger(jmlKarung) ? jmlKarung : jmlKarung.toFixed(2);
-                      // Menggunakan toLocaleString untuk format desimal Indonesia di WA
                       ringkasanItem += `• ${key}: ${Number(qtyKg).toLocaleString('id-ID')} Kg | ${formatKr} ${namaKemasan}\n`; 
                   } else { 
                       ringkasanItem += `• ${key}: ${Number(qtyKg).toLocaleString('id-ID')} Kg\n`; 
