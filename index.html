@@ -90,7 +90,6 @@
         
         <div id="page-input" class="container">
           <h2>Input Pakan Harian</h2>
-          
           <div id="koneksi-badge">🟢 ONLINE: Sinkronisasi Aktif</div>
           <div class="sub-header">Petugas Aktif: <b id="nama-petugas" style="color:#1a5c40;"></b></div>
 
@@ -180,7 +179,7 @@
 
     <script>
       // ==========================================
-      // ⚠️ WAJIB ISI URL & NO WA (Jangan lupa bos!)
+      // ⚠️ WAJIB ISI URL & NO WA 
       const API_URL = "https://script.google.com/macros/s/AKfycbxm8APTPE4lgMIimnOOUetQPY2vWiNqkL5_4afV_jY5AoC_bPVp2z1IsMKImJXOroi0/exec";
       const NOMOR_WA_ADMIN = "6282143601114"; 
       // ==========================================
@@ -221,7 +220,6 @@
           tutupKeyboard();
       }
 
-      // --- LOGIKA CUSTOM KEYBOARD & KALKULASI ---
       function bukaKeyboard(index) {
           activeKeyboardIndex = index;
           document.getElementById('custom-keyboard').classList.add('show');
@@ -257,10 +255,8 @@
           let currentTotal = parseFloat(el.getAttribute('data-total')) || 0;
           let newVal = currentTotal + delta; 
           if(newVal < 0) newVal = 0; 
-          
-          // Kalau dipencet tombol +/-, kita timpa tulisan rumusnya dengan angka bulat
           el.value = newVal > 0 ? newVal.toString() : ""; 
-          hitungCalc(index); // Jalankan hitung biar label karung update otomatis
+          hitungCalc(index); 
       }
 
       function hitungCalc(index) { 
@@ -276,27 +272,44 @@
           
           el.setAttribute('data-total', total || 0); 
           
-          // Update label sama dengan (=) untuk Rapen dkk
-          let hasilEl = document.getElementById('hasil-' + index);
-          if (hasilEl) hasilEl.innerText = "= " + (total || 0).toLocaleString('id-ID'); 
-
-          // Update label jumlah karung (untuk Mako dkk)
           let kemasan = parseFloat(el.getAttribute('data-kemasan')) || 0;
+          let satuan = el.getAttribute('data-satuan') || "Kg";
+          let namaItem = currentItems[index].nama.toLowerCase();
+          let namaKemasan = (satuan.toLowerCase() === 'ltr' || namaItem.includes('bio smart')) ? "Jirigen" : "Karung";
+          
           let lblKarung = document.getElementById('lbl-karung-' + index);
-          if (lblKarung && kemasan > 0) {
-              if (total > 0) {
-                  let jmlKarung = total / kemasan;
-                  let satuan = el.getAttribute('data-satuan');
-                  let namaKemasan = (satuan && satuan.toLowerCase() === 'ltr' || currentItems[index].nama.toLowerCase().includes('bio smart')) ? "Jirigen" : "Karung";
-                  // Hilangkan desimal kalau angkanya bulat
-                  let formatKarung = Number.isInteger(jmlKarung) ? jmlKarung : jmlKarung.toFixed(2);
-                  lblKarung.innerText = `(${formatKarung} ${namaKemasan})`;
-              } else {
-                  lblKarung.innerText = "";
+          let hasilEl = document.getElementById('hasil-' + index);
+
+          // LOGIKA UNTUK MAKO DKK (Kemasan Teratur)
+          if (kemasan > 0) {
+              let jmlKarung = total / kemasan;
+              el.setAttribute('data-karung', jmlKarung);
+              
+              if (lblKarung) {
+                  if (total > 0) {
+                      let formatKarung = Number.isInteger(jmlKarung) ? jmlKarung : jmlKarung.toFixed(2);
+                      lblKarung.innerText = `(${formatKarung} ${namaKemasan})`;
+                  } else {
+                      lblKarung.innerText = "";
+                  }
+              }
+          } 
+          // LOGIKA UNTUK RAPEN DKK (Kemasan Bebas / Kalkulator)
+          else {
+              // Menghitung berapa kali petugas masukkan angka yang dipisah tanda tambah (+)
+              let jmlKarung = val.split(/[+\-*/]/).filter(x => parseFloat(x) > 0).length;
+              el.setAttribute('data-karung', jmlKarung);
+              
+              if (hasilEl) {
+                  let textHasil = "= " + (total || 0).toLocaleString('id-ID');
+                  // Munculkan tulisan (3 Krg) di samping total kalau ada nilainya
+                  if (total > 0 && jmlKarung > 0) {
+                      textHasil += ` (${jmlKarung} Krg)`;
+                  }
+                  hasilEl.innerText = textHasil;
               }
           }
       }
-      // ---------------------------------
 
       function tarikDataRekapDB() {
           if (!navigator.onLine) { alert("Butuh internet untuk tarik data Database!"); return; }
@@ -419,10 +432,9 @@
                   let formatHarga = new Intl.NumberFormat('id-ID').format(item.harga); let labelInput = item.satuan || "Kg"; 
                   if (item.kemasan > 0) {
                       let stepValue = item.kemasan; 
-                      // ==== UPDATE: MAKO BISA DIKLIK MUNCUL KEYBOARD & ADA LABEL KARUNG DI BAWAHNYA ====
-                      html += `<div class="menu-item"><div class="item-info"><div class="item-name">${item.nama}</div>${item.harga > 0 ? '<div class="item-price">Rp '+formatHarga+' / Kg</div>' : ''}</div><div class="counter-box" style="flex-direction: column; align-items: flex-end; gap: 2px;"><div style="display:flex; align-items:center; gap:5px;"><div class="btn-qty" onclick="ubahQty(${index}, -${stepValue})">-</div><input type="text" id="qty-${index}" class="qty-input calc-input" style="width: 55px !important; text-align:center !important; padding:0 !important;" placeholder="0" onclick="bukaKeyboard(${index})" readonly data-total="0" data-kemasan="${stepValue}" data-satuan="${item.satuan}"><div class="btn-qty" onclick="ubahQty(${index}, ${stepValue})">+</div><span style="font-size:12px; font-weight:bold;">${labelInput}</span></div><span id="lbl-karung-${index}" style="font-size:11px; color:#e91e63; font-weight:bold; height:14px; margin-right: 20px;"></span></div></div>`;
+                      html += `<div class="menu-item"><div class="item-info"><div class="item-name">${item.nama}</div>${item.harga > 0 ? '<div class="item-price">Rp '+formatHarga+' / Kg</div>' : ''}</div><div class="counter-box" style="flex-direction: column; align-items: flex-end; gap: 2px;"><div style="display:flex; align-items:center; gap:5px;"><div class="btn-qty" onclick="ubahQty(${index}, -${stepValue})">-</div><input type="text" id="qty-${index}" class="qty-input calc-input" style="width: 55px !important; text-align:center !important; padding:0 !important;" placeholder="0" onclick="bukaKeyboard(${index})" readonly data-total="0" data-karung="0" data-kemasan="${stepValue}" data-satuan="${item.satuan}"><div class="btn-qty" onclick="ubahQty(${index}, ${stepValue})">+</div><span style="font-size:12px; font-weight:bold;">${labelInput}</span></div><span id="lbl-karung-${index}" style="font-size:11px; color:#e91e63; font-weight:bold; height:14px; margin-right: 20px;"></span></div></div>`;
                   } else {
-                      html += `<div class="menu-item"><div class="item-info" style="flex: 1;"><div class="item-name">${item.nama}</div>${item.harga > 0 ? '<div class="item-price">Rp '+formatHarga+' / Kg</div>' : ''}</div><div class="counter-box" style="flex: 1.5; justify-content: flex-end;"><input type="text" id="qty-${index}" class="qty-input calc-input" placeholder="Cth: 35+28" onclick="bukaKeyboard(${index})" readonly data-total="0" data-kemasan="0" data-satuan="${item.satuan}"><span id="hasil-${index}" class="hasil-calc">= 0</span><span style="font-size:12px; font-weight:bold; margin-left:5px;">${labelInput}</span></div></div>`;
+                      html += `<div class="menu-item"><div class="item-info" style="flex: 1;"><div class="item-name">${item.nama}</div>${item.harga > 0 ? '<div class="item-price">Rp '+formatHarga+' / Kg</div>' : ''}</div><div class="counter-box" style="flex: 1.5; justify-content: flex-end;"><input type="text" id="qty-${index}" class="qty-input calc-input" placeholder="Cth: 35+28" onclick="bukaKeyboard(${index})" readonly data-total="0" data-karung="0" data-kemasan="0" data-satuan="${item.satuan}"><span id="hasil-${index}" class="hasil-calc">= 0</span><span style="font-size:12px; font-weight:bold; margin-left:5px;">${labelInput}</span></div></div>`;
                   }
               });
           }
@@ -445,9 +457,9 @@
           if (!payload.relasi) { alert("Nama Relasi tidak boleh kosong!"); return; }
           let totalItem = 0;
           currentItems.forEach(function(item, index) {
-              let qtyInput = document.getElementById('qty-' + index);
-              let qty = qtyInput.hasAttribute('data-total') ? parseFloat(qtyInput.getAttribute('data-total')) : parseFloat(qtyInput.value);
-              if (qty > 0) { payload.items[item.nama] = qty || 0; totalItem++; }
+              let el = document.getElementById('qty-' + index);
+              let qty = parseFloat(el.getAttribute('data-total')) || 0;
+              if (qty > 0) { payload.items[item.nama] = qty; totalItem++; }
           });
           if (totalItem === 0) { alert("Harap isi pakan!"); return; }
 
@@ -455,13 +467,18 @@
               let ringkasanItem = ""; let grandTotal = 0;
               for(let key in payload.items) {
                   let qtyKg = payload.items[key]; grandTotal += qtyKg;
-                  let itemObj = currentItems.find(i => i.nama === key);
-                  let kemasan = (itemObj && itemObj.kemasan > 0) ? itemObj.kemasan : 0; let satuan = (itemObj && itemObj.satuan) ? itemObj.satuan : "Kg";
-                  if (kemasan > 0) { 
-                      let namaKemasan = (satuan.toLowerCase() === 'ltr' || key.toLowerCase().includes('bio smart')) ? "Jirigen" : "Karung"; 
-                      // Hitung karung utk laporan WA (bisa desimal)
-                      let hitungKr = qtyKg / kemasan;
-                      let formatKr = Number.isInteger(hitungKr) ? hitungKr : hitungKr.toFixed(2);
+                  
+                  // Mengambil informasi jumlah karung dari atribut data-karung yang tersimpan
+                  let itemIndex = currentItems.findIndex(i => i.nama === key);
+                  let elTarget = document.getElementById('qty-' + itemIndex);
+                  let jmlKarung = parseFloat(elTarget.getAttribute('data-karung')) || 0;
+                  
+                  let itemObj = currentItems[itemIndex];
+                  let satuan = itemObj.satuan || "Kg";
+                  let namaKemasan = (satuan.toLowerCase() === 'ltr' || key.toLowerCase().includes('bio smart')) ? "Jirigen" : "Karung"; 
+                  
+                  if (jmlKarung > 0) { 
+                      let formatKr = Number.isInteger(jmlKarung) ? jmlKarung : jmlKarung.toFixed(2);
                       ringkasanItem += `• ${key}: ${qtyKg.toLocaleString('id-ID')} Kg | ${formatKr} ${namaKemasan}\n`; 
                   } else { 
                       ringkasanItem += `• ${key}: ${qtyKg.toLocaleString('id-ID')} Kg\n`; 
@@ -485,12 +502,12 @@
           if (navigator.onLine) { fetch(API_URL, { method: 'POST', body: JSON.stringify({ source: 'pwa_cbl', payload: payload }) }); } 
           else { let antrian = JSON.parse(localStorage.getItem('antrian_pakan')) || []; antrian.push(payload); localStorage.setItem('antrian_pakan', JSON.stringify(antrian)); updateStatusKoneksi(); }
 
-          // Bersihkan form setelah kirim
           document.getElementById('relasi').value = ""; document.getElementById('ekor').value = ""; document.getElementById('ongkir').value = ""; document.getElementById('catatan').value = "";
           currentItems.forEach((item, index) => { 
               let el = document.getElementById('qty-'+index); 
               el.value = ""; 
               el.setAttribute('data-total', "0"); 
+              el.setAttribute('data-karung', "0"); 
               if (document.getElementById('hasil-'+index)) document.getElementById('hasil-'+index).innerText = "= 0"; 
               if (document.getElementById('lbl-karung-'+index)) document.getElementById('lbl-karung-'+index).innerText = ""; 
           });
