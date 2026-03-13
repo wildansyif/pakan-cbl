@@ -61,15 +61,15 @@
       .rekap-total { display: flex; justify-content: space-between; font-size: 14px; font-weight: bold; margin-top: 10px; color: #333; border-top: 1px dashed #ddd; padding-top: 5px;}
       .rekap-biaya { font-size: 12px; color: #e91e63; font-weight: bold; margin-top: 5px; }
 
-      /* ==== CSS CUSTOM KEYBOARD ==== */
+      /* ==== CSS CUSTOM KEYBOARD (Diperbarui dengan tombol Koma) ==== */
       #custom-keyboard { position: fixed; bottom: -400px; left: 0; right: 0; background: #e0e0e0; padding: 15px; padding-bottom: calc(15px + env(safe-area-inset-bottom)); transition: bottom 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); z-index: 2000; box-shadow: 0 -4px 15px rgba(0,0,0,0.1); border-top-left-radius: 20px; border-top-right-radius: 20px; display: flex; flex-direction: column; gap: 10px; max-width: 500px; margin: auto;}
       #custom-keyboard.show { bottom: 0; }
       .key-row { display: flex; gap: 10px; }
       .key-btn { flex: 1; background: #fff; border: none; border-radius: 10px; padding: 18px 0; font-size: 22px; font-weight: bold; color: #333; box-shadow: 0 2px 5px rgba(0,0,0,0.1); cursor: pointer; touch-action: manipulation; }
       .key-btn:active { background: #d0d0d0; transform: scale(0.98); }
       .key-btn.action { background: #1a5c40; color: white; font-size: 24px; }
-      .key-btn.delete { background: #f44336; color: white; font-size: 18px; }
-      .key-btn.done { flex: unset; width: 100%; background: #2196F3; color: white; font-size: 16px; padding: 15px 0;}
+      .key-btn.delete { flex: 1; background: #f44336; color: white; font-size: 18px; }
+      .key-btn.done { flex: 1; background: #2196F3; color: white; font-size: 18px; }
     </style>
   </head>
   <body>
@@ -170,16 +170,19 @@
             <button class="key-btn" onclick="ketikKeyboard('9')">9</button>
         </div>
         <div class="key-row">
-            <button class="key-btn action" onclick="ketikKeyboard('+')">+</button>
             <button class="key-btn" onclick="ketikKeyboard('0')">0</button>
-            <button class="key-btn delete" onclick="hapusKeyboard()">⌫ Hapus</button>
+            <button class="key-btn" style="font-size: 26px;" onclick="ketikKeyboard(',')">,</button>
+            <button class="key-btn action" onclick="ketikKeyboard('+')">+</button>
         </div>
-        <button class="key-btn done" onclick="tutupKeyboard()">Selesai</button>
+        <div class="key-row">
+            <button class="key-btn delete" onclick="hapusKeyboard()">⌫ Hapus</button>
+            <button class="key-btn done" onclick="tutupKeyboard()">Selesai</button>
+        </div>
     </div>
 
     <script>
       // ==========================================
-      // ⚠️ WAJIB ISI URL & NO WA 
+      // ⚠️ WAJIB ISI URL & NO WA (Jangan lupa bos!)
       const API_URL = "https://script.google.com/macros/s/AKfycbxm8APTPE4lgMIimnOOUetQPY2vWiNqkL5_4afV_jY5AoC_bPVp2z1IsMKImJXOroi0/exec";
       const NOMOR_WA_ADMIN = "6282143601114"; 
       // ==========================================
@@ -237,6 +240,7 @@
               let el = document.getElementById('qty-' + activeKeyboardIndex);
               if (val === '+' && el.value.endsWith('+')) return; 
               if (val === '+' && el.value === '') return; 
+              if (val === ',' && el.value.endsWith(',')) return; // Mencegah double koma (,,)
               el.value += val;
               hitungCalc(activeKeyboardIndex);
           }
@@ -263,6 +267,8 @@
           let el = document.getElementById('qty-' + index); 
           let val = el.value.replace(/[^0-9+\-*/.,]/g, ''); 
           if(el.value !== val) el.value = val; 
+          
+          // Mengubah koma jadi titik biar bisa dihitung sama JavaScript
           let mathStr = val.replace(/,/g, '.'); 
           let total = 0; 
           try { 
@@ -301,7 +307,10 @@
               el.setAttribute('data-karung', jmlKarung);
               
               if (hasilEl) {
-                  let textHasil = "= " + (total || 0).toLocaleString('id-ID');
+                  // Format titik ala Indonesia untuk hasil angka ribuan
+                  // Tapi kalau hasilnya ada koma desimal, kita pakai format khusus
+                  let textHasil = "= " + Number(total || 0).toLocaleString('id-ID'); 
+                  
                   // Munculkan tulisan (3 Krg) di samping total kalau ada nilainya
                   if (total > 0 && jmlKarung > 0) {
                       textHasil += ` (${jmlKarung} Krg)`;
@@ -468,7 +477,6 @@
               for(let key in payload.items) {
                   let qtyKg = payload.items[key]; grandTotal += qtyKg;
                   
-                  // Mengambil informasi jumlah karung dari atribut data-karung yang tersimpan
                   let itemIndex = currentItems.findIndex(i => i.nama === key);
                   let elTarget = document.getElementById('qty-' + itemIndex);
                   let jmlKarung = parseFloat(elTarget.getAttribute('data-karung')) || 0;
@@ -479,9 +487,10 @@
                   
                   if (jmlKarung > 0) { 
                       let formatKr = Number.isInteger(jmlKarung) ? jmlKarung : jmlKarung.toFixed(2);
-                      ringkasanItem += `• ${key}: ${qtyKg.toLocaleString('id-ID')} Kg | ${formatKr} ${namaKemasan}\n`; 
+                      // Menggunakan toLocaleString untuk format desimal Indonesia di WA
+                      ringkasanItem += `• ${key}: ${Number(qtyKg).toLocaleString('id-ID')} Kg | ${formatKr} ${namaKemasan}\n`; 
                   } else { 
-                      ringkasanItem += `• ${key}: ${qtyKg.toLocaleString('id-ID')} Kg\n`; 
+                      ringkasanItem += `• ${key}: ${Number(qtyKg).toLocaleString('id-ID')} Kg\n`; 
                   }
               }
               let d = payload.tanggal ? new Date(payload.tanggal) : new Date(); let tglFormat = ("0"+d.getDate()).slice(-2)+"/"+("0"+(d.getMonth()+1)).slice(-2)+"/"+d.getFullYear();
@@ -492,7 +501,7 @@
               if (payload.ongkir) teksWA += `Ongkir: ${payload.ongkir}\n`;
               teksWA += `Status: ${payload.status}\n\n`;
               teksWA += `${ringkasanItem}\n`;
-              teksWA += `Total: ${grandTotal.toLocaleString('id-ID')} Kg`;
+              teksWA += `Total: ${Number(grandTotal).toLocaleString('id-ID')} Kg`;
               if (payload.catatan) teksWA += `\nCatatan: ${payload.catatan}`; 
               teksWA += `\n\nPetugas: ${payload.petugas}`;
               
