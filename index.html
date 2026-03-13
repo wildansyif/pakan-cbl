@@ -50,10 +50,6 @@
       #koneksi-badge { padding: 5px; text-align: center; font-size: 11px; font-weight: bold; color: white; background: #4CAF50; margin-bottom: 10px; border-radius: 4px;}
       .offline-badge { background: #f44336 !important; }
 
-      input[type="number"]::-webkit-outer-spin-button,
-      input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none !important; margin: 0 !important; }
-      input[type="number"] { -moz-appearance: textfield !important; }
-
       .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: white; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); display: flex; justify-content: space-around; padding: 10px 0; padding-bottom: env(safe-area-inset-bottom); z-index: 1000; }
       .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; color: #888; cursor: pointer; font-size: 11px; flex: 1; }
       .nav-item.active { color: #1a5c40; font-weight: bold; }
@@ -230,7 +226,10 @@
       function bukaKeyboard(index) {
           activeKeyboardIndex = index;
           document.getElementById('custom-keyboard').classList.add('show');
-          document.getElementById('qty-' + index).focus();
+          let el = document.getElementById('qty-' + index);
+          el.focus();
+          // Gulir ke ujung kanan saat keyboard baru dibuka
+          setTimeout(() => { el.scrollLeft = el.scrollWidth; }, 10);
       }
 
       function tutupKeyboard() {
@@ -247,6 +246,9 @@
               if (val === ',' && el.value.endsWith(',')) return; 
               el.value += val;
               hitungCalc(activeKeyboardIndex);
+              
+              // FITUR AUTO SCROLL KE KANAN
+              setTimeout(() => { el.scrollLeft = el.scrollWidth; }, 10);
           }
       }
 
@@ -255,6 +257,9 @@
               let el = document.getElementById('qty-' + activeKeyboardIndex);
               el.value = el.value.slice(0, -1);
               hitungCalc(activeKeyboardIndex);
+              
+              // FITUR AUTO SCROLL KE KANAN
+              setTimeout(() => { el.scrollLeft = el.scrollWidth; }, 10);
           }
       }
 
