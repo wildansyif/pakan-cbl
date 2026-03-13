@@ -36,7 +36,8 @@
       .btn-qty { width: 30px; height: 30px; border: 1px solid #ccc; background: white; border-radius: 6px; font-weight: bold; color: #1a5c40; cursor: pointer; display: flex; justify-content: center; align-items: center; font-size: 18px;}
       .qty-input { width: 45px; height: 30px; text-align: center !important; font-weight: bold; border: 1px solid #ccc; border-radius: 6px; padding: 0 !important; margin: 0; font-size: 14px;}
       
-      .calc-input { width: 100% !important; text-align: left !important; padding-left: 10px !important; font-size: 13px; font-weight: normal; }
+      .calc-input { width: 100% !important; text-align: left !important; padding-left: 10px !important; font-size: 13px; font-weight: normal; cursor: text; background-color: #fff;}
+      .calc-input:focus { background-color: #e8f5e9; outline: none; border-color: #1a5c40; }
       .hasil-calc { font-size: 13px; font-weight: bold; color: #1a5c40; min-width: 40px; text-align: right; }
 
       .btn-submit { background: #1a5c40; color: white; border: none; padding: 12px 20px; border-radius: 25px; font-weight: bold; font-size: 16px; width: 100%; cursor: pointer; margin-top: 10px;}
@@ -49,10 +50,6 @@
       #koneksi-badge { padding: 5px; text-align: center; font-size: 11px; font-weight: bold; color: white; background: #4CAF50; margin-bottom: 10px; border-radius: 4px;}
       .offline-badge { background: #f44336 !important; }
 
-      input[type="number"]::-webkit-outer-spin-button,
-      input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none !important; margin: 0 !important; }
-      input[type="number"] { -moz-appearance: textfield !important; }
-
       .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: white; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); display: flex; justify-content: space-around; padding: 10px 0; padding-bottom: env(safe-area-inset-bottom); z-index: 1000; }
       .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; color: #888; cursor: pointer; font-size: 11px; flex: 1; }
       .nav-item.active { color: #1a5c40; font-weight: bold; }
@@ -63,6 +60,16 @@
       .rekap-item { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px; color: #555;}
       .rekap-total { display: flex; justify-content: space-between; font-size: 14px; font-weight: bold; margin-top: 10px; color: #333; border-top: 1px dashed #ddd; padding-top: 5px;}
       .rekap-biaya { font-size: 12px; color: #e91e63; font-weight: bold; margin-top: 5px; }
+
+      /* ==== CSS CUSTOM KEYBOARD ==== */
+      #custom-keyboard { position: fixed; bottom: -400px; left: 0; right: 0; background: #e0e0e0; padding: 15px; padding-bottom: calc(15px + env(safe-area-inset-bottom)); transition: bottom 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); z-index: 2000; box-shadow: 0 -4px 15px rgba(0,0,0,0.1); border-top-left-radius: 20px; border-top-right-radius: 20px; display: flex; flex-direction: column; gap: 10px; max-width: 500px; margin: auto;}
+      #custom-keyboard.show { bottom: 0; }
+      .key-row { display: flex; gap: 10px; }
+      .key-btn { flex: 1; background: #fff; border: none; border-radius: 10px; padding: 18px 0; font-size: 22px; font-weight: bold; color: #333; box-shadow: 0 2px 5px rgba(0,0,0,0.1); cursor: pointer; touch-action: manipulation; }
+      .key-btn:active { background: #d0d0d0; transform: scale(0.98); }
+      .key-btn.action { background: #1a5c40; color: white; font-size: 24px; }
+      .key-btn.delete { background: #f44336; color: white; font-size: 18px; }
+      .key-btn.done { flex: unset; width: 100%; background: #2196F3; color: white; font-size: 16px; padding: 15px 0;}
     </style>
   </head>
   <body>
@@ -147,15 +154,40 @@
         </div>
     </div>
 
+    <div id="custom-keyboard">
+        <div class="key-row">
+            <button class="key-btn" onclick="ketikKeyboard('1')">1</button>
+            <button class="key-btn" onclick="ketikKeyboard('2')">2</button>
+            <button class="key-btn" onclick="ketikKeyboard('3')">3</button>
+        </div>
+        <div class="key-row">
+            <button class="key-btn" onclick="ketikKeyboard('4')">4</button>
+            <button class="key-btn" onclick="ketikKeyboard('5')">5</button>
+            <button class="key-btn" onclick="ketikKeyboard('6')">6</button>
+        </div>
+        <div class="key-row">
+            <button class="key-btn" onclick="ketikKeyboard('7')">7</button>
+            <button class="key-btn" onclick="ketikKeyboard('8')">8</button>
+            <button class="key-btn" onclick="ketikKeyboard('9')">9</button>
+        </div>
+        <div class="key-row">
+            <button class="key-btn action" onclick="ketikKeyboard('+')">+</button>
+            <button class="key-btn" onclick="ketikKeyboard('0')">0</button>
+            <button class="key-btn delete" onclick="hapusKeyboard()">⌫ Hapus</button>
+        </div>
+        <button class="key-btn done" onclick="tutupKeyboard()">Selesai</button>
+    </div>
+
     <script>
       // ==========================================
-      // ⚠️ WAJIB ISI URL & NO WA 
+      // ⚠️ WAJIB ISI URL & NO WA (Jangan lupa bos!)
       const API_URL = "https://script.google.com/macros/s/AKfycbxm8APTPE4lgMIimnOOUetQPY2vWiNqkL5_4afV_jY5AoC_bPVp2z1IsMKImJXOroi0/exec";
       const NOMOR_WA_ADMIN = "6282143601114"; 
       // ==========================================
       
-      const USERS = { "1234": "Admin Pusat", "5678": "Admin", "0000": "Pak Agus", "8888": "Jinan" };
+      const USERS = { "1234": "Admin Pusat", "5678": "Petugas Lapangan", "0000": "Tim SPN", "8888": "Jinan" };
       let activeUser = ""; let currentItems = []; 
+      let activeKeyboardIndex = null; 
 
       if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
       window.addEventListener('online', updateStatusKoneksi);
@@ -186,7 +218,85 @@
           document.getElementById('page-input').classList.add('hidden'); document.getElementById('page-rekap').classList.add('hidden');
           document.getElementById('nav-input').classList.remove('active'); document.getElementById('nav-rekap').classList.remove('active');
           document.getElementById('page-' + menu).classList.remove('hidden'); document.getElementById('nav-' + menu).classList.add('active');
+          tutupKeyboard();
       }
+
+      // --- LOGIKA CUSTOM KEYBOARD & KALKULASI ---
+      function bukaKeyboard(index) {
+          activeKeyboardIndex = index;
+          document.getElementById('custom-keyboard').classList.add('show');
+          document.getElementById('qty-' + index).focus();
+      }
+
+      function tutupKeyboard() {
+          activeKeyboardIndex = null;
+          document.getElementById('custom-keyboard').classList.remove('show');
+          document.querySelectorAll('.calc-input').forEach(el => el.blur());
+      }
+
+      function ketikKeyboard(val) {
+          if (activeKeyboardIndex !== null) {
+              let el = document.getElementById('qty-' + activeKeyboardIndex);
+              if (val === '+' && el.value.endsWith('+')) return; 
+              if (val === '+' && el.value === '') return; 
+              el.value += val;
+              hitungCalc(activeKeyboardIndex);
+          }
+      }
+
+      function hapusKeyboard() {
+          if (activeKeyboardIndex !== null) {
+              let el = document.getElementById('qty-' + activeKeyboardIndex);
+              el.value = el.value.slice(0, -1);
+              hitungCalc(activeKeyboardIndex);
+          }
+      }
+
+      function ubahQty(index, delta) { 
+          let el = document.getElementById('qty-' + index); 
+          let currentTotal = parseFloat(el.getAttribute('data-total')) || 0;
+          let newVal = currentTotal + delta; 
+          if(newVal < 0) newVal = 0; 
+          
+          // Kalau dipencet tombol +/-, kita timpa tulisan rumusnya dengan angka bulat
+          el.value = newVal > 0 ? newVal.toString() : ""; 
+          hitungCalc(index); // Jalankan hitung biar label karung update otomatis
+      }
+
+      function hitungCalc(index) { 
+          let el = document.getElementById('qty-' + index); 
+          let val = el.value.replace(/[^0-9+\-*/.,]/g, ''); 
+          if(el.value !== val) el.value = val; 
+          let mathStr = val.replace(/,/g, '.'); 
+          let total = 0; 
+          try { 
+              while(mathStr.endsWith('+') || mathStr.endsWith('-') || mathStr.endsWith('*') || mathStr.endsWith('/')) mathStr = mathStr.slice(0, -1); 
+              if(mathStr) total = new Function('return (' + mathStr + ')')(); 
+          } catch(e) { total = 0; } 
+          
+          el.setAttribute('data-total', total || 0); 
+          
+          // Update label sama dengan (=) untuk Rapen dkk
+          let hasilEl = document.getElementById('hasil-' + index);
+          if (hasilEl) hasilEl.innerText = "= " + (total || 0).toLocaleString('id-ID'); 
+
+          // Update label jumlah karung (untuk Mako dkk)
+          let kemasan = parseFloat(el.getAttribute('data-kemasan')) || 0;
+          let lblKarung = document.getElementById('lbl-karung-' + index);
+          if (lblKarung && kemasan > 0) {
+              if (total > 0) {
+                  let jmlKarung = total / kemasan;
+                  let satuan = el.getAttribute('data-satuan');
+                  let namaKemasan = (satuan && satuan.toLowerCase() === 'ltr' || currentItems[index].nama.toLowerCase().includes('bio smart')) ? "Jirigen" : "Karung";
+                  // Hilangkan desimal kalau angkanya bulat
+                  let formatKarung = Number.isInteger(jmlKarung) ? jmlKarung : jmlKarung.toFixed(2);
+                  lblKarung.innerText = `(${formatKarung} ${namaKemasan})`;
+              } else {
+                  lblKarung.innerText = "";
+              }
+          }
+      }
+      // ---------------------------------
 
       function tarikDataRekapDB() {
           if (!navigator.onLine) { alert("Butuh internet untuk tarik data Database!"); return; }
@@ -226,7 +336,6 @@
                   html += `<div class="rekap-card">`;
                   html += `<div class="rekap-title">🐄 Kelompok: ${relasi} <span style="color:#666; font-weight:normal;">(${d.ekor} ekor)</span></div>`;
                   
-                  // WA Format
                   textWA += `📌 *${relasi}* (${d.ekor} ekor)\n\n`;
                   
                   for (let pakan in d.items) {
@@ -255,7 +364,6 @@
                   html += `<div class="rekap-card" style="border-top: 4px solid ${status==='Masuk'?'#4CAF50':(status==='Keluar'?'#e91e63':'#FF9800')}">`;
                   html += `<div class="rekap-title" style="font-size:16px;">📂 Status: ${status.toUpperCase()}</div>`;
                   
-                  // WA Format
                   textWA += `📂 STATUS: ${status.toUpperCase()}\n`;
                   
                   for (let relasi in data[status].rincian) {
@@ -311,19 +419,18 @@
                   let formatHarga = new Intl.NumberFormat('id-ID').format(item.harga); let labelInput = item.satuan || "Kg"; 
                   if (item.kemasan > 0) {
                       let stepValue = item.kemasan; 
-                      html += `<div class="menu-item"><div class="item-info"><div class="item-name">${item.nama}</div>${item.harga > 0 ? '<div class="item-price">Rp '+formatHarga+' / Kg</div>' : ''}</div><div class="counter-box"><div class="btn-qty" onclick="ubahQty(${index}, -${stepValue})">-</div><input type="number" id="qty-${index}" class="qty-input" value="0" min="0" step="${stepValue}"><div class="btn-qty" onclick="ubahQty(${index}, ${stepValue})">+</div><span style="font-size:12px; font-weight:bold; margin-left:5px;">${labelInput}</span></div></div>`;
+                      // ==== UPDATE: MAKO BISA DIKLIK MUNCUL KEYBOARD & ADA LABEL KARUNG DI BAWAHNYA ====
+                      html += `<div class="menu-item"><div class="item-info"><div class="item-name">${item.nama}</div>${item.harga > 0 ? '<div class="item-price">Rp '+formatHarga+' / Kg</div>' : ''}</div><div class="counter-box" style="flex-direction: column; align-items: flex-end; gap: 2px;"><div style="display:flex; align-items:center; gap:5px;"><div class="btn-qty" onclick="ubahQty(${index}, -${stepValue})">-</div><input type="text" id="qty-${index}" class="qty-input calc-input" style="width: 55px !important; text-align:center !important; padding:0 !important;" placeholder="0" onclick="bukaKeyboard(${index})" readonly data-total="0" data-kemasan="${stepValue}" data-satuan="${item.satuan}"><div class="btn-qty" onclick="ubahQty(${index}, ${stepValue})">+</div><span style="font-size:12px; font-weight:bold;">${labelInput}</span></div><span id="lbl-karung-${index}" style="font-size:11px; color:#e91e63; font-weight:bold; height:14px; margin-right: 20px;"></span></div></div>`;
                   } else {
-                      html += `<div class="menu-item"><div class="item-info" style="flex: 1;"><div class="item-name">${item.nama}</div>${item.harga > 0 ? '<div class="item-price">Rp '+formatHarga+' / Kg</div>' : ''}</div><div class="counter-box" style="flex: 1.5; justify-content: flex-end;"><input type="text" inputmode="decimal" id="qty-${index}" class="qty-input calc-input" placeholder="Cth: 35+28" oninput="hitungCalc(${index})" data-total="0"><span id="hasil-${index}" class="hasil-calc">= 0</span><span style="font-size:12px; font-weight:bold; margin-left:5px;">${labelInput}</span></div></div>`;
+                      html += `<div class="menu-item"><div class="item-info" style="flex: 1;"><div class="item-name">${item.nama}</div>${item.harga > 0 ? '<div class="item-price">Rp '+formatHarga+' / Kg</div>' : ''}</div><div class="counter-box" style="flex: 1.5; justify-content: flex-end;"><input type="text" id="qty-${index}" class="qty-input calc-input" placeholder="Cth: 35+28" onclick="bukaKeyboard(${index})" readonly data-total="0" data-kemasan="0" data-satuan="${item.satuan}"><span id="hasil-${index}" class="hasil-calc">= 0</span><span style="font-size:12px; font-weight:bold; margin-left:5px;">${labelInput}</span></div></div>`;
                   }
               });
           }
           document.getElementById('product-list').innerHTML = html;
       }
 
-      function ubahQty(index, delta) { let el = document.getElementById('qty-' + index); let newVal = (parseFloat(el.value) || 0) + delta; el.value = newVal < 0 ? 0 : newVal; }
-      function hitungCalc(index) { let el = document.getElementById('qty-' + index); let val = el.value.replace(/[^0-9+\-*/.,]/g, ''); if(el.value !== val) el.value = val; let mathStr = val.replace(/,/g, '.'); let total = 0; try { while(mathStr.endsWith('+') || mathStr.endsWith('-') || mathStr.endsWith('*') || mathStr.endsWith('/')) mathStr = mathStr.slice(0, -1); if(mathStr) total = new Function('return (' + mathStr + ')')(); } catch(e) { total = 0; } document.getElementById('hasil-' + index).innerText = "= " + (total || 0).toLocaleString('id-ID'); el.setAttribute('data-total', total || 0); }
-
       function kirimData() {
+          tutupKeyboard(); 
           let inputVal = document.getElementById('ekor').value.trim();
           let isAngka = !isNaN(inputVal) && inputVal !== "";
 
@@ -352,7 +459,10 @@
                   let kemasan = (itemObj && itemObj.kemasan > 0) ? itemObj.kemasan : 0; let satuan = (itemObj && itemObj.satuan) ? itemObj.satuan : "Kg";
                   if (kemasan > 0) { 
                       let namaKemasan = (satuan.toLowerCase() === 'ltr' || key.toLowerCase().includes('bio smart')) ? "Jirigen" : "Karung"; 
-                      ringkasanItem += `• ${key}: ${qtyKg.toLocaleString('id-ID')} Kg | ${qtyKg/kemasan} ${namaKemasan}\n`; 
+                      // Hitung karung utk laporan WA (bisa desimal)
+                      let hitungKr = qtyKg / kemasan;
+                      let formatKr = Number.isInteger(hitungKr) ? hitungKr : hitungKr.toFixed(2);
+                      ringkasanItem += `• ${key}: ${qtyKg.toLocaleString('id-ID')} Kg | ${formatKr} ${namaKemasan}\n`; 
                   } else { 
                       ringkasanItem += `• ${key}: ${qtyKg.toLocaleString('id-ID')} Kg\n`; 
                   }
@@ -360,7 +470,6 @@
               let d = payload.tanggal ? new Date(payload.tanggal) : new Date(); let tglFormat = ("0"+d.getDate()).slice(-2)+"/"+("0"+(d.getMonth()+1)).slice(-2)+"/"+d.getFullYear();
               let infoAlamat = payload.alamat ? payload.alamat : (payload.ekor > 0 ? payload.ekor + " Ekor" : "-");
 
-              // FORMAT BARU YANG LEBIH RINGKAS
               let teksWA = `LAPORAN ORDERAN ${payload.relasi.toUpperCase()}, ${tglFormat}\n`;
               teksWA += `Alamat: ${infoAlamat}\n`;
               if (payload.ongkir) teksWA += `Ongkir: ${payload.ongkir}\n`;
@@ -376,8 +485,15 @@
           if (navigator.onLine) { fetch(API_URL, { method: 'POST', body: JSON.stringify({ source: 'pwa_cbl', payload: payload }) }); } 
           else { let antrian = JSON.parse(localStorage.getItem('antrian_pakan')) || []; antrian.push(payload); localStorage.setItem('antrian_pakan', JSON.stringify(antrian)); updateStatusKoneksi(); }
 
+          // Bersihkan form setelah kirim
           document.getElementById('relasi').value = ""; document.getElementById('ekor').value = ""; document.getElementById('ongkir').value = ""; document.getElementById('catatan').value = "";
-          currentItems.forEach((item, index) => { let el = document.getElementById('qty-'+index); el.value = el.hasAttribute('data-total') ? "" : "0"; if (el.hasAttribute('data-total')) { el.setAttribute('data-total', "0"); document.getElementById('hasil-'+index).innerText = "= 0"; } });
+          currentItems.forEach((item, index) => { 
+              let el = document.getElementById('qty-'+index); 
+              el.value = ""; 
+              el.setAttribute('data-total', "0"); 
+              if (document.getElementById('hasil-'+index)) document.getElementById('hasil-'+index).innerText = "= 0"; 
+              if (document.getElementById('lbl-karung-'+index)) document.getElementById('lbl-karung-'+index).innerText = ""; 
+          });
       }
 
       function sinkronisasiAntrianLokal() {
