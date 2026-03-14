@@ -15,7 +15,8 @@
       
       .logo-login { width: 100px; height: auto; margin-bottom: 15px; }
       
-      .form-group { margin-bottom: 15px; width: 100%; }
+      /* ==== PERBAIKAN UI BOX & FORM ROW ==== */
+      .form-group { margin-bottom: 15px; width: 100%; box-sizing: border-box; }
       label { display: block; font-size: 12px; font-weight: 600; color: #555; margin-bottom: 5px; }
       input, select, textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-family: 'Poppins', sans-serif;}
       
@@ -44,8 +45,10 @@
       
       .hidden { display: none !important; }
       .loader { text-align: center; padding: 20px; color: #888; font-style: italic; font-size: 12px;}
-      .form-row { display: flex; gap: 10px; flex-wrap: wrap; }
-      .form-row > div { flex: 1 1 calc(50% - 10px); min-width: 140px; }
+      
+      /* PERBAIKAN FORM ROW AGAR TIDAK MEPET */
+      .form-row { display: flex; gap: 15px; width: 100%; box-sizing: border-box; }
+      .form-row > div { flex: 1; min-width: 0; margin-bottom: 15px; }
       
       #koneksi-badge { padding: 5px; text-align: center; font-size: 11px; font-weight: bold; color: white; background: #4CAF50; margin-bottom: 10px; border-radius: 4px;}
       .offline-badge { background: #f44336 !important; }
@@ -75,7 +78,6 @@
 
     <div class="container" id="login-screen">
         <img src="https://raw.githubusercontent.com/wildansyif/pakan-cbl/2e732398572a6ac7d3512559c4344d40ab0902f9/Logo%20CBL.png?v=1" alt="Logo CBL" class="logo-login">
-        
         <div style="margin: auto 0; width: 100%; text-align: center; display: flex; flex-direction: column; align-items: center;">
             <h2>Sistem Pakan CBL</h2>
             <div class="sub-header">Masukkan PIN Akses Anda</div>
@@ -103,13 +105,13 @@
           </div>
 
           <div class="form-row">
-              <div class="form-group"><label>Tgl (Kosong = Hari ini)</label><input type="date" id="tanggal"></div>
-              <div class="form-group"><label>Status</label><select id="status"><option value="Keluar">Keluar</option><option value="Masuk">Masuk</option><option value="Retur">Retur</option></select></div>
+              <div><label>Tgl (Kosong = Hari ini)</label><input type="date" id="tanggal"></div>
+              <div><label>Status</label><select id="status"><option value="Keluar">Keluar</option><option value="Masuk">Masuk</option><option value="Retur">Retur</option></select></div>
           </div>
           <div class="form-group"><label>Nama Relasi / Kandang Sapi</label><input type="text" id="relasi" placeholder="Cth: Bpk Budi / Sapi Laktasi"></div>
           <div class="form-row">
-              <div class="form-group"><label>Ekor / Alamat</label><input type="text" id="ekor" placeholder="Cth: 10 atau Jln.."></div>
-              <div class="form-group"><label>Ongkir/Dari (Opsional)</label><input type="text" id="ongkir" placeholder="Keterangan ongkir..."></div>
+              <div><label>Ekor / Alamat</label><input type="text" id="ekor" placeholder="Cth: 10 atau Jln.."></div>
+              <div><label>Ongkir/Dari (Opsional)</label><input type="text" id="ongkir" placeholder="Keterangan ongkir..."></div>
           </div>
 
           <hr style="border: 0; border-top: 1px dashed #ddd; margin: 15px 0;">
@@ -140,10 +142,7 @@
             <button id="btn-copy-rekap" class="btn-submit hidden" onclick="copyRekapWA()" style="background:#FF9800;">📋 Copy Text WA</button>
             
             <textarea id="raw-rekap-text" class="hidden"></textarea>
-
-            <div id="rekap-hasil" style="margin-top:20px; padding-bottom: 20px;">
-                <div style="text-align:center; padding:20px; color:#888; font-size:12px;">Pilih lokasi dan tanggal, lalu tekan tombol Tarik Rekap.</div>
-            </div>
+            <div id="rekap-hasil" style="margin-top:20px; padding-bottom: 20px;"><div style="text-align:center; padding:20px; color:#888; font-size:12px;">Pilih lokasi dan tanggal, lalu tekan tombol Tarik Rekap.</div></div>
         </div>
 
         <div id="page-cashflow" class="container hidden">
@@ -159,20 +158,13 @@
             </div>
 
             <div class="form-row">
-                <div class="form-group"><label>Tgl Transaksi</label><input type="date" id="cf_tanggal"></div>
-                <div class="form-group">
-                    <label>Metode Pembayaran</label>
-                    <select id="cf_metode">
-                        <option value="Tranfer">Transfer</option>
-                        <option value="Cash">Cash</option>
-                    </select>
-                </div>
+                <div><label>Tgl Transaksi</label><input type="date" id="cf_tanggal"></div>
+                <div><label>Metode Pembayaran</label><select id="cf_metode"><option value="Tranfer">Transfer</option><option value="Cash">Cash</option></select></div>
             </div>
 
             <div class="form-group">
                 <label>Perkiraan / Kategori</label>
-                <select id="cf_perkiraan">
-                    </select>
+                <select id="cf_perkiraan"></select>
             </div>
 
             <div class="form-group"><label>Relasi (Dari / Ke)</label><input type="text" id="cf_relasi" placeholder="Cth: Nama Orang / Toko / Keterangan"></div>
@@ -184,15 +176,24 @@
 
             <div class="form-group"><label>Berita / Keterangan</label><textarea id="cf_deskripsi" rows="2" placeholder="Tuliskan berita transfer / keterangan rinci..."></textarea></div>
 
-            <div class="form-group" style="background: #f9f9f9; padding: 15px; border-radius: 8px; border: 1px dashed #ccc;">
-                <label style="color: #e91e63;">* Wajib Upload Bukti Transaksi</label>
-                <input type="file" id="cf_bukti" accept="image/*" onchange="previewBukti(this)" style="font-size: 12px; padding: 5px; margin-top: 5px; background: white;">
-                <div id="cf_preview_container" style="margin-top: 10px; display: none; text-align: center;">
+            <div class="form-group" style="background: #f9f9f9; padding: 15px; border-radius: 8px; border: 1px dashed #ccc; box-sizing: border-box;">
+                <label style="color: #333;">Lampiran Bukti Transaksi (Opsional)</label>
+                
+                <input type="file" id="cf_bukti" accept="image/*" onchange="previewBukti(this)" style="font-size: 12px; padding: 5px; margin-top: 5px; background: white; width: 100%; box-sizing: border-box;">
+                
+                <div style="text-align: center; margin: 10px 0; font-size: 11px; color: #888; font-weight: bold;">ATAU</div>
+
+                <div id="paste-zone" contenteditable="true" onpaste="handlePaste(event)" style="border: 2px dashed #2196F3; padding: 15px 10px; border-radius: 8px; background: #e3f2fd; text-align: center; color: #1565c0; font-size: 12px; outline: none; cursor: text;">
+                    Tap di sini, lalu tekan <b>"Paste" / "Tempel"</b> gambar dari WA
+                </div>
+
+                <div id="cf_preview_container" style="margin-top: 15px; display: none; text-align: center; position: relative;">
                     <img id="cf_preview" style="max-width: 100%; max-height: 250px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+                    <div onclick="hapusBukti()" style="margin-top: 8px; color: white; background: #e91e63; padding: 5px 10px; border-radius: 5px; display: inline-block; font-size: 11px; cursor: pointer; font-weight: bold;">🗑️ Hapus Gambar</div>
                 </div>
             </div>
 
-            <button class="btn-submit" id="btn-kirim-cf" onclick="kirimCashflow()" style="background: #2196F3; margin-top: 20px;">Kirim Data Cashflow</button>
+            <button class="btn-submit" id="btn-kirim-cf" onclick="kirimCashflow()" style="background: #2196F3; margin-top: 10px;">Kirim Data Cashflow</button>
             <div id="cf_status" style="text-align:center; font-size:13px; margin-top:15px; font-weight:bold; color: #1a5c40;"></div>
         </div>
 
@@ -220,8 +221,8 @@
             <button class="key-btn" onclick="ketikKeyboard('9')">9</button>
         </div>
         <div class="key-row">
-            <button class="key-btn" style="font-size: 26px;" onclick="ketikKeyboard(',')">,</button>
             <button class="key-btn" onclick="ketikKeyboard('0')">0</button>
+            <button class="key-btn" style="font-size: 26px;" onclick="ketikKeyboard(',')">,</button>
             <button class="key-btn action" onclick="ketikKeyboard('+')">+</button>
         </div>
         <div class="key-row">
@@ -237,9 +238,8 @@
       const NOMOR_WA_ADMIN = "6282143601114"; 
       // ==========================================
       
-      const USERS = { "1234": "Admin Pusat", "5678": "Petugas Lapangan", "0000": "Pak Agus", "8888": "Jinan" };
+      const USERS = { "1234": "Admin Pusat", "5678": "Petugas Lapangan", "0000": "Tim SPN", "8888": "Jinan" };
       
-      // Kategori Cashflow
       const KATG_MASUK = ["Bayar Pakan", "Dll"];
       const KATG_KELUAR = ["Bongkar Muat Pakan", "OPR Ekspedisi Pakan", "Perawatan Kendaraan", "OPR Kandang", "Lainnya"];
 
@@ -289,122 +289,118 @@
           tutupKeyboard();
       }
 
-      // ================= LOGIKA CASHFLOW =================
-      
+      // ================= LOGIKA CASHFLOW (FOTO & PASTE) =================
       function updateKategoriCashflow() {
           let jenis = document.querySelector('input[name="cf_jenis"]:checked').value;
           let select = document.getElementById('cf_perkiraan');
           select.innerHTML = "";
           let list = jenis === 'Masuk' ? KATG_MASUK : KATG_KELUAR;
-          
-          list.forEach(k => {
-              let opt = document.createElement('option');
-              opt.value = k; opt.innerHTML = k;
-              select.appendChild(opt);
-          });
+          list.forEach(k => { let opt = document.createElement('option'); opt.value = k; opt.innerHTML = k; select.appendChild(opt); });
       }
 
       function formatRupiah(input) {
           let value = input.value.replace(/[^,\d]/g, '').toString();
-          let split = value.split(',');
-          let sisa = split[0].length % 3;
-          let rupiah = split[0].substr(0, sisa);
-          let ribuan = split[0].substr(sisa).match(/\d{3}/gi);
-          
-          if (ribuan) {
-              let separator = sisa ? '.' : '';
-              rupiah += separator + ribuan.join('.');
-          }
-          rupiah = split[1] != undefined ? rupiah + ',' + split[1] : rupiah;
-          input.value = rupiah;
+          let split = value.split(','); let sisa = split[0].length % 3;
+          let rupiah = split[0].substr(0, sisa); let ribuan = split[0].substr(sisa).match(/\d{3}/gi);
+          if (ribuan) { let separator = sisa ? '.' : ''; rupiah += separator + ribuan.join('.'); }
+          rupiah = split[1] != undefined ? rupiah + ',' + split[1] : rupiah; input.value = rupiah;
       }
 
+      // Fungsi untuk nangkep paste (copy dari WA)
+      function handlePaste(e) {
+          e.preventDefault(); // Biar gak ada teks nyangkut di kotak
+          let items = (e.clipboardData || e.originalEvent.clipboardData).items;
+          let foundImage = false;
+          
+          for (let index in items) {
+              let item = items[index];
+              if (item.kind === 'file' && item.type.includes('image/')) {
+                  let blob = item.getAsFile();
+                  prosesFileGambar(blob); // Langsung lempar ke fungsi kompres
+                  foundImage = true;
+                  break; 
+              }
+          }
+          if(!foundImage) {
+              alert("⚠️ Tidak ada gambar yang disalin! Pastikan Anda sudah 'Copy' foto bukti dari galeri/WhatsApp.");
+          }
+      }
+
+      // Dipakai oleh File Input biasa
       function previewBukti(input) {
           let file = input.files[0];
-          if (file) {
-              let reader = new FileReader();
-              reader.onload = function(e) {
-                  document.getElementById('cf_preview_container').style.display = 'block';
-                  document.getElementById('cf_preview').src = e.target.result;
+          if (file) { prosesFileGambar(file); } else { hapusBukti(); }
+      }
+
+      // Mesin Utama untuk menata dan mengecilkan gambar
+      function prosesFileGambar(file) {
+          let reader = new FileReader();
+          reader.onload = function(e) {
+              document.getElementById('cf_preview_container').style.display = 'block';
+              document.getElementById('cf_preview').src = e.target.result;
+              
+              let img = new Image();
+              img.onload = function() {
+                  let canvas = document.createElement('canvas');
+                  const MAX_WIDTH = 800; 
+                  let width = img.width; let height = img.height;
+                  if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
+                  canvas.width = width; canvas.height = height;
+                  let ctx = canvas.getContext('2d');
+                  ctx.drawImage(img, 0, 0, width, height);
                   
-                  // Kompresi Gambar lewat Canvas agar ukuran kecil saat dikirim ke GAS
-                  let img = new Image();
-                  img.onload = function() {
-                      let canvas = document.createElement('canvas');
-                      const MAX_WIDTH = 800; // Kompres maksimal lebar 800px
-                      let width = img.width; let height = img.height;
-                      if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
-                      canvas.width = width; canvas.height = height;
-                      let ctx = canvas.getContext('2d');
-                      ctx.drawImage(img, 0, 0, width, height);
-                      
-                      let dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-                      fileBase64_Global = dataUrl.split(',')[1];
-                      fileMime_Global = 'image/jpeg';
-                  }
-                  img.src = e.target.result;
+                  let dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                  fileBase64_Global = dataUrl.split(',')[1];
+                  fileMime_Global = 'image/jpeg';
+                  document.getElementById('paste-zone').innerHTML = "<b>✅ Gambar berhasil disalin!</b>";
               }
-              reader.readAsDataURL(file);
-          } else {
-              document.getElementById('cf_preview_container').style.display = 'none';
-              fileBase64_Global = "";
+              img.src = e.target.result;
           }
+          reader.readAsDataURL(file);
+      }
+
+      function hapusBukti() {
+          document.getElementById('cf_preview_container').style.display = 'none';
+          document.getElementById('cf_bukti').value = ""; 
+          document.getElementById('paste-zone').innerHTML = "Tap di sini, lalu tekan <b>'Paste' / 'Tempel'</b> gambar dari WA";
+          fileBase64_Global = ""; fileMime_Global = "";
       }
 
       function kirimCashflow() {
-          if (!navigator.onLine) { alert("⚠️ Fitur Upload Cashflow WAJIB online!"); return; }
+          if (!navigator.onLine) { alert("⚠️ Fitur Cashflow WAJIB online!"); return; }
 
           let nominalStr = document.getElementById('cf_nominal').value.replace(/\./g, '');
           let nominal = parseFloat(nominalStr) || 0;
           let relasi = document.getElementById('cf_relasi').value.trim();
-          let fileInput = document.getElementById('cf_bukti');
 
           if (!relasi) { alert("Nama Relasi / Tujuan harus diisi!"); return; }
           if (nominal <= 0) { alert("Nominal harus lebih dari 0!"); return; }
-          if (fileInput.files.length === 0 || fileBase64_Global === "") { alert("Bukti Transaksi (Foto/Screenshot) Wajib dilampirkan!"); return; }
+          // SYARAT UPLOAD BUKTI SUDAH DIHAPUS DARI SINI (JADI OPSIONAL)
 
           let payload = {
               tanggal: document.getElementById('cf_tanggal').value,
               jenis: document.querySelector('input[name="cf_jenis"]:checked').value,
               metode: document.getElementById('cf_metode').value,
               perkiraan: document.getElementById('cf_perkiraan').value,
-              relasi: relasi,
-              nominal: nominal,
+              relasi: relasi, nominal: nominal,
               deskripsi: document.getElementById('cf_deskripsi').value,
               fileData: { base64: fileBase64_Global, mime: fileMime_Global }
           };
 
-          let btn = document.getElementById('btn-kirim-cf');
-          let statusLabel = document.getElementById('cf_status');
-          btn.innerText = "⏳ Sedang Mengunggah Data & Bukti...";
-          btn.disabled = true; statusLabel.innerText = "Mohon tunggu, jangan tutup aplikasi...";
+          let btn = document.getElementById('btn-kirim-cf'); let statusLabel = document.getElementById('cf_status');
+          btn.innerText = "⏳ Sedang Mengunggah Data..."; btn.disabled = true; statusLabel.innerText = "Mohon tunggu...";
 
           fetch(API_URL, { method: 'POST', body: JSON.stringify({ source: 'cashflow', payload: payload }) })
           .then(res => res.json())
           .then(res => {
               if (res.status === 'success') {
-                  statusLabel.innerText = "✅ Berhasil Disimpan!";
-                  setTimeout(() => { statusLabel.innerText = ""; }, 3000);
-                  // Reset Form
-                  document.getElementById('cf_relasi').value = "";
-                  document.getElementById('cf_nominal').value = "";
-                  document.getElementById('cf_deskripsi').value = "";
-                  fileInput.value = "";
-                  document.getElementById('cf_preview_container').style.display = 'none';
-                  fileBase64_Global = "";
-              } else {
-                  alert("Gagal: " + res.message);
-                  statusLabel.innerText = "❌ Gagal mengunggah.";
-              }
+                  statusLabel.innerText = "✅ Berhasil Disimpan!"; setTimeout(() => { statusLabel.innerText = ""; }, 3000);
+                  document.getElementById('cf_relasi').value = ""; document.getElementById('cf_nominal').value = ""; document.getElementById('cf_deskripsi').value = "";
+                  hapusBukti();
+              } else { alert("Gagal: " + res.message); statusLabel.innerText = "❌ Gagal."; }
           })
-          .catch(e => {
-              alert("Terjadi kesalahan jaringan.");
-              statusLabel.innerText = "❌ Gagal mengunggah.";
-          })
-          .finally(() => {
-              btn.innerText = "Kirim Data Cashflow";
-              btn.disabled = false;
-          });
+          .catch(e => { alert("Terjadi kesalahan jaringan."); statusLabel.innerText = "❌ Gagal."; })
+          .finally(() => { btn.innerText = "Kirim Data Cashflow"; btn.disabled = false; });
       }
       
       // ================= LOGIKA KEYBOARD PAKAN =================
