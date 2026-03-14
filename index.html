@@ -8,7 +8,7 @@
     <link rel="manifest" href="manifest.json">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
     <style>
-      body { font-family: 'Poppins', sans-serif; background-color: #f5f5f5; margin: 0; padding-bottom: 70px; }
+      body { font-family: 'Poppins', sans-serif; background-color: #f5f5f5; margin: 0; padding-bottom: 80px; }
       .container { max-width: 500px; margin: auto; background: white; min-height: 100vh; padding: 15px; box-sizing: border-box; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
       h2 { color: #1a5c40; margin-bottom: 5px; text-align: center; font-size: 22px; }
       .sub-header { color: #888; font-size: 13px; margin-bottom: 20px; text-align: center;}
@@ -61,7 +61,6 @@
       .rekap-total { display: flex; justify-content: space-between; font-size: 14px; font-weight: bold; margin-top: 10px; color: #333; border-top: 1px dashed #ddd; padding-top: 5px;}
       .rekap-biaya { font-size: 12px; color: #e91e63; font-weight: bold; margin-top: 5px; }
 
-      /* ==== CSS CUSTOM KEYBOARD ==== */
       #custom-keyboard { position: fixed; bottom: -400px; left: 0; right: 0; background: #e0e0e0; padding: 15px; padding-bottom: calc(15px + env(safe-area-inset-bottom)); transition: bottom 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); z-index: 2000; box-shadow: 0 -4px 15px rgba(0,0,0,0.1); border-top-left-radius: 20px; border-top-right-radius: 20px; display: flex; flex-direction: column; gap: 10px; max-width: 500px; margin: auto;}
       #custom-keyboard.show { bottom: 0; }
       .key-row { display: flex; gap: 10px; }
@@ -147,9 +146,60 @@
             </div>
         </div>
 
+        <div id="page-cashflow" class="container hidden">
+            <h2>Input Cashflow</h2>
+            <div class="sub-header">Pencatatan Arus Kas & Bukti Transaksi</div>
+
+            <div class="form-group">
+                <label>Jenis Transaksi</label>
+                <div class="radio-group" onchange="updateKategoriCashflow()">
+                    <input type="radio" id="cf_masuk" name="cf_jenis" value="Masuk" checked><label for="cf_masuk">Uang Masuk</label>
+                    <input type="radio" id="cf_keluar" name="cf_jenis" value="Keluar"><label for="cf_keluar">Uang Keluar</label>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group"><label>Tgl Transaksi</label><input type="date" id="cf_tanggal"></div>
+                <div class="form-group">
+                    <label>Metode Pembayaran</label>
+                    <select id="cf_metode">
+                        <option value="Tranfer">Transfer</option>
+                        <option value="Cash">Cash</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Perkiraan / Kategori</label>
+                <select id="cf_perkiraan">
+                    </select>
+            </div>
+
+            <div class="form-group"><label>Relasi (Dari / Ke)</label><input type="text" id="cf_relasi" placeholder="Cth: Nama Orang / Toko / Keterangan"></div>
+
+            <div class="form-group">
+                <label>Nominal (Rp)</label>
+                <input type="text" inputmode="numeric" id="cf_nominal" class="calc-input" placeholder="0" oninput="formatRupiah(this)" style="font-size: 18px; font-weight: bold; padding: 15px 10px !important;">
+            </div>
+
+            <div class="form-group"><label>Berita / Keterangan</label><textarea id="cf_deskripsi" rows="2" placeholder="Tuliskan berita transfer / keterangan rinci..."></textarea></div>
+
+            <div class="form-group" style="background: #f9f9f9; padding: 15px; border-radius: 8px; border: 1px dashed #ccc;">
+                <label style="color: #e91e63;">* Wajib Upload Bukti Transaksi</label>
+                <input type="file" id="cf_bukti" accept="image/*" onchange="previewBukti(this)" style="font-size: 12px; padding: 5px; margin-top: 5px; background: white;">
+                <div id="cf_preview_container" style="margin-top: 10px; display: none; text-align: center;">
+                    <img id="cf_preview" style="max-width: 100%; max-height: 250px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+                </div>
+            </div>
+
+            <button class="btn-submit" id="btn-kirim-cf" onclick="kirimCashflow()" style="background: #2196F3; margin-top: 20px;">Kirim Data Cashflow</button>
+            <div id="cf_status" style="text-align:center; font-size:13px; margin-top:15px; font-weight:bold; color: #1a5c40;"></div>
+        </div>
+
         <div class="bottom-nav">
             <div class="nav-item active" id="nav-input" onclick="pindahMenu('input')"><span class="nav-icon">📝</span><span>Input</span></div>
             <div class="nav-item" id="nav-rekap" onclick="pindahMenu('rekap')"><span class="nav-icon">📊</span><span>Rekap</span></div>
+            <div class="nav-item" id="nav-cashflow" onclick="pindahMenu('cashflow')"><span class="nav-icon">💸</span><span>Cashflow</span></div>
         </div>
     </div>
 
@@ -182,14 +232,21 @@
 
     <script>
       // ==========================================
-      // ⚠️ WAJIB ISI URL & NO WA (Jangan lupa bos!)
+      // ⚠️ WAJIB ISI URL & NO WA 
       const API_URL = "https://script.google.com/macros/s/AKfycbxm8APTPE4lgMIimnOOUetQPY2vWiNqkL5_4afV_jY5AoC_bPVp2z1IsMKImJXOroi0/exec";
       const NOMOR_WA_ADMIN = "6282143601114"; 
       // ==========================================
       
-      const USERS = { "1234": "Admin Pusat", "5678": "Petugas Lapangan", "0000": "Tim SPN", "8888": "Jinan" };
+      const USERS = { "1234": "Admin Pusat", "5678": "Petugas Lapangan", "0000": "Pak Agus", "8888": "Jinan" };
+      
+      // Kategori Cashflow
+      const KATG_MASUK = ["Bayar Pakan", "Dll"];
+      const KATG_KELUAR = ["Bongkar Muat Pakan", "OPR Ekspedisi Pakan", "Perawatan Kendaraan", "OPR Kandang", "Lainnya"];
+
       let activeUser = ""; let currentItems = []; 
       let activeKeyboardIndex = null; 
+      let fileBase64_Global = ""; 
+      let fileMime_Global = "";
 
       if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
       window.addEventListener('online', updateStatusKoneksi);
@@ -211,322 +268,274 @@
               activeUser = USERS[pin]; document.getElementById('nama-petugas').innerText = activeUser;
               document.getElementById('login-screen').classList.add('hidden'); document.getElementById('app-screen').classList.remove('hidden');
               document.getElementById('rekap-tanggal').valueAsDate = new Date(); 
-              updateStatusKoneksi(); gantiLokasi(); 
+              document.getElementById('cf_tanggal').valueAsDate = new Date(); 
+              updateStatusKoneksi(); gantiLokasi(); updateKategoriCashflow();
           } else { document.getElementById('login-error').style.display = 'block'; }
       }
 
       function pindahMenu(menu) {
           if(menu === 'rekap' && !navigator.onLine) { alert("⚠️ Menu Rekap membutuhkan koneksi internet."); return; }
-          document.getElementById('page-input').classList.add('hidden'); document.getElementById('page-rekap').classList.add('hidden');
-          document.getElementById('nav-input').classList.remove('active'); document.getElementById('nav-rekap').classList.remove('active');
-          document.getElementById('page-' + menu).classList.remove('hidden'); document.getElementById('nav-' + menu).classList.add('active');
+          
+          document.getElementById('page-input').classList.add('hidden'); 
+          document.getElementById('page-rekap').classList.add('hidden');
+          document.getElementById('page-cashflow').classList.add('hidden');
+          
+          document.getElementById('nav-input').classList.remove('active'); 
+          document.getElementById('nav-rekap').classList.remove('active');
+          document.getElementById('nav-cashflow').classList.remove('active');
+
+          document.getElementById('page-' + menu).classList.remove('hidden'); 
+          document.getElementById('nav-' + menu).classList.add('active');
           tutupKeyboard();
       }
 
+      // ================= LOGIKA CASHFLOW =================
+      
+      function updateKategoriCashflow() {
+          let jenis = document.querySelector('input[name="cf_jenis"]:checked').value;
+          let select = document.getElementById('cf_perkiraan');
+          select.innerHTML = "";
+          let list = jenis === 'Masuk' ? KATG_MASUK : KATG_KELUAR;
+          
+          list.forEach(k => {
+              let opt = document.createElement('option');
+              opt.value = k; opt.innerHTML = k;
+              select.appendChild(opt);
+          });
+      }
+
+      function formatRupiah(input) {
+          let value = input.value.replace(/[^,\d]/g, '').toString();
+          let split = value.split(',');
+          let sisa = split[0].length % 3;
+          let rupiah = split[0].substr(0, sisa);
+          let ribuan = split[0].substr(sisa).match(/\d{3}/gi);
+          
+          if (ribuan) {
+              let separator = sisa ? '.' : '';
+              rupiah += separator + ribuan.join('.');
+          }
+          rupiah = split[1] != undefined ? rupiah + ',' + split[1] : rupiah;
+          input.value = rupiah;
+      }
+
+      function previewBukti(input) {
+          let file = input.files[0];
+          if (file) {
+              let reader = new FileReader();
+              reader.onload = function(e) {
+                  document.getElementById('cf_preview_container').style.display = 'block';
+                  document.getElementById('cf_preview').src = e.target.result;
+                  
+                  // Kompresi Gambar lewat Canvas agar ukuran kecil saat dikirim ke GAS
+                  let img = new Image();
+                  img.onload = function() {
+                      let canvas = document.createElement('canvas');
+                      const MAX_WIDTH = 800; // Kompres maksimal lebar 800px
+                      let width = img.width; let height = img.height;
+                      if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
+                      canvas.width = width; canvas.height = height;
+                      let ctx = canvas.getContext('2d');
+                      ctx.drawImage(img, 0, 0, width, height);
+                      
+                      let dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                      fileBase64_Global = dataUrl.split(',')[1];
+                      fileMime_Global = 'image/jpeg';
+                  }
+                  img.src = e.target.result;
+              }
+              reader.readAsDataURL(file);
+          } else {
+              document.getElementById('cf_preview_container').style.display = 'none';
+              fileBase64_Global = "";
+          }
+      }
+
+      function kirimCashflow() {
+          if (!navigator.onLine) { alert("⚠️ Fitur Upload Cashflow WAJIB online!"); return; }
+
+          let nominalStr = document.getElementById('cf_nominal').value.replace(/\./g, '');
+          let nominal = parseFloat(nominalStr) || 0;
+          let relasi = document.getElementById('cf_relasi').value.trim();
+          let fileInput = document.getElementById('cf_bukti');
+
+          if (!relasi) { alert("Nama Relasi / Tujuan harus diisi!"); return; }
+          if (nominal <= 0) { alert("Nominal harus lebih dari 0!"); return; }
+          if (fileInput.files.length === 0 || fileBase64_Global === "") { alert("Bukti Transaksi (Foto/Screenshot) Wajib dilampirkan!"); return; }
+
+          let payload = {
+              tanggal: document.getElementById('cf_tanggal').value,
+              jenis: document.querySelector('input[name="cf_jenis"]:checked').value,
+              metode: document.getElementById('cf_metode').value,
+              perkiraan: document.getElementById('cf_perkiraan').value,
+              relasi: relasi,
+              nominal: nominal,
+              deskripsi: document.getElementById('cf_deskripsi').value,
+              fileData: { base64: fileBase64_Global, mime: fileMime_Global }
+          };
+
+          let btn = document.getElementById('btn-kirim-cf');
+          let statusLabel = document.getElementById('cf_status');
+          btn.innerText = "⏳ Sedang Mengunggah Data & Bukti...";
+          btn.disabled = true; statusLabel.innerText = "Mohon tunggu, jangan tutup aplikasi...";
+
+          fetch(API_URL, { method: 'POST', body: JSON.stringify({ source: 'cashflow', payload: payload }) })
+          .then(res => res.json())
+          .then(res => {
+              if (res.status === 'success') {
+                  statusLabel.innerText = "✅ Berhasil Disimpan!";
+                  setTimeout(() => { statusLabel.innerText = ""; }, 3000);
+                  // Reset Form
+                  document.getElementById('cf_relasi').value = "";
+                  document.getElementById('cf_nominal').value = "";
+                  document.getElementById('cf_deskripsi').value = "";
+                  fileInput.value = "";
+                  document.getElementById('cf_preview_container').style.display = 'none';
+                  fileBase64_Global = "";
+              } else {
+                  alert("Gagal: " + res.message);
+                  statusLabel.innerText = "❌ Gagal mengunggah.";
+              }
+          })
+          .catch(e => {
+              alert("Terjadi kesalahan jaringan.");
+              statusLabel.innerText = "❌ Gagal mengunggah.";
+          })
+          .finally(() => {
+              btn.innerText = "Kirim Data Cashflow";
+              btn.disabled = false;
+          });
+      }
+      
+      // ================= LOGIKA KEYBOARD PAKAN =================
       function bukaKeyboard(index) {
-          activeKeyboardIndex = index;
-          document.getElementById('custom-keyboard').classList.add('show');
-          let el = document.getElementById('qty-' + index);
-          el.focus();
-          // Gulir ke ujung kanan saat keyboard baru dibuka
+          activeKeyboardIndex = index; document.getElementById('custom-keyboard').classList.add('show');
+          let el = document.getElementById('qty-' + index); el.focus();
           setTimeout(() => { el.scrollLeft = el.scrollWidth; }, 10);
       }
-
       function tutupKeyboard() {
-          activeKeyboardIndex = null;
-          document.getElementById('custom-keyboard').classList.remove('show');
+          activeKeyboardIndex = null; document.getElementById('custom-keyboard').classList.remove('show');
           document.querySelectorAll('.calc-input').forEach(el => el.blur());
       }
-
       function ketikKeyboard(val) {
           if (activeKeyboardIndex !== null) {
               let el = document.getElementById('qty-' + activeKeyboardIndex);
               if (val === '+' && el.value.endsWith('+')) return; 
               if (val === '+' && el.value === '') return; 
               if (val === ',' && el.value.endsWith(',')) return; 
-              el.value += val;
-              hitungCalc(activeKeyboardIndex);
-              
-              // FITUR AUTO SCROLL KE KANAN
+              el.value += val; hitungCalc(activeKeyboardIndex);
               setTimeout(() => { el.scrollLeft = el.scrollWidth; }, 10);
           }
       }
-
       function hapusKeyboard() {
           if (activeKeyboardIndex !== null) {
               let el = document.getElementById('qty-' + activeKeyboardIndex);
-              el.value = el.value.slice(0, -1);
-              hitungCalc(activeKeyboardIndex);
-              
-              // FITUR AUTO SCROLL KE KANAN
+              el.value = el.value.slice(0, -1); hitungCalc(activeKeyboardIndex);
               setTimeout(() => { el.scrollLeft = el.scrollWidth; }, 10);
           }
       }
 
       function ubahQty(index, delta) { 
-          let el = document.getElementById('qty-' + index); 
-          let currentTotal = parseFloat(el.getAttribute('data-total')) || 0;
-          let newVal = currentTotal + delta; 
-          if(newVal < 0) newVal = 0; 
-          el.value = newVal > 0 ? newVal.toString() : ""; 
-          hitungCalc(index); 
+          let el = document.getElementById('qty-' + index); let currentTotal = parseFloat(el.getAttribute('data-total')) || 0;
+          let newVal = currentTotal + delta; if(newVal < 0) newVal = 0; 
+          el.value = newVal > 0 ? newVal.toString() : ""; hitungCalc(index); 
       }
 
       function hitungCalc(index) { 
-          let el = document.getElementById('qty-' + index); 
-          let val = el.value.replace(/[^0-9+\-*/.,]/g, ''); 
-          if(el.value !== val) el.value = val; 
-          
-          let mathStr = val.replace(/,/g, '.'); 
-          let total = 0; 
-          try { 
-              while(mathStr.endsWith('+') || mathStr.endsWith('-') || mathStr.endsWith('*') || mathStr.endsWith('/')) mathStr = mathStr.slice(0, -1); 
-              if(mathStr) total = new Function('return (' + mathStr + ')')(); 
-          } catch(e) { total = 0; } 
-          
+          let el = document.getElementById('qty-' + index); let val = el.value.replace(/[^0-9+\-*/.,]/g, ''); if(el.value !== val) el.value = val; 
+          let mathStr = val.replace(/,/g, '.'); let total = 0; 
+          try { while(mathStr.endsWith('+') || mathStr.endsWith('-') || mathStr.endsWith('*') || mathStr.endsWith('/')) mathStr = mathStr.slice(0, -1); 
+              if(mathStr) total = new Function('return (' + mathStr + ')')(); } catch(e) { total = 0; } 
           el.setAttribute('data-total', total || 0); 
-          
-          let kemasan = parseFloat(el.getAttribute('data-kemasan')) || 0;
-          let satuan = el.getAttribute('data-satuan') || "Kg";
-          let namaItem = currentItems[index].nama.toLowerCase();
-          let namaKemasan = (satuan.toLowerCase() === 'ltr' || namaItem.includes('bio smart')) ? "Jirigen" : "Karung";
-          
-          let lblKarung = document.getElementById('lbl-karung-' + index);
-          let hasilEl = document.getElementById('hasil-' + index);
+          let kemasan = parseFloat(el.getAttribute('data-kemasan')) || 0; let satuan = el.getAttribute('data-satuan') || "Kg";
+          let namaItem = currentItems[index].nama.toLowerCase(); let namaKemasan = (satuan.toLowerCase() === 'ltr' || namaItem.includes('bio smart')) ? "Jirigen" : "Karung";
+          let lblKarung = document.getElementById('lbl-karung-' + index); let hasilEl = document.getElementById('hasil-' + index);
 
-          // LOGIKA UNTUK MAKO DKK
-          if (kemasan > 0) {
-              let jmlKarung = total / kemasan;
-              el.setAttribute('data-karung', jmlKarung);
-              
-              if (lblKarung) {
-                  if (total > 0) {
-                      let formatKarung = Number.isInteger(jmlKarung) ? jmlKarung : jmlKarung.toFixed(2);
-                      lblKarung.innerText = `(${formatKarung} ${namaKemasan})`;
-                  } else {
-                      lblKarung.innerText = "";
-                  }
-              }
-          } 
-          // LOGIKA UNTUK RAPEN DKK
-          else {
-              let jmlKarung = val.split(/[+\-*/]/).filter(x => parseFloat(x) > 0).length;
-              el.setAttribute('data-karung', jmlKarung);
-              
-              if (hasilEl) {
-                  let textHasil = "= " + Number(total || 0).toLocaleString('id-ID'); 
-                  if (total > 0 && jmlKarung > 0) {
-                      textHasil += ` (${jmlKarung} Krg)`;
-                  }
-                  hasilEl.innerText = textHasil;
-              }
+          if (kemasan > 0) { let jmlKarung = total / kemasan; el.setAttribute('data-karung', jmlKarung);
+              if (lblKarung) { if (total > 0) { let formatKarung = Number.isInteger(jmlKarung) ? jmlKarung : jmlKarung.toFixed(2); lblKarung.innerText = `(${formatKarung} ${namaKemasan})`; } else { lblKarung.innerText = ""; } }
+          } else { let jmlKarung = val.split(/[+\-*/]/).filter(x => parseFloat(x) > 0).length; el.setAttribute('data-karung', jmlKarung);
+              if (hasilEl) { let textHasil = "= " + Number(total || 0).toLocaleString('id-ID'); if (total > 0 && jmlKarung > 0) { textHasil += ` (${jmlKarung} Krg)`; } hasilEl.innerText = textHasil; }
           }
       }
 
+      // ================= LOGIKA REKAP & INPUT DATA =================
       function tarikDataRekapDB() {
           if (!navigator.onLine) { alert("Butuh internet untuk tarik data Database!"); return; }
-          let tgl = document.getElementById('rekap-tanggal').value;
-          let loc = document.getElementById('rekap-lokasi').value;
+          let tgl = document.getElementById('rekap-tanggal').value; let loc = document.getElementById('rekap-lokasi').value;
           if(!tgl) { alert("Pilih tanggal dulu!"); return; }
-
           document.getElementById('rekap-hasil').innerHTML = '<div class="loader">Menyisir Database Google Sheet...</div>';
           document.getElementById('btn-copy-rekap').classList.add('hidden');
-
-          let payload = { source: 'pwa_rekap', lokasi: loc, tanggal: tgl };
-
-          fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) })
-              .then(res => res.json())
-              .then(res => {
-                  if (res.status === 'success') { renderTabelRekap(res.data, res.isKandang, tgl, loc); }
-                  else { document.getElementById('rekap-hasil').innerHTML = `<div style="color:red; text-align:center;">Gagal: ${res.message}</div>`; }
-              })
+          fetch(API_URL, { method: 'POST', body: JSON.stringify({ source: 'pwa_rekap', lokasi: loc, tanggal: tgl }) })
+              .then(res => res.json()).then(res => { if (res.status === 'success') { renderTabelRekap(res.data, res.isKandang, tgl, loc); } else { document.getElementById('rekap-hasil').innerHTML = `<div style="color:red; text-align:center;">Gagal: ${res.message}</div>`; } })
               .catch(e => { document.getElementById('rekap-hasil').innerHTML = '<div style="color:red; text-align:center;">Terjadi kesalahan koneksi ke server.</div>'; });
       }
 
       function renderTabelRekap(data, isKandang, tanggal, locName) {
-          let container = document.getElementById('rekap-hasil');
-          let labelGudang = document.getElementById('rekap-lokasi').options[document.getElementById('rekap-lokasi').selectedIndex].text;
-          
-          if (Object.keys(data).length === 0) {
-              container.innerHTML = `<div style="text-align:center; padding:20px; color:#f44336; font-weight:bold;">Tidak ada riwayat input di tanggal ini.</div>`;
-              return;
-          }
-
-          let html = '';
-          let textWA = `REKAP ${labelGudang.toUpperCase()}\nTanggal: ${tanggal.split('-').reverse().join('/')}\n\n`;
+          let container = document.getElementById('rekap-hasil'); let labelGudang = document.getElementById('rekap-lokasi').options[document.getElementById('rekap-lokasi').selectedIndex].text;
+          if (Object.keys(data).length === 0) { container.innerHTML = `<div style="text-align:center; padding:20px; color:#f44336; font-weight:bold;">Tidak ada riwayat input di tanggal ini.</div>`; return; }
+          let html = ''; let textWA = `REKAP ${labelGudang.toUpperCase()}\nTanggal: ${tanggal.split('-').reverse().join('/')}\n\n`;
 
           if (isKandang) {
-              for (let relasi in data) {
-                  let d = data[relasi];
-                  html += `<div class="rekap-card">`;
-                  html += `<div class="rekap-title">🐄 Kelompok: ${relasi} <span style="color:#666; font-weight:normal;">(${d.ekor} ekor)</span></div>`;
-                  
-                  textWA += `📌 *${relasi}* (${d.ekor} ekor)\n\n`;
-                  
-                  for (let pakan in d.items) {
-                      html += `<div class="rekap-item"><span>${pakan}</span><span>${d.items[pakan].toLocaleString('id-ID')} Kg</span></div>`;
-                      textWA += `- ${pakan}: ${d.items[pakan].toLocaleString('id-ID')} Kg\n`;
-                  }
-                  
-                  html += `<div class="rekap-total"><span>Total Pakan</span><span>${d.total_qty.toLocaleString('id-ID')} Kg</span></div>`;
-                  textWA += `\n*Total: ${d.total_qty.toLocaleString('id-ID')} Kg*\n`;
-                  
-                  if (d.total_biaya > 0) {
-                      let formatBiaya = new Intl.NumberFormat('id-ID').format(d.total_biaya);
-                      html += `<div class="rekap-biaya">💰 Biaya: Rp ${formatBiaya}</div>`;
-                      textWA += `💰 Biaya: Rp ${formatBiaya}\n`;
-                      if(d.ekor > 0) {
-                         let rataRata = Math.round(d.total_biaya / d.ekor);
-                         html += `<div class="rekap-item" style="color:#888;">Rata-rata</div><div class="rekap-item" style="color:#888; font-weight:bold;">Rp ${new Intl.NumberFormat('id-ID').format(rataRata)} / ekor</div>`;
-                         textWA += `📊 Rata-rata: Rp ${new Intl.NumberFormat('id-ID').format(rataRata)} / ekor\n`;
-                      }
-                  }
-                  html += `</div>`;
-                  textWA += `\n--------------------\n\n`;
+              for (let relasi in data) { let d = data[relasi]; html += `<div class="rekap-card">`; html += `<div class="rekap-title">🐄 Kelompok: ${relasi} <span style="color:#666; font-weight:normal;">(${d.ekor} ekor)</span></div>`; textWA += `📌 *${relasi}* (${d.ekor} ekor)\n\n`;
+                  for (let pakan in d.items) { html += `<div class="rekap-item"><span>${pakan}</span><span>${d.items[pakan].toLocaleString('id-ID')} Kg</span></div>`; textWA += `- ${pakan}: ${d.items[pakan].toLocaleString('id-ID')} Kg\n`; }
+                  html += `<div class="rekap-total"><span>Total Pakan</span><span>${d.total_qty.toLocaleString('id-ID')} Kg</span></div>`; textWA += `\n*Total: ${d.total_qty.toLocaleString('id-ID')} Kg*\n`;
+                  if (d.total_biaya > 0) { let formatBiaya = new Intl.NumberFormat('id-ID').format(d.total_biaya); html += `<div class="rekap-biaya">💰 Biaya: Rp ${formatBiaya}</div>`; textWA += `💰 Biaya: Rp ${formatBiaya}\n`;
+                      if(d.ekor > 0) { let rataRata = Math.round(d.total_biaya / d.ekor); html += `<div class="rekap-item" style="color:#888;">Rata-rata</div><div class="rekap-item" style="color:#888; font-weight:bold;">Rp ${new Intl.NumberFormat('id-ID').format(rataRata)} / ekor</div>`; textWA += `📊 Rata-rata: Rp ${new Intl.NumberFormat('id-ID').format(rataRata)} / ekor\n`; }
+                  } html += `</div>`; textWA += `\n--------------------\n\n`;
               }
           } else {
-              for (let status in data) {
-                  html += `<div class="rekap-card" style="border-top: 4px solid ${status==='Masuk'?'#4CAF50':(status==='Keluar'?'#e91e63':'#FF9800')}">`;
-                  html += `<div class="rekap-title" style="font-size:16px;">📂 Status: ${status.toUpperCase()}</div>`;
-                  
-                  textWA += `📂 STATUS: ${status.toUpperCase()}\n`;
-                  
-                  for (let relasi in data[status].rincian) {
-                      html += `<div style="font-weight:600; font-size:13px; margin-top:10px; color:#444;">👤 ${relasi}</div>`;
-                      textWA += `👤 ${relasi}\n\n`;
-                      
-                      let rincian = data[status].rincian[relasi];
-                      for (let pakan in rincian.items) {
-                           html += `<div class="rekap-item"><span style="padding-left:15px;">- ${pakan}</span><span>${rincian.items[pakan].toLocaleString('id-ID')} Kg</span></div>`;
-                           textWA += `- ${pakan}: ${rincian.items[pakan].toLocaleString('id-ID')} Kg\n`;
-                      }
-                      html += `<div class="rekap-item" style="font-weight:bold; font-size:12px; border-bottom:1px solid #eee; margin-bottom:10px; padding-bottom:5px;"><span style="padding-left:15px;">Sub Total</span><span>${rincian.sub_qty.toLocaleString('id-ID')} Kg</span></div>`;
-                      
-                      textWA += `\n*Sub Total: ${rincian.sub_qty.toLocaleString('id-ID')} Kg*\n\n`;
-                  }
-                  html += `<div class="rekap-total"><span>Grand Total ${status}</span><span>${data[status].total_qty.toLocaleString('id-ID')} Kg</span></div>`;
-                  html += `</div>`;
-                  
-                  let capStatus = status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
-                  textWA += `*_Grand Total ${capStatus}: ${data[status].total_qty.toLocaleString('id-ID')} Kg_*\n====================\n\n`;
+              for (let status in data) { html += `<div class="rekap-card" style="border-top: 4px solid ${status==='Masuk'?'#4CAF50':(status==='Keluar'?'#e91e63':'#FF9800')}">`; html += `<div class="rekap-title" style="font-size:16px;">📂 Status: ${status.toUpperCase()}</div>`; textWA += `📂 STATUS: ${status.toUpperCase()}\n`;
+                  for (let relasi in data[status].rincian) { html += `<div style="font-weight:600; font-size:13px; margin-top:10px; color:#444;">👤 ${relasi}</div>`; textWA += `👤 ${relasi}\n\n`; let rincian = data[status].rincian[relasi];
+                      for (let pakan in rincian.items) { html += `<div class="rekap-item"><span style="padding-left:15px;">- ${pakan}</span><span>${rincian.items[pakan].toLocaleString('id-ID')} Kg</span></div>`; textWA += `- ${pakan}: ${rincian.items[pakan].toLocaleString('id-ID')} Kg\n`; }
+                      html += `<div class="rekap-item" style="font-weight:bold; font-size:12px; border-bottom:1px solid #eee; margin-bottom:10px; padding-bottom:5px;"><span style="padding-left:15px;">Sub Total</span><span>${rincian.sub_qty.toLocaleString('id-ID')} Kg</span></div>`; textWA += `\n*Sub Total: ${rincian.sub_qty.toLocaleString('id-ID')} Kg*\n\n`;
+                  } html += `<div class="rekap-total"><span>Grand Total ${status}</span><span>${data[status].total_qty.toLocaleString('id-ID')} Kg</span></div>`; html += `</div>`; let capStatus = status.charAt(0).toUpperCase() + status.slice(1).toLowerCase(); textWA += `*_Grand Total ${capStatus}: ${data[status].total_qty.toLocaleString('id-ID')} Kg_*\n====================\n\n`;
               }
           }
-
-          container.innerHTML = html;
-          document.getElementById('raw-rekap-text').value = textWA.trim();
-          document.getElementById('btn-copy-rekap').classList.remove('hidden');
+          container.innerHTML = html; document.getElementById('raw-rekap-text').value = textWA.trim(); document.getElementById('btn-copy-rekap').classList.remove('hidden');
       }
 
-      function copyRekapWA() {
-          let text = document.getElementById('raw-rekap-text');
-          text.classList.remove('hidden'); text.select(); document.execCommand('copy'); text.classList.add('hidden');
-          alert("✅ Rekap berhasil dicopy! Silakan paste di WhatsApp.");
-      }
+      function copyRekapWA() { let text = document.getElementById('raw-rekap-text'); text.classList.remove('hidden'); text.select(); document.execCommand('copy'); text.classList.add('hidden'); alert("✅ Rekap berhasil dicopy! Silakan paste di WhatsApp."); }
 
       function gantiLokasi() {
-          let lokasi = document.querySelector('input[name="lokasi"]:checked').value;
-          let cachedData = localStorage.getItem('pakan_data_' + lokasi);
-          if (cachedData) renderPakan(JSON.parse(cachedData));
-          else document.getElementById('product-list').innerHTML = '<div class="loader">Membutuhkan koneksi internet...</div>';
-
-          if (navigator.onLine) {
-              fetch(`${API_URL}?action=getPakan&lokasi=${lokasi}`).then(res => res.json()).then(res => {
-                  if(res.status === 'success') { localStorage.setItem('pakan_data_' + lokasi, JSON.stringify(res)); renderPakan(res); }
-              }).catch(e => console.log("Gagal fetch data"));
-          }
+          let lokasi = document.querySelector('input[name="lokasi"]:checked').value; let cachedData = localStorage.getItem('pakan_data_' + lokasi);
+          if (cachedData) renderPakan(JSON.parse(cachedData)); else document.getElementById('product-list').innerHTML = '<div class="loader">Membutuhkan koneksi internet...</div>';
+          if (navigator.onLine) { fetch(`${API_URL}?action=getPakan&lokasi=${lokasi}`).then(res => res.json()).then(res => { if(res.status === 'success') { localStorage.setItem('pakan_data_' + lokasi, JSON.stringify(res)); renderPakan(res); } }).catch(e => console.log("Gagal fetch data")); }
       }
 
       function renderPakan(response) {
           currentItems = response.data; let html = '';
           if(currentItems.length === 0) html = '<div class="loader">Tidak ada data pakan</div>';
           else {
-              currentItems.forEach(function(item, index) {
-                  let formatHarga = new Intl.NumberFormat('id-ID').format(item.harga); let labelInput = item.satuan || "Kg"; 
-                  if (item.kemasan > 0) {
-                      let stepValue = item.kemasan; 
-                      html += `<div class="menu-item"><div class="item-info"><div class="item-name">${item.nama}</div>${item.harga > 0 ? '<div class="item-price">Rp '+formatHarga+' / Kg</div>' : ''}</div><div class="counter-box" style="flex-direction: column; align-items: flex-end; gap: 2px;"><div style="display:flex; align-items:center; gap:5px;"><div class="btn-qty" onclick="ubahQty(${index}, -${stepValue})">-</div><input type="text" id="qty-${index}" class="qty-input calc-input" style="width: 55px !important; text-align:center !important; padding:0 !important;" placeholder="0" onclick="bukaKeyboard(${index})" readonly data-total="0" data-karung="0" data-kemasan="${stepValue}" data-satuan="${item.satuan}"><div class="btn-qty" onclick="ubahQty(${index}, ${stepValue})">+</div><span style="font-size:12px; font-weight:bold;">${labelInput}</span></div><span id="lbl-karung-${index}" style="font-size:11px; color:#e91e63; font-weight:bold; height:14px; margin-right: 20px;"></span></div></div>`;
-                  } else {
-                      html += `<div class="menu-item"><div class="item-info" style="flex: 1;"><div class="item-name">${item.nama}</div>${item.harga > 0 ? '<div class="item-price">Rp '+formatHarga+' / Kg</div>' : ''}</div><div class="counter-box" style="flex: 1.5; justify-content: flex-end;"><input type="text" id="qty-${index}" class="qty-input calc-input" placeholder="Cth: 35+28" onclick="bukaKeyboard(${index})" readonly data-total="0" data-karung="0" data-kemasan="0" data-satuan="${item.satuan}"><span id="hasil-${index}" class="hasil-calc">= 0</span><span style="font-size:12px; font-weight:bold; margin-left:5px;">${labelInput}</span></div></div>`;
-                  }
+              currentItems.forEach(function(item, index) { let formatHarga = new Intl.NumberFormat('id-ID').format(item.harga); let labelInput = item.satuan || "Kg"; 
+                  if (item.kemasan > 0) { let stepValue = item.kemasan; html += `<div class="menu-item"><div class="item-info"><div class="item-name">${item.nama}</div>${item.harga > 0 ? '<div class="item-price">Rp '+formatHarga+' / Kg</div>' : ''}</div><div class="counter-box" style="flex-direction: column; align-items: flex-end; gap: 2px;"><div style="display:flex; align-items:center; gap:5px;"><div class="btn-qty" onclick="ubahQty(${index}, -${stepValue})">-</div><input type="text" id="qty-${index}" class="qty-input calc-input" style="width: 55px !important; text-align:center !important; padding:0 !important;" placeholder="0" onclick="bukaKeyboard(${index})" readonly data-total="0" data-karung="0" data-kemasan="${stepValue}" data-satuan="${item.satuan}"><div class="btn-qty" onclick="ubahQty(${index}, ${stepValue})">+</div><span style="font-size:12px; font-weight:bold;">${labelInput}</span></div><span id="lbl-karung-${index}" style="font-size:11px; color:#e91e63; font-weight:bold; height:14px; margin-right: 20px;"></span></div></div>`;
+                  } else { html += `<div class="menu-item"><div class="item-info" style="flex: 1;"><div class="item-name">${item.nama}</div>${item.harga > 0 ? '<div class="item-price">Rp '+formatHarga+' / Kg</div>' : ''}</div><div class="counter-box" style="flex: 1.5; justify-content: flex-end;"><input type="text" id="qty-${index}" class="qty-input calc-input" placeholder="Cth: 35+28" onclick="bukaKeyboard(${index})" readonly data-total="0" data-karung="0" data-kemasan="0" data-satuan="${item.satuan}"><span id="hasil-${index}" class="hasil-calc">= 0</span><span style="font-size:12px; font-weight:bold; margin-left:5px;">${labelInput}</span></div></div>`; }
               });
-          }
-          document.getElementById('product-list').innerHTML = html;
+          } document.getElementById('product-list').innerHTML = html;
       }
 
       function kirimData() {
-          tutupKeyboard(); 
-          let inputVal = document.getElementById('ekor').value.trim();
-          let isAngka = !isNaN(inputVal) && inputVal !== "";
-
-          let payload = {
-              petugas: activeUser, lokasi: document.querySelector('input[name="lokasi"]:checked').value,
-              tanggal: document.getElementById('tanggal').value, status: document.getElementById('status').value,
-              relasi: document.getElementById('relasi').value, ekor: isAngka ? parseFloat(inputVal) : 0,    
-              alamat: !isAngka ? inputVal : "", ongkir: document.getElementById('ongkir').value,
-              catatan: document.getElementById('catatan').value, items: {}
-          };
-
+          tutupKeyboard(); let inputVal = document.getElementById('ekor').value.trim(); let isAngka = !isNaN(inputVal) && inputVal !== "";
+          let payload = { petugas: activeUser, lokasi: document.querySelector('input[name="lokasi"]:checked').value, tanggal: document.getElementById('tanggal').value, status: document.getElementById('status').value, relasi: document.getElementById('relasi').value, ekor: isAngka ? parseFloat(inputVal) : 0, alamat: !isAngka ? inputVal : "", ongkir: document.getElementById('ongkir').value, catatan: document.getElementById('catatan').value, items: {} };
           if (!payload.relasi) { alert("Nama Relasi tidak boleh kosong!"); return; }
-          let totalItem = 0;
-          currentItems.forEach(function(item, index) {
-              let el = document.getElementById('qty-' + index);
-              let qty = parseFloat(el.getAttribute('data-total')) || 0;
-              if (qty > 0) { payload.items[item.nama] = qty; totalItem++; }
-          });
+          let totalItem = 0; currentItems.forEach(function(item, index) { let el = document.getElementById('qty-' + index); let qty = parseFloat(el.getAttribute('data-total')) || 0; if (qty > 0) { payload.items[item.nama] = qty; totalItem++; } });
           if (totalItem === 0) { alert("Harap isi pakan!"); return; }
 
           if (payload.lokasi !== '/kandang') {
               let ringkasanItem = ""; let grandTotal = 0;
-              for(let key in payload.items) {
-                  let qtyKg = payload.items[key]; grandTotal += qtyKg;
-                  
-                  let itemIndex = currentItems.findIndex(i => i.nama === key);
-                  let elTarget = document.getElementById('qty-' + itemIndex);
-                  let jmlKarung = parseFloat(elTarget.getAttribute('data-karung')) || 0;
-                  
-                  let itemObj = currentItems[itemIndex];
-                  let satuan = itemObj.satuan || "Kg";
-                  let namaKemasan = (satuan.toLowerCase() === 'ltr' || key.toLowerCase().includes('bio smart')) ? "Jirigen" : "Karung"; 
-                  
-                  if (jmlKarung > 0) { 
-                      let formatKr = Number.isInteger(jmlKarung) ? jmlKarung : jmlKarung.toFixed(2);
-                      ringkasanItem += `• ${key}: ${Number(qtyKg).toLocaleString('id-ID')} Kg | ${formatKr} ${namaKemasan}\n`; 
-                  } else { 
-                      ringkasanItem += `• ${key}: ${Number(qtyKg).toLocaleString('id-ID')} Kg\n`; 
-                  }
+              for(let key in payload.items) { let qtyKg = payload.items[key]; grandTotal += qtyKg; let itemIndex = currentItems.findIndex(i => i.nama === key); let elTarget = document.getElementById('qty-' + itemIndex); let jmlKarung = parseFloat(elTarget.getAttribute('data-karung')) || 0; let itemObj = currentItems[itemIndex]; let satuan = itemObj.satuan || "Kg"; let namaKemasan = (satuan.toLowerCase() === 'ltr' || key.toLowerCase().includes('bio smart')) ? "Jirigen" : "Karung"; 
+                  if (jmlKarung > 0) { let formatKr = Number.isInteger(jmlKarung) ? jmlKarung : jmlKarung.toFixed(2); ringkasanItem += `• ${key}: ${Number(qtyKg).toLocaleString('id-ID')} Kg | ${formatKr} ${namaKemasan}\n`; } else { ringkasanItem += `• ${key}: ${Number(qtyKg).toLocaleString('id-ID')} Kg\n`; }
               }
-              let d = payload.tanggal ? new Date(payload.tanggal) : new Date(); let tglFormat = ("0"+d.getDate()).slice(-2)+"/"+("0"+(d.getMonth()+1)).slice(-2)+"/"+d.getFullYear();
-              let infoAlamat = payload.alamat ? payload.alamat : (payload.ekor > 0 ? payload.ekor + " Ekor" : "-");
-
-              let teksWA = `LAPORAN ORDERAN ${payload.relasi.toUpperCase()}, ${tglFormat}\n`;
-              teksWA += `Alamat: ${infoAlamat}\n`;
-              if (payload.ongkir) teksWA += `Ongkir: ${payload.ongkir}\n`;
-              teksWA += `Status: ${payload.status}\n\n`;
-              teksWA += `${ringkasanItem}\n`;
-              teksWA += `Total: ${Number(grandTotal).toLocaleString('id-ID')} Kg`;
-              if (payload.catatan) teksWA += `\nCatatan: ${payload.catatan}`; 
-              teksWA += `\n\nPetugas: ${payload.petugas}`;
-              
+              let d = payload.tanggal ? new Date(payload.tanggal) : new Date(); let tglFormat = ("0"+d.getDate()).slice(-2)+"/"+("0"+(d.getMonth()+1)).slice(-2)+"/"+d.getFullYear(); let infoAlamat = payload.alamat ? payload.alamat : (payload.ekor > 0 ? payload.ekor + " Ekor" : "-");
+              let teksWA = `LAPORAN ORDERAN ${payload.relasi.toUpperCase()}, ${tglFormat}\nAlamat: ${infoAlamat}\n`; if (payload.ongkir) teksWA += `Ongkir: ${payload.ongkir}\n`; teksWA += `Status: ${payload.status}\n\n${ringkasanItem}\nTotal: ${Number(grandTotal).toLocaleString('id-ID')} Kg`; if (payload.catatan) teksWA += `\nCatatan: ${payload.catatan}`; teksWA += `\n\nPetugas: ${payload.petugas}`;
               let a = document.createElement('a'); a.href = `https://wa.me/${NOMOR_WA_ADMIN}?text=${encodeURIComponent(teksWA)}`; a.target = '_blank'; document.body.appendChild(a); a.click();
           } else { alert("✅ Data Kandang ditampung/dikirim."); }
 
-          if (navigator.onLine) { fetch(API_URL, { method: 'POST', body: JSON.stringify({ source: 'pwa_cbl', payload: payload }) }); } 
-          else { let antrian = JSON.parse(localStorage.getItem('antrian_pakan')) || []; antrian.push(payload); localStorage.setItem('antrian_pakan', JSON.stringify(antrian)); updateStatusKoneksi(); }
-
-          document.getElementById('relasi').value = ""; document.getElementById('ekor').value = ""; document.getElementById('ongkir').value = ""; document.getElementById('catatan').value = "";
-          currentItems.forEach((item, index) => { 
-              let el = document.getElementById('qty-'+index); 
-              el.value = ""; 
-              el.setAttribute('data-total', "0"); 
-              el.setAttribute('data-karung', "0"); 
-              if (document.getElementById('hasil-'+index)) document.getElementById('hasil-'+index).innerText = "= 0"; 
-              if (document.getElementById('lbl-karung-'+index)) document.getElementById('lbl-karung-'+index).innerText = ""; 
-          });
+          if (navigator.onLine) { fetch(API_URL, { method: 'POST', body: JSON.stringify({ source: 'pwa_cbl', payload: payload }) }); } else { let antrian = JSON.parse(localStorage.getItem('antrian_pakan')) || []; antrian.push(payload); localStorage.setItem('antrian_pakan', JSON.stringify(antrian)); updateStatusKoneksi(); }
+          document.getElementById('relasi').value = ""; document.getElementById('ekor').value = ""; document.getElementById('ongkir').value = ""; document.getElementById('catatan').value = ""; currentItems.forEach((item, index) => { let el = document.getElementById('qty-'+index); el.value = ""; el.setAttribute('data-total', "0"); el.setAttribute('data-karung', "0"); if (document.getElementById('hasil-'+index)) document.getElementById('hasil-'+index).innerText = "= 0"; if (document.getElementById('lbl-karung-'+index)) document.getElementById('lbl-karung-'+index).innerText = ""; });
       }
 
       function sinkronisasiAntrianLokal() {
-          let antrian = JSON.parse(localStorage.getItem('antrian_pakan')) || [];
-          if (antrian.length === 0) { document.getElementById('koneksi-badge').innerText = "🟢 ONLINE: Sinkronisasi Selesai"; return; }
+          let antrian = JSON.parse(localStorage.getItem('antrian_pakan')) || []; if (antrian.length === 0) { document.getElementById('koneksi-badge').innerText = "🟢 ONLINE: Sinkronisasi Selesai"; return; }
           let janjiKirim = antrian.map(payload => { return fetch(API_URL, { method: 'POST', body: JSON.stringify({ source: 'pwa_cbl', payload: payload }) }); });
           Promise.all(janjiKirim).then(() => { localStorage.removeItem('antrian_pakan'); updateStatusKoneksi(); }).catch(e => console.log("Gagal sinkron."));
       }
