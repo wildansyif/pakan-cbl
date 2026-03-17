@@ -15,7 +15,6 @@
       
       .logo-login { width: 100px; height: auto; margin-bottom: 15px; }
       
-      /* ==== PERBAIKAN UI BOX & FORM ROW ==== */
       .form-group { margin-bottom: 15px; width: 100%; box-sizing: border-box; }
       label { display: block; font-size: 12px; font-weight: 600; color: #555; margin-bottom: 5px; }
       input, select, textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-family: 'Poppins', sans-serif;}
@@ -46,7 +45,6 @@
       .hidden { display: none !important; }
       .loader { text-align: center; padding: 20px; color: #888; font-style: italic; font-size: 12px;}
       
-      /* PERBAIKAN FORM ROW AGAR TIDAK MEPET */
       .form-row { display: flex; gap: 15px; width: 100%; box-sizing: border-box; }
       .form-row > div { flex: 1; min-width: 0; margin-bottom: 15px; }
       
@@ -108,7 +106,20 @@
               <div><label>Tgl (Kosong = Hari ini)</label><input type="date" id="tanggal"></div>
               <div><label>Status</label><select id="status"><option value="Keluar">Keluar</option><option value="Masuk">Masuk</option><option value="Retur">Retur</option></select></div>
           </div>
-          <div class="form-group"><label>Nama Relasi / Kandang Sapi</label><input type="text" id="relasi" placeholder="Cth: Bpk Budi / Sapi Laktasi"></div>
+          
+          <div class="form-group">
+              <label id="label-relasi">Nama Relasi / Tujuan</label>
+              <input type="text" id="relasi" placeholder="Cth: Bpk Budi / Pengepul">
+              <select id="relasi_kandang" class="hidden">
+                  <option value="Kapalang">Kapalang</option>
+                  <option value="Dewasa">Dewasa</option>
+                  <option value="Jantan">Jantan</option>
+                  <option value="Laktasi">Laktasi</option>
+                  <option value="Bunting">Bunting</option>
+                  <option value="Pedet">Pedet</option>
+              </select>
+          </div>
+
           <div class="form-row">
               <div><label>Ekor / Alamat</label><input type="text" id="ekor" placeholder="Cth: 10 atau Jln.."></div>
               <div><label>Ongkir/Dari (Opsional)</label><input type="text" id="ongkir" placeholder="Keterangan ongkir..."></div>
@@ -125,7 +136,6 @@
         <div id="page-rekap" class="container hidden">
             <h2>Rekap Pakan Harian</h2>
             <div class="sub-header">Berdasarkan Database Spreadsheet</div>
-            
             <div class="form-group">
                 <label>Pilih Database</label>
                 <select id="rekap-lokasi">
@@ -133,14 +143,9 @@
                     <option value="/kandang">DB Kandang PM</option>
                 </select>
             </div>
-            <div class="form-group">
-                <label>Pilih Tanggal</label>
-                <input type="date" id="rekap-tanggal">
-            </div>
-            
+            <div class="form-group"><label>Pilih Tanggal</label><input type="date" id="rekap-tanggal"></div>
             <button class="btn-submit" onclick="tarikDataRekapDB()" style="background:#2196F3; margin-bottom: 10px;">📊 Tarik Rekap Database</button>
             <button id="btn-copy-rekap" class="btn-submit hidden" onclick="copyRekapWA()" style="background:#FF9800;">📋 Copy Text WA</button>
-            
             <textarea id="raw-rekap-text" class="hidden"></textarea>
             <div id="rekap-hasil" style="margin-top:20px; padding-bottom: 20px;"><div style="text-align:center; padding:20px; color:#888; font-size:12px;">Pilih lokasi dan tanggal, lalu tekan tombol Tarik Rekap.</div></div>
         </div>
@@ -148,7 +153,6 @@
         <div id="page-cashflow" class="container hidden">
             <h2>Input Cashflow</h2>
             <div class="sub-header">Pencatatan Arus Kas & Bukti Transaksi</div>
-
             <div class="form-group">
                 <label>Jenis Transaksi</label>
                 <div class="radio-group" onchange="updateKategoriCashflow()">
@@ -156,37 +160,20 @@
                     <input type="radio" id="cf_keluar" name="cf_jenis" value="Keluar"><label for="cf_keluar">Uang Keluar</label>
                 </div>
             </div>
-
             <div class="form-row">
                 <div><label>Tgl Transaksi</label><input type="date" id="cf_tanggal"></div>
                 <div><label>Metode Pembayaran</label><select id="cf_metode"><option value="Tranfer">Transfer</option><option value="Cash">Cash</option></select></div>
             </div>
-
-            <div class="form-group">
-                <label>Perkiraan / Kategori</label>
-                <select id="cf_perkiraan"></select>
-            </div>
-
+            <div class="form-group"><label>Perkiraan / Kategori</label><select id="cf_perkiraan"></select></div>
             <div class="form-group"><label>Relasi (Dari / Ke)</label><input type="text" id="cf_relasi" placeholder="Cth: Nama Orang / Toko / Keterangan"></div>
-
-            <div class="form-group">
-                <label>Nominal (Rp)</label>
-                <input type="text" inputmode="numeric" id="cf_nominal" class="calc-input" placeholder="0" oninput="formatRupiah(this)" style="font-size: 18px; font-weight: bold; padding: 15px 10px !important;">
-            </div>
-
+            <div class="form-group"><label>Nominal (Rp)</label><input type="text" inputmode="numeric" id="cf_nominal" class="calc-input" placeholder="0" oninput="formatRupiah(this)" style="font-size: 18px; font-weight: bold; padding: 15px 10px !important;"></div>
             <div class="form-group"><label>Berita / Keterangan</label><textarea id="cf_deskripsi" rows="2" placeholder="Tuliskan berita transfer / keterangan rinci..."></textarea></div>
 
             <div class="form-group" style="background: #f9f9f9; padding: 15px; border-radius: 8px; border: 1px dashed #ccc; box-sizing: border-box;">
                 <label style="color: #333;">Lampiran Bukti Transaksi (Opsional)</label>
-                
                 <input type="file" id="cf_bukti" accept="image/*" onchange="previewBukti(this)" style="font-size: 12px; padding: 5px; margin-top: 5px; background: white; width: 100%; box-sizing: border-box;">
-                
                 <div style="text-align: center; margin: 10px 0; font-size: 11px; color: #888; font-weight: bold;">ATAU</div>
-
-                <div id="paste-zone" contenteditable="true" onpaste="handlePaste(event)" style="border: 2px dashed #2196F3; padding: 15px 10px; border-radius: 8px; background: #e3f2fd; text-align: center; color: #1565c0; font-size: 12px; outline: none; cursor: text;">
-                    Tap di sini, lalu tekan <b>"Paste" / "Tempel"</b> gambar dari WA
-                </div>
-
+                <div id="paste-zone" contenteditable="true" onpaste="handlePaste(event)" style="border: 2px dashed #2196F3; padding: 15px 10px; border-radius: 8px; background: #e3f2fd; text-align: center; color: #1565c0; font-size: 12px; outline: none; cursor: text;">Tap di sini, lalu tekan <b>"Paste" / "Tempel"</b> gambar dari WA</div>
                 <div id="cf_preview_container" style="margin-top: 15px; display: none; text-align: center; position: relative;">
                     <img id="cf_preview" style="max-width: 100%; max-height: 250px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
                     <div onclick="hapusBukti()" style="margin-top: 8px; color: white; background: #e91e63; padding: 5px 10px; border-radius: 5px; display: inline-block; font-size: 11px; cursor: pointer; font-weight: bold;">🗑️ Hapus Gambar</div>
@@ -221,8 +208,8 @@
             <button class="key-btn" onclick="ketikKeyboard('9')">9</button>
         </div>
         <div class="key-row">
-            <button class="key-btn" onclick="ketikKeyboard('0')">0</button>
             <button class="key-btn" style="font-size: 26px;" onclick="ketikKeyboard(',')">,</button>
+            <button class="key-btn" onclick="ketikKeyboard('0')">0</button>
             <button class="key-btn action" onclick="ketikKeyboard('+')">+</button>
         </div>
         <div class="key-row">
@@ -238,10 +225,16 @@
       const NOMOR_WA_ADMIN = "6282143601114"; 
       // ==========================================
       
-      const USERS = { "1234": "Admin Pusat", "5678": "Petugas Lapangan", "0000": "Tim SPN", "8888": "Jinan" };
-      
+      const USERS = { "1234": "Admin Pusat", "5678": "Petugas Lapangan", "0000": "Pak Agus", "8888": "Jinan" };
       const KATG_MASUK = ["Bayar Pakan", "Dll"];
       const KATG_KELUAR = ["Bongkar Muat Pakan", "OPR Ekspedisi Pakan", "Perawatan Kendaraan", "OPR Kandang", "Lainnya"];
+      const ALIAS_MAP = {
+          "Mako S-20": "S20", "Ransum Laktasi": "RL", "Ransum Darbun": "RD", 
+          "Mako A-20": "A20", "Mako SP-15": "SP15", "Meal Mix": "MM", 
+          "Rapen Kedelai": "RK", "Pongkol Singkong": "PS", "Silase Edamame": "SE", 
+          "Bio Smart": "BS", "Mix Calf": "MC", "YD": "YD", 
+          "Rapen Kacang Hijau": "RKH", "KFZS": "KFZS", "Silase Jagung": "SJ", "Hay Kangkung": "HK"
+      };
 
       let activeUser = ""; let currentItems = []; 
       let activeKeyboardIndex = null; 
@@ -275,21 +268,12 @@
 
       function pindahMenu(menu) {
           if(menu === 'rekap' && !navigator.onLine) { alert("⚠️ Menu Rekap membutuhkan koneksi internet."); return; }
-          
-          document.getElementById('page-input').classList.add('hidden'); 
-          document.getElementById('page-rekap').classList.add('hidden');
-          document.getElementById('page-cashflow').classList.add('hidden');
-          
-          document.getElementById('nav-input').classList.remove('active'); 
-          document.getElementById('nav-rekap').classList.remove('active');
-          document.getElementById('nav-cashflow').classList.remove('active');
-
-          document.getElementById('page-' + menu).classList.remove('hidden'); 
-          document.getElementById('nav-' + menu).classList.add('active');
+          document.getElementById('page-input').classList.add('hidden'); document.getElementById('page-rekap').classList.add('hidden'); document.getElementById('page-cashflow').classList.add('hidden');
+          document.getElementById('nav-input').classList.remove('active'); document.getElementById('nav-rekap').classList.remove('active'); document.getElementById('nav-cashflow').classList.remove('active');
+          document.getElementById('page-' + menu).classList.remove('hidden'); document.getElementById('nav-' + menu).classList.add('active');
           tutupKeyboard();
       }
 
-      // ================= LOGIKA CASHFLOW (FOTO & PASTE) =================
       function updateKategoriCashflow() {
           let jenis = document.querySelector('input[name="cf_jenis"]:checked').value;
           let select = document.getElementById('cf_perkiraan');
@@ -306,52 +290,34 @@
           rupiah = split[1] != undefined ? rupiah + ',' + split[1] : rupiah; input.value = rupiah;
       }
 
-      // Fungsi untuk nangkep paste (copy dari WA)
       function handlePaste(e) {
-          e.preventDefault(); // Biar gak ada teks nyangkut di kotak
+          e.preventDefault(); 
           let items = (e.clipboardData || e.originalEvent.clipboardData).items;
           let foundImage = false;
-          
           for (let index in items) {
               let item = items[index];
               if (item.kind === 'file' && item.type.includes('image/')) {
-                  let blob = item.getAsFile();
-                  prosesFileGambar(blob); // Langsung lempar ke fungsi kompres
-                  foundImage = true;
-                  break; 
+                  let blob = item.getAsFile(); prosesFileGambar(blob); foundImage = true; break; 
               }
           }
-          if(!foundImage) {
-              alert("⚠️ Tidak ada gambar yang disalin! Pastikan Anda sudah 'Copy' foto bukti dari galeri/WhatsApp.");
-          }
+          if(!foundImage) alert("⚠️ Tidak ada gambar yang disalin! Pastikan Anda sudah 'Copy' foto bukti dari galeri/WhatsApp.");
       }
 
-      // Dipakai oleh File Input biasa
-      function previewBukti(input) {
-          let file = input.files[0];
-          if (file) { prosesFileGambar(file); } else { hapusBukti(); }
-      }
+      function previewBukti(input) { let file = input.files[0]; if (file) { prosesFileGambar(file); } else { hapusBukti(); } }
 
-      // Mesin Utama untuk menata dan mengecilkan gambar
       function prosesFileGambar(file) {
           let reader = new FileReader();
           reader.onload = function(e) {
               document.getElementById('cf_preview_container').style.display = 'block';
               document.getElementById('cf_preview').src = e.target.result;
-              
               let img = new Image();
               img.onload = function() {
-                  let canvas = document.createElement('canvas');
-                  const MAX_WIDTH = 800; 
+                  let canvas = document.createElement('canvas'); const MAX_WIDTH = 800; 
                   let width = img.width; let height = img.height;
                   if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
                   canvas.width = width; canvas.height = height;
-                  let ctx = canvas.getContext('2d');
-                  ctx.drawImage(img, 0, 0, width, height);
-                  
-                  let dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-                  fileBase64_Global = dataUrl.split(',')[1];
-                  fileMime_Global = 'image/jpeg';
+                  let ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, width, height);
+                  let dataUrl = canvas.toDataURL('image/jpeg', 0.7); fileBase64_Global = dataUrl.split(',')[1]; fileMime_Global = 'image/jpeg';
                   document.getElementById('paste-zone').innerHTML = "<b>✅ Gambar berhasil disalin!</b>";
               }
               img.src = e.target.result;
@@ -360,30 +326,23 @@
       }
 
       function hapusBukti() {
-          document.getElementById('cf_preview_container').style.display = 'none';
-          document.getElementById('cf_bukti').value = ""; 
+          document.getElementById('cf_preview_container').style.display = 'none'; document.getElementById('cf_bukti').value = ""; 
           document.getElementById('paste-zone').innerHTML = "Tap di sini, lalu tekan <b>'Paste' / 'Tempel'</b> gambar dari WA";
           fileBase64_Global = ""; fileMime_Global = "";
       }
 
       function kirimCashflow() {
           if (!navigator.onLine) { alert("⚠️ Fitur Cashflow WAJIB online!"); return; }
-
           let nominalStr = document.getElementById('cf_nominal').value.replace(/\./g, '');
           let nominal = parseFloat(nominalStr) || 0;
           let relasi = document.getElementById('cf_relasi').value.trim();
-
           if (!relasi) { alert("Nama Relasi / Tujuan harus diisi!"); return; }
           if (nominal <= 0) { alert("Nominal harus lebih dari 0!"); return; }
-          // SYARAT UPLOAD BUKTI SUDAH DIHAPUS DARI SINI (JADI OPSIONAL)
 
           let payload = {
-              tanggal: document.getElementById('cf_tanggal').value,
-              jenis: document.querySelector('input[name="cf_jenis"]:checked').value,
-              metode: document.getElementById('cf_metode').value,
-              perkiraan: document.getElementById('cf_perkiraan').value,
-              relasi: relasi, nominal: nominal,
-              deskripsi: document.getElementById('cf_deskripsi').value,
+              tanggal: document.getElementById('cf_tanggal').value, jenis: document.querySelector('input[name="cf_jenis"]:checked').value,
+              metode: document.getElementById('cf_metode').value, perkiraan: document.getElementById('cf_perkiraan').value,
+              relasi: relasi, nominal: nominal, deskripsi: document.getElementById('cf_deskripsi').value,
               fileData: { base64: fileBase64_Global, mime: fileMime_Global }
           };
 
@@ -391,43 +350,33 @@
           btn.innerText = "⏳ Sedang Mengunggah Data..."; btn.disabled = true; statusLabel.innerText = "Mohon tunggu...";
 
           fetch(API_URL, { method: 'POST', body: JSON.stringify({ source: 'cashflow', payload: payload }) })
-          .then(res => res.json())
-          .then(res => {
+          .then(res => res.json()).then(res => {
               if (res.status === 'success') {
                   statusLabel.innerText = "✅ Berhasil Disimpan!"; setTimeout(() => { statusLabel.innerText = ""; }, 3000);
-                  document.getElementById('cf_relasi').value = ""; document.getElementById('cf_nominal').value = ""; document.getElementById('cf_deskripsi').value = "";
-                  hapusBukti();
+                  document.getElementById('cf_relasi').value = ""; document.getElementById('cf_nominal').value = ""; document.getElementById('cf_deskripsi').value = ""; hapusBukti();
               } else { alert("Gagal: " + res.message); statusLabel.innerText = "❌ Gagal."; }
-          })
-          .catch(e => { alert("Terjadi kesalahan jaringan."); statusLabel.innerText = "❌ Gagal."; })
+          }).catch(e => { alert("Terjadi kesalahan jaringan."); statusLabel.innerText = "❌ Gagal."; })
           .finally(() => { btn.innerText = "Kirim Data Cashflow"; btn.disabled = false; });
       }
       
-      // ================= LOGIKA KEYBOARD PAKAN =================
       function bukaKeyboard(index) {
           activeKeyboardIndex = index; document.getElementById('custom-keyboard').classList.add('show');
-          let el = document.getElementById('qty-' + index); el.focus();
-          setTimeout(() => { el.scrollLeft = el.scrollWidth; }, 10);
+          let el = document.getElementById('qty-' + index); el.focus(); setTimeout(() => { el.scrollLeft = el.scrollWidth; }, 10);
       }
-      function tutupKeyboard() {
-          activeKeyboardIndex = null; document.getElementById('custom-keyboard').classList.remove('show');
-          document.querySelectorAll('.calc-input').forEach(el => el.blur());
-      }
+      function tutupKeyboard() { activeKeyboardIndex = null; document.getElementById('custom-keyboard').classList.remove('show'); document.querySelectorAll('.calc-input').forEach(el => el.blur()); }
       function ketikKeyboard(val) {
           if (activeKeyboardIndex !== null) {
               let el = document.getElementById('qty-' + activeKeyboardIndex);
               if (val === '+' && el.value.endsWith('+')) return; 
               if (val === '+' && el.value === '') return; 
               if (val === ',' && el.value.endsWith(',')) return; 
-              el.value += val; hitungCalc(activeKeyboardIndex);
-              setTimeout(() => { el.scrollLeft = el.scrollWidth; }, 10);
+              el.value += val; hitungCalc(activeKeyboardIndex); setTimeout(() => { el.scrollLeft = el.scrollWidth; }, 10);
           }
       }
       function hapusKeyboard() {
           if (activeKeyboardIndex !== null) {
               let el = document.getElementById('qty-' + activeKeyboardIndex);
-              el.value = el.value.slice(0, -1); hitungCalc(activeKeyboardIndex);
-              setTimeout(() => { el.scrollLeft = el.scrollWidth; }, 10);
+              el.value = el.value.slice(0, -1); hitungCalc(activeKeyboardIndex); setTimeout(() => { el.scrollLeft = el.scrollWidth; }, 10);
           }
       }
 
@@ -454,13 +403,11 @@
           }
       }
 
-      // ================= LOGIKA REKAP & INPUT DATA =================
       function tarikDataRekapDB() {
           if (!navigator.onLine) { alert("Butuh internet untuk tarik data Database!"); return; }
           let tgl = document.getElementById('rekap-tanggal').value; let loc = document.getElementById('rekap-lokasi').value;
           if(!tgl) { alert("Pilih tanggal dulu!"); return; }
-          document.getElementById('rekap-hasil').innerHTML = '<div class="loader">Menyisir Database Google Sheet...</div>';
-          document.getElementById('btn-copy-rekap').classList.add('hidden');
+          document.getElementById('rekap-hasil').innerHTML = '<div class="loader">Menyisir Database Google Sheet...</div>'; document.getElementById('btn-copy-rekap').classList.add('hidden');
           fetch(API_URL, { method: 'POST', body: JSON.stringify({ source: 'pwa_rekap', lokasi: loc, tanggal: tgl }) })
               .then(res => res.json()).then(res => { if (res.status === 'success') { renderTabelRekap(res.data, res.isKandang, tgl, loc); } else { document.getElementById('rekap-hasil').innerHTML = `<div style="color:red; text-align:center;">Gagal: ${res.message}</div>`; } })
               .catch(e => { document.getElementById('rekap-hasil').innerHTML = '<div style="color:red; text-align:center;">Terjadi kesalahan koneksi ke server.</div>'; });
@@ -493,7 +440,23 @@
       function copyRekapWA() { let text = document.getElementById('raw-rekap-text'); text.classList.remove('hidden'); text.select(); document.execCommand('copy'); text.classList.add('hidden'); alert("✅ Rekap berhasil dicopy! Silakan paste di WhatsApp."); }
 
       function gantiLokasi() {
-          let lokasi = document.querySelector('input[name="lokasi"]:checked').value; let cachedData = localStorage.getItem('pakan_data_' + lokasi);
+          let lokasi = document.querySelector('input[name="lokasi"]:checked').value;
+          
+          // Logika toggle input Relasi text vs Dropdown Sapi
+          let inputRelasi = document.getElementById('relasi');
+          let selKandang = document.getElementById('relasi_kandang');
+          let labelRelasi = document.getElementById('label-relasi');
+          if(lokasi === '/kandang') {
+              labelRelasi.innerText = "Kelompok Sapi";
+              inputRelasi.classList.add('hidden');
+              selKandang.classList.remove('hidden');
+          } else {
+              labelRelasi.innerText = "Nama Relasi / Tujuan";
+              inputRelasi.classList.remove('hidden');
+              selKandang.classList.add('hidden');
+          }
+
+          let cachedData = localStorage.getItem('pakan_data_' + lokasi);
           if (cachedData) renderPakan(JSON.parse(cachedData)); else document.getElementById('product-list').innerHTML = '<div class="loader">Membutuhkan koneksi internet...</div>';
           if (navigator.onLine) { fetch(`${API_URL}?action=getPakan&lokasi=${lokasi}`).then(res => res.json()).then(res => { if(res.status === 'success') { localStorage.setItem('pakan_data_' + lokasi, JSON.stringify(res)); renderPakan(res); } }).catch(e => console.log("Gagal fetch data")); }
       }
@@ -510,24 +473,82 @@
       }
 
       function kirimData() {
-          tutupKeyboard(); let inputVal = document.getElementById('ekor').value.trim(); let isAngka = !isNaN(inputVal) && inputVal !== "";
-          let payload = { petugas: activeUser, lokasi: document.querySelector('input[name="lokasi"]:checked').value, tanggal: document.getElementById('tanggal').value, status: document.getElementById('status').value, relasi: document.getElementById('relasi').value, ekor: isAngka ? parseFloat(inputVal) : 0, alamat: !isAngka ? inputVal : "", ongkir: document.getElementById('ongkir').value, catatan: document.getElementById('catatan').value, items: {} };
-          if (!payload.relasi) { alert("Nama Relasi tidak boleh kosong!"); return; }
-          let totalItem = 0; currentItems.forEach(function(item, index) { let el = document.getElementById('qty-' + index); let qty = parseFloat(el.getAttribute('data-total')) || 0; if (qty > 0) { payload.items[item.nama] = qty; totalItem++; } });
+          tutupKeyboard(); 
+          let inputVal = document.getElementById('ekor').value.trim(); 
+          let isAngka = !isNaN(inputVal) && inputVal !== "";
+          let lokasiTerpilih = document.querySelector('input[name="lokasi"]:checked').value;
+          let isKandang = (lokasiTerpilih === '/kandang');
+          let valRelasi = isKandang ? document.getElementById('relasi_kandang').value : document.getElementById('relasi').value.trim();
+
+          let payload = { 
+              petugas: activeUser, lokasi: lokasiTerpilih, 
+              tanggal: document.getElementById('tanggal').value, status: document.getElementById('status').value, 
+              relasi: valRelasi, ekor: isAngka ? parseFloat(inputVal) : 0, 
+              alamat: !isAngka ? inputVal : "", ongkir: document.getElementById('ongkir').value, 
+              catatan: document.getElementById('catatan').value, items: {} 
+          };
+
+          if (!payload.relasi) { alert("Nama Relasi / Kelompok tidak boleh kosong!"); return; }
+          let totalItem = 0; 
+          currentItems.forEach(function(item, index) { 
+              let el = document.getElementById('qty-' + index); 
+              let qty = parseFloat(el.getAttribute('data-total')) || 0; 
+              if (qty > 0) { payload.items[item.nama] = qty; totalItem++; } 
+          });
           if (totalItem === 0) { alert("Harap isi pakan!"); return; }
 
-          if (payload.lokasi !== '/kandang') {
+          // --- LOGIKA NOTIFIKASI POP-UP / ALERT ---
+          let alertMsg = "";
+          let dObj = payload.tanggal ? new Date(payload.tanggal) : new Date(); 
+          let yy = dObj.getFullYear().toString().substring(2);
+          let tglFormatShort = ("0"+dObj.getDate()).slice(-2)+"/"+("0"+(dObj.getMonth()+1)).slice(-2)+"/"+yy;
+
+          if (!isKandang) {
+              alertMsg += `LAPORAN GUDANG BERHASIL TERKIRIM.\n${tglFormatShort}\n${payload.relasi}\n${payload.status}\n--------------------\n`;
               let ringkasanItem = ""; let grandTotal = 0;
-              for(let key in payload.items) { let qtyKg = payload.items[key]; grandTotal += qtyKg; let itemIndex = currentItems.findIndex(i => i.nama === key); let elTarget = document.getElementById('qty-' + itemIndex); let jmlKarung = parseFloat(elTarget.getAttribute('data-karung')) || 0; let itemObj = currentItems[itemIndex]; let satuan = itemObj.satuan || "Kg"; let namaKemasan = (satuan.toLowerCase() === 'ltr' || key.toLowerCase().includes('bio smart')) ? "Jirigen" : "Karung"; 
+              for(let key in payload.items) { 
+                  let qtyKg = payload.items[key]; grandTotal += qtyKg; 
+                  let itemIndex = currentItems.findIndex(i => i.nama === key); 
+                  let elTarget = document.getElementById('qty-' + itemIndex); 
+                  let jmlKarung = parseFloat(elTarget.getAttribute('data-karung')) || 0; 
+                  let itemObj = currentItems[itemIndex]; let satuan = itemObj.satuan || "Kg"; 
+                  let namaKemasan = (satuan.toLowerCase() === 'ltr' || key.toLowerCase().includes('bio smart')) ? "Jirigen" : "Karung"; 
+                  
+                  // Hitung nama alias untuk Alert
+                  let aliasName = ALIAS_MAP[key] || key;
+                  alertMsg += `${aliasName}: ${qtyKg}\n`;
+
+                  // Format WA
                   if (jmlKarung > 0) { let formatKr = Number.isInteger(jmlKarung) ? jmlKarung : jmlKarung.toFixed(2); ringkasanItem += `• ${key}: ${Number(qtyKg).toLocaleString('id-ID')} Kg | ${formatKr} ${namaKemasan}\n`; } else { ringkasanItem += `• ${key}: ${Number(qtyKg).toLocaleString('id-ID')} Kg\n`; }
               }
-              let d = payload.tanggal ? new Date(payload.tanggal) : new Date(); let tglFormat = ("0"+d.getDate()).slice(-2)+"/"+("0"+(d.getMonth()+1)).slice(-2)+"/"+d.getFullYear(); let infoAlamat = payload.alamat ? payload.alamat : (payload.ekor > 0 ? payload.ekor + " Ekor" : "-");
-              let teksWA = `LAPORAN ORDERAN ${payload.relasi.toUpperCase()}, ${tglFormat}\nAlamat: ${infoAlamat}\n`; if (payload.ongkir) teksWA += `Ongkir: ${payload.ongkir}\n`; teksWA += `Status: ${payload.status}\n\n${ringkasanItem}\nTotal: ${Number(grandTotal).toLocaleString('id-ID')} Kg`; if (payload.catatan) teksWA += `\nCatatan: ${payload.catatan}`; teksWA += `\n\nPetugas: ${payload.petugas}`;
+              if (payload.catatan) alertMsg += `Catatan: ${payload.catatan}\n`;
+              alert(alertMsg);
+
+              // Redirect WA
+              let tglFormatWA = ("0"+dObj.getDate()).slice(-2)+"/"+("0"+(dObj.getMonth()+1)).slice(-2)+"/"+dObj.getFullYear(); 
+              let infoAlamat = payload.alamat ? payload.alamat : (payload.ekor > 0 ? payload.ekor + " Ekor" : "-");
+              let teksWA = `LAPORAN ORDERAN ${payload.relasi.toUpperCase()}, ${tglFormatWA}\nAlamat: ${infoAlamat}\n`; if (payload.ongkir) teksWA += `Ongkir: ${payload.ongkir}\n`; teksWA += `Status: ${payload.status}\n\n${ringkasanItem}\nTotal: ${Number(grandTotal).toLocaleString('id-ID')} Kg`; if (payload.catatan) teksWA += `\nCatatan: ${payload.catatan}`; teksWA += `\n\nPetugas: ${payload.petugas}`;
               let a = document.createElement('a'); a.href = `https://wa.me/${NOMOR_WA_ADMIN}?text=${encodeURIComponent(teksWA)}`; a.target = '_blank'; document.body.appendChild(a); a.click();
-          } else { alert("✅ Data Kandang ditampung/dikirim."); }
+          } else { 
+              alertMsg += `LAPORAN PEMAKAIAN "KAND. PM" BERHASIL TERKIRIM.\n${payload.relasi}\nEkor: ${payload.ekor}\n-----------\n`;
+              let grandTotal = 0;
+              for(let key in payload.items) {
+                  let qty = payload.items[key]; grandTotal += qty;
+                  let aliasName = ALIAS_MAP[key] || key;
+                  let avgTxt = (payload.ekor > 0) ? `${parseFloat((qty/payload.ekor).toFixed(2))}kg/Ekor` : "(Avg /ekor)";
+                  alertMsg += `${aliasName} ${qty} | ${avgTxt}\n`;
+              }
+              let totalAvg = payload.ekor > 0 ? parseFloat((grandTotal/payload.ekor).toFixed(2)) : 0;
+              alertMsg += `\nTotal: ${grandTotal} kg | ${totalAvg}kg /Ekor`;
+              
+              alert(alertMsg); 
+          }
 
           if (navigator.onLine) { fetch(API_URL, { method: 'POST', body: JSON.stringify({ source: 'pwa_cbl', payload: payload }) }); } else { let antrian = JSON.parse(localStorage.getItem('antrian_pakan')) || []; antrian.push(payload); localStorage.setItem('antrian_pakan', JSON.stringify(antrian)); updateStatusKoneksi(); }
-          document.getElementById('relasi').value = ""; document.getElementById('ekor').value = ""; document.getElementById('ongkir').value = ""; document.getElementById('catatan').value = ""; currentItems.forEach((item, index) => { let el = document.getElementById('qty-'+index); el.value = ""; el.setAttribute('data-total', "0"); el.setAttribute('data-karung', "0"); if (document.getElementById('hasil-'+index)) document.getElementById('hasil-'+index).innerText = "= 0"; if (document.getElementById('lbl-karung-'+index)) document.getElementById('lbl-karung-'+index).innerText = ""; });
+          
+          // Reset Input
+          if(!isKandang) document.getElementById('relasi').value = ""; 
+          document.getElementById('ekor').value = ""; document.getElementById('ongkir').value = ""; document.getElementById('catatan').value = ""; currentItems.forEach((item, index) => { let el = document.getElementById('qty-'+index); el.value = ""; el.setAttribute('data-total', "0"); el.setAttribute('data-karung', "0"); if (document.getElementById('hasil-'+index)) document.getElementById('hasil-'+index).innerText = "= 0"; if (document.getElementById('lbl-karung-'+index)) document.getElementById('lbl-karung-'+index).innerText = ""; });
       }
 
       function sinkronisasiAntrianLokal() {
