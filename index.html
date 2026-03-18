@@ -109,7 +109,10 @@
           
           <div class="form-group">
               <label id="label-relasi">Nama Relasi / Tujuan</label>
-              <input type="text" id="relasi" placeholder="Cth: Bpk Budi / Pengepul">
+              
+              <input type="text" id="relasi" list="list-relasi-master" placeholder="Pilih / Ketik Nama Konsumen..." oninput="isiOtomatisAlamat()">
+              <datalist id="list-relasi-master"></datalist>
+
               <select id="relasi_kandang" class="hidden">
                   <option value="Kapalang">Kapalang</option>
                   <option value="Dewasa">Dewasa</option>
@@ -165,7 +168,12 @@
                 <div><label>Metode Pembayaran</label><select id="cf_metode"><option value="Tranfer">Transfer</option><option value="Cash">Cash</option></select></div>
             </div>
             <div class="form-group"><label>Perkiraan / Kategori</label><select id="cf_perkiraan"></select></div>
-            <div class="form-group"><label>Relasi (Dari / Ke)</label><input type="text" id="cf_relasi" placeholder="Cth: Nama Orang / Toko / Keterangan"></div>
+            
+            <div class="form-group">
+                <label>Relasi (Dari / Ke)</label>
+                <input type="text" id="cf_relasi" list="list-relasi-master" placeholder="Pilih / Ketik Nama Relasi...">
+            </div>
+
             <div class="form-group"><label>Nominal (Rp)</label><input type="text" inputmode="numeric" id="cf_nominal" class="calc-input" placeholder="0" oninput="formatRupiah(this)" style="font-size: 18px; font-weight: bold; padding: 15px 10px !important;"></div>
             <div class="form-group"><label>Berita / Keterangan</label><textarea id="cf_deskripsi" rows="2" placeholder="Tuliskan berita transfer / keterangan rinci..."></textarea></div>
 
@@ -220,14 +228,14 @@
 
     <script>
       // ==========================================
-      // ⚠️ WAJIB ISI URL & NO WA 
+      // ⚠️ WAJIB ISI URL BACKEND UTAMA & NO WA 
       const API_URL = "https://script.google.com/macros/s/AKfycbxm8APTPE4lgMIimnOOUetQPY2vWiNqkL5_4afV_jY5AoC_bPVp2z1IsMKImJXOroi0/exec";
       const NOMOR_WA_ADMIN = "6282143601114"; 
       // ==========================================
       
-      const USERS = { "1234": "Admin Pusat", "5678": "Petugas Lapangan", "0000": "Pak Agus", "8888": "Jinan" };
-      const KATG_MASUK = ["Bayar Pakan", "Lain-lain","Dll"];
-      const KATG_KELUAR = ["Bongkar Muat", "OPR Ekspedisi", "Perawatan Kendaraan", "Perawatan Kandang","OPR Kandang", "Lainnya"];
+      const USERS = { "1234": "Admin Pusat", "5678": "Petugas Lapangan", "0000": "Tim SPN", "8888": "Jinan" };
+      const KATG_MASUK = ["Bayar Pakan", "Dll"];
+      const KATG_KELUAR = ["Bongkar Muat Pakan", "OPR Ekspedisi Pakan", "Perawatan Kendaraan", "OPR Kandang", "Lainnya"];
       const ALIAS_MAP = {
           "Mako S-20": "S20", "Ransum Laktasi": "RL", "Ransum Darbun": "RD", 
           "Mako A-20": "A20", "Mako SP-15": "SP15", "Meal Mix": "MM", 
@@ -240,6 +248,7 @@
       let activeKeyboardIndex = null; 
       let fileBase64_Global = ""; 
       let fileMime_Global = "";
+      let globalRelasi = []; // Penampung Data Master Relasi
 
       if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
       window.addEventListener('online', updateStatusKoneksi);
@@ -263,8 +272,53 @@
               document.getElementById('rekap-tanggal').valueAsDate = new Date(); 
               document.getElementById('cf_tanggal').valueAsDate = new Date(); 
               updateStatusKoneksi(); gantiLokasi(); updateKategoriCashflow();
+              
+              // Tarik Data Master Relasi saat login sukses
+              fetchMasterRelasi();
           } else { document.getElementById('login-error').style.display = 'block'; }
       }
+
+      // === FUNGSI MASTER RELASI ===
+      function fetchMasterRelasi() {
+          if (navigator.onLine) {
+              fetch(`${API_URL}?action=getRelasi`)
+              .then(res => res.json())
+              .then(res => {
+                  if(res.status === 'success') {
+                      globalRelasi = res.data;
+                      localStorage.setItem('data_relasi_cbl', JSON.stringify(globalRelasi));
+                      renderDatalistRelasi();
+                  }
+              }).catch(e => console.log("Gagal memuat relasi"));
+          } else {
+              let cached = localStorage.getItem('data_relasi_cbl');
+              if (cached) { globalRelasi = JSON.parse(cached); renderDatalistRelasi(); }
+          }
+      }
+
+      function renderDatalistRelasi() {
+          let dl = document.getElementById('list-relasi-master');
+          dl.innerHTML = "";
+          globalRelasi.forEach(r => {
+              let opt = document.createElement('option');
+              opt.value = r.nama;
+              dl.appendChild(opt);
+          });
+      }
+
+      function isiOtomatisAlamat() {
+          let inputNama = document.getElementById('relasi').value;
+          let lokasiTerpilih = document.querySelector('input[name="lokasi"]:checked').value;
+          
+          // Fitur Autofill khusus untuk Gudang (bukan Kandang)
+          if (lokasiTerpilih === '/kandang') return;
+
+          let relasiDitemukan = globalRelasi.find(r => r.nama.toLowerCase() === inputNama.toLowerCase());
+          if (relasiDitemukan && relasiDitemukan.alamat !== "") {
+              document.getElementById('ekor').value = relasiDitemukan.alamat; 
+          }
+      }
+      // ============================
 
       function pindahMenu(menu) {
           if(menu === 'rekap' && !navigator.onLine) { alert("⚠️ Menu Rekap membutuhkan koneksi internet."); return; }
@@ -349,6 +403,8 @@
           let btn = document.getElementById('btn-kirim-cf'); let statusLabel = document.getElementById('cf_status');
           btn.innerText = "⏳ Sedang Mengunggah Data..."; btn.disabled = true; statusLabel.innerText = "Mohon tunggu...";
 
+          // JANGAN LUPA URL CASHFLOW (UBAH KE URL SCRIPT CASHFLOW JIKA BERBEDA)
+          // Asumsi API_URL di atas masih nembak ke script utama yang merouting ke cashflow (Atau ganti URL manual di fetch ini)
           fetch(API_URL, { method: 'POST', body: JSON.stringify({ source: 'cashflow', payload: payload }) })
           .then(res => res.json()).then(res => {
               if (res.status === 'success') {
@@ -442,7 +498,6 @@
       function gantiLokasi() {
           let lokasi = document.querySelector('input[name="lokasi"]:checked').value;
           
-          // Logika toggle input Relasi text vs Dropdown Sapi
           let inputRelasi = document.getElementById('relasi');
           let selKandang = document.getElementById('relasi_kandang');
           let labelRelasi = document.getElementById('label-relasi');
@@ -497,7 +552,6 @@
           });
           if (totalItem === 0) { alert("Harap isi pakan!"); return; }
 
-          // --- LOGIKA NOTIFIKASI POP-UP / ALERT ---
           let alertMsg = "";
           let dObj = payload.tanggal ? new Date(payload.tanggal) : new Date(); 
           let yy = dObj.getFullYear().toString().substring(2);
@@ -514,17 +568,14 @@
                   let itemObj = currentItems[itemIndex]; let satuan = itemObj.satuan || "Kg"; 
                   let namaKemasan = (satuan.toLowerCase() === 'ltr' || key.toLowerCase().includes('bio smart')) ? "Jirigen" : "Karung"; 
                   
-                  // Hitung nama alias untuk Alert
                   let aliasName = ALIAS_MAP[key] || key;
                   alertMsg += `${aliasName}: ${qtyKg}\n`;
 
-                  // Format WA
                   if (jmlKarung > 0) { let formatKr = Number.isInteger(jmlKarung) ? jmlKarung : jmlKarung.toFixed(2); ringkasanItem += `• ${key}: ${Number(qtyKg).toLocaleString('id-ID')} Kg | ${formatKr} ${namaKemasan}\n`; } else { ringkasanItem += `• ${key}: ${Number(qtyKg).toLocaleString('id-ID')} Kg\n`; }
               }
               if (payload.catatan) alertMsg += `Catatan: ${payload.catatan}\n`;
               alert(alertMsg);
 
-              // Redirect WA
               let tglFormatWA = ("0"+dObj.getDate()).slice(-2)+"/"+("0"+(dObj.getMonth()+1)).slice(-2)+"/"+dObj.getFullYear(); 
               let infoAlamat = payload.alamat ? payload.alamat : (payload.ekor > 0 ? payload.ekor + " Ekor" : "-");
               let teksWA = `LAPORAN ORDERAN ${payload.relasi.toUpperCase()}, ${tglFormatWA}\nAlamat: ${infoAlamat}\n`; if (payload.ongkir) teksWA += `Ongkir: ${payload.ongkir}\n`; teksWA += `Status: ${payload.status}\n\n${ringkasanItem}\nTotal: ${Number(grandTotal).toLocaleString('id-ID')} Kg`; if (payload.catatan) teksWA += `\nCatatan: ${payload.catatan}`; teksWA += `\n\nPetugas: ${payload.petugas}`;
@@ -546,7 +597,6 @@
 
           if (navigator.onLine) { fetch(API_URL, { method: 'POST', body: JSON.stringify({ source: 'pwa_cbl', payload: payload }) }); } else { let antrian = JSON.parse(localStorage.getItem('antrian_pakan')) || []; antrian.push(payload); localStorage.setItem('antrian_pakan', JSON.stringify(antrian)); updateStatusKoneksi(); }
           
-          // Reset Input
           if(!isKandang) document.getElementById('relasi').value = ""; 
           document.getElementById('ekor').value = ""; document.getElementById('ongkir').value = ""; document.getElementById('catatan').value = ""; currentItems.forEach((item, index) => { let el = document.getElementById('qty-'+index); el.value = ""; el.setAttribute('data-total', "0"); el.setAttribute('data-karung', "0"); if (document.getElementById('hasil-'+index)) document.getElementById('hasil-'+index).innerText = "= 0"; if (document.getElementById('lbl-karung-'+index)) document.getElementById('lbl-karung-'+index).innerText = ""; });
       }
