@@ -152,9 +152,10 @@
             <div class="form-group">
                 <label>Pilih Database</label>
                 <select id="rekap-lokasi">
-                    <option value="/pm">DB Gudang PM</option>
-                    <option value="/kandang">DB Kandang PM</option>
-                </select>
+                <option value="/pm">DB Gudang PM</option>
+                <option value="/kandang">DB Kandang PM</option>
+                <option value="/cashflow">DB Cashflow</option>
+            </select>
             </div>
             <div class="form-group"><label>Pilih Tanggal</label><input type="date" id="rekap-tanggal"></div>
             <button class="btn-submit" onclick="tarikDataRekapDB()" style="background:#2196F3; margin-bottom: 10px;">📊 Tarik Rekap Database</button>
@@ -494,20 +495,87 @@
           }
       }
 
-      function tarikDataRekapDB() {
+     function tarikDataRekapDB() {
           if (!navigator.onLine) { alert("Butuh internet untuk tarik data Database!"); return; }
           let tgl = document.getElementById('rekap-tanggal').value; let loc = document.getElementById('rekap-lokasi').value;
           if(!tgl) { alert("Pilih tanggal dulu!"); return; }
           document.getElementById('rekap-hasil').innerHTML = '<div class="loader">Menyisir Database Google Sheet...</div>'; document.getElementById('btn-copy-rekap').classList.add('hidden');
           fetch(API_URL, { method: 'POST', body: JSON.stringify({ source: 'pwa_rekap', lokasi: loc, tanggal: tgl }) })
-              .then(res => res.json()).then(res => { if (res.status === 'success') { renderTabelRekap(res.data, res.isKandang, tgl, loc); } else { document.getElementById('rekap-hasil').innerHTML = `<div style="color:red; text-align:center;">Gagal: ${res.message}</div>`; } })
+              .then(res => res.json()).then(res => { 
+                  if (res.status === 'success') { renderTabelRekap(res.data, res.isKandang, tgl, loc, res.isCashflow); } 
+                  else { document.getElementById('rekap-hasil').innerHTML = `<div style="color:red; text-align:center;">Gagal: ${res.message}</div>`; } 
+              })
               .catch(e => { document.getElementById('rekap-hasil').innerHTML = '<div style="color:red; text-align:center;">Terjadi kesalahan koneksi ke server.</div>'; });
       }
 
-      function renderTabelRekap(data, isKandang, tanggal, locName) {
-          let container = document.getElementById('rekap-hasil'); let labelGudang = document.getElementById('rekap-lokasi').options[document.getElementById('rekap-lokasi').selectedIndex].text;
-          if (Object.keys(data).length === 0) { container.innerHTML = `<div style="text-align:center; padding:20px; color:#f44336; font-weight:bold;">Tidak ada riwayat input di tanggal ini.</div>`; return; }
-          let html = ''; let textWA = `REKAP ${labelGudang.toUpperCase()}\nTanggal: ${tanggal.split('-').reverse().join('/')}\n\n`;
+      function renderTabelRekap(data, isKandang, tanggal, locName, isCashflow) {
+          let container = document.getElementById('rekap-hasil'); 
+          let labelGudang = document.getElementById('rekap-lokasi').options[document.getElementById('rekap-lokasi').selectedIndex].text;
+          
+          // JIKA DATA KOSONG
+          if (Object.keys(data).length === 0 || (isCashflow && Object.keys(data.Masuk).length === 0 && Object.keys(data.Keluar).length === 0)) { 
+              container.innerHTML = `<div style="text-align:center; padding:20px; color:#f44336; font-weight:bold;">Tidak ada riwayat input di tanggal ini.</div>`; 
+              return; 
+          }
+          
+          let html = ''; let textWA = '';
+          
+          // === JIKA REKAP CASHFLOW ===
+          if (isCashflow) {
+              textWA = `*REKAP CASHFLOW*\nTanggal: ${tanggal.split('-').reverse().join('/')}\n\n`;
+
+              function renderGroupCF(title, groupData, total, emoji) {
+                 if (Object.keys(groupData).length === 0) return;
+                 html += `<div class="rekap-card" style="border-top: 4px solid ${emoji==='🟢'?'#4CAF50':'#f44336'}">`;
+                 html += `<div class="rekap-title">${emoji} ${title}</div>`;
+                 textWA += `${emoji} *${title}*\n`;
+                 
+                 for (let kat in groupData) {
+                     html += `<div style="font-weight:bold; font-size:13px; color:#1a5c40; margin-top:10px;">[${kat}]</div>`;
+                     textWA += `[${kat}]\n`;
+                     
+                     groupData[kat].forEach(trx => {
+                         let nomFormat = new Intl.NumberFormat('id-ID').format(trx.nominal);
+                         // Render di UI (ada link bukti)
+                         html += `<div class="rekap-item" style="margin-left: 10px; flex-direction: column; align-items: flex-start;">
+                                     <div style="width:100%; display:flex; justify-content: space-between;">
+                                         <span>- ${trx.relasi} - ${trx.metode}</span>
+                                         <span style="font-weight:bold;">Rp ${nomFormat}</span>
+                                     </div>
+                                     ${trx.bukti && trx.bukti !== '-' ? `<a href="${trx.bukti}" target="_blank" style="font-size:11px; color:#2196F3; text-decoration:none; margin-top:3px;">Lihat Bukti ↗</a>` : ''}
+                                  </div>`;
+                         // Format Teks WA (tanpa link)
+                         textWA += `- ${trx.relasi}-${trx.metode}-Rp ${nomFormat}\n`;
+                     });
+                     textWA += `\n`; // Spasi antar kategori
+                 }
+                 let formatTotal = new Intl.NumberFormat('id-ID').format(total);
+                 html += `<div class="rekap-total"><span>Total ${title}</span><span>Rp ${formatTotal}</span></div>`;
+                 html += `</div>`;
+                 textWA += `*Total ${title}: Rp ${formatTotal}*\n\n`;
+              }
+
+              renderGroupCF("UANG MASUK", data.Masuk, data.TotalMasuk, "🟢");
+              renderGroupCF("UANG KELUAR", data.Keluar, data.TotalKeluar, "🔴");
+              
+              let saldo = data.TotalMasuk - data.TotalKeluar;
+              let saldoFormat = new Intl.NumberFormat('id-ID').format(Math.abs(saldo));
+              let saldoSign = saldo >= 0 ? "+" : "-";
+              
+              html += `<div class="rekap-card" style="background: #e8f5e9; border: 1px solid #4CAF50;">
+                          <div style="font-size:14px; font-weight:bold; text-align:center;">⚖️ SALDO BERSIH HARI INI</div>
+                          <div style="font-size:20px; font-weight:bold; text-align:center; color:${saldo>=0?'#1a5c40':'#e91e63'}; margin-top:5px;">${saldoSign} Rp ${saldoFormat}</div>
+                       </div>`;
+              textWA += `⚖️ *SALDO BERSIH: ${saldoSign} Rp ${saldoFormat}*\n====================`;
+
+              container.innerHTML = html;
+              document.getElementById('raw-rekap-text').value = textWA.trim(); 
+              document.getElementById('btn-copy-rekap').classList.remove('hidden');
+              return; // Selesai untuk cashflow
+          }
+
+          // === JIKA REKAP GUDANG / KANDANG (KODE LAMA TETAP AMAN) ===
+          textWA = `REKAP ${labelGudang.toUpperCase()}\nTanggal: ${tanggal.split('-').reverse().join('/')}\n\n`;
 
           if (isKandang) {
               for (let relasi in data) { let d = data[relasi]; html += `<div class="rekap-card">`; html += `<div class="rekap-title">🐄 Kelompok: ${relasi} <span style="color:#666; font-weight:normal;">(${d.ekor} ekor)</span></div>`; textWA += `📌 *${relasi}* (${d.ekor} ekor)\n\n`;
