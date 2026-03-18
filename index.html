@@ -70,6 +70,14 @@
       .key-btn.action { background: #1a5c40; color: white; font-size: 24px; }
       .key-btn.delete { flex: 1; background: #f44336; color: white; font-size: 18px; }
       .key-btn.done { flex: 1; background: #2196F3; color: white; font-size: 18px; }
+
+      /* === STYLING UNTUK AUTOCOMPLETE KUSTOM === */
+      .autocomplete-wrapper { position: relative; width: 100%; }
+      .autocomplete-items { position: absolute; border: 1px solid #ccc; border-top: none; z-index: 99; top: 100%; left: 0; right: 0; max-height: 200px; overflow-y: auto; background-color: #fff; border-radius: 0 0 8px 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+      .autocomplete-item { padding: 12px; cursor: pointer; border-bottom: 1px solid #eee; font-size: 13px; color: #333; }
+      .autocomplete-item:hover { background-color: #e8f5e9; color: #1a5c40; }
+      .autocomplete-item strong { color: #1a5c40; }
+      .alamat-hint { font-size: 10px; color: #888; display: block; margin-top: 2px; }
     </style>
   </head>
   <body>
@@ -110,8 +118,10 @@
           <div class="form-group">
               <label id="label-relasi">Nama Relasi / Tujuan</label>
               
-              <input type="text" id="relasi" list="list-relasi-master" placeholder="Pilih / Ketik Nama Konsumen..." oninput="isiOtomatisAlamat()">
-              <datalist id="list-relasi-master"></datalist>
+              <div id="wrapper-relasi" class="autocomplete-wrapper">
+                  <input type="text" id="relasi" placeholder="Ketik Nama Konsumen..." autocomplete="off" oninput="tampilkanSaran(this, 'saran-relasi-gudang', true)">
+                  <div id="saran-relasi-gudang" class="autocomplete-items hidden"></div>
+              </div>
 
               <select id="relasi_kandang" class="hidden">
                   <option value="Kapalang">Kapalang</option>
@@ -171,7 +181,10 @@
             
             <div class="form-group">
                 <label>Relasi (Dari / Ke)</label>
-                <input type="text" id="cf_relasi" list="list-relasi-master" placeholder="Pilih / Ketik Nama Relasi...">
+                <div class="autocomplete-wrapper">
+                    <input type="text" id="cf_relasi" placeholder="Ketik Nama Relasi..." autocomplete="off" oninput="tampilkanSaran(this, 'saran-relasi-cf', false)">
+                    <div id="saran-relasi-cf" class="autocomplete-items hidden"></div>
+                </div>
             </div>
 
             <div class="form-group"><label>Nominal (Rp)</label><input type="text" inputmode="numeric" id="cf_nominal" class="calc-input" placeholder="0" oninput="formatRupiah(this)" style="font-size: 18px; font-weight: bold; padding: 15px 10px !important;"></div>
@@ -248,7 +261,7 @@
       let activeKeyboardIndex = null; 
       let fileBase64_Global = ""; 
       let fileMime_Global = "";
-      let globalRelasi = []; // Penampung Data Master Relasi
+      let globalRelasi = [];
 
       if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
       window.addEventListener('online', updateStatusKoneksi);
@@ -272,53 +285,77 @@
               document.getElementById('rekap-tanggal').valueAsDate = new Date(); 
               document.getElementById('cf_tanggal').valueAsDate = new Date(); 
               updateStatusKoneksi(); gantiLokasi(); updateKategoriCashflow();
-              
-              // Tarik Data Master Relasi saat login sukses
               fetchMasterRelasi();
           } else { document.getElementById('login-error').style.display = 'block'; }
       }
 
-      // === FUNGSI MASTER RELASI ===
+      // === LOGIKA AUTOCOMPLETE KUSTOM ===
       function fetchMasterRelasi() {
           if (navigator.onLine) {
-              fetch(`${API_URL}?action=getRelasi`)
-              .then(res => res.json())
-              .then(res => {
+              fetch(`${API_URL}?action=getRelasi`).then(res => res.json()).then(res => {
                   if(res.status === 'success') {
                       globalRelasi = res.data;
                       localStorage.setItem('data_relasi_cbl', JSON.stringify(globalRelasi));
-                      renderDatalistRelasi();
                   }
               }).catch(e => console.log("Gagal memuat relasi"));
           } else {
               let cached = localStorage.getItem('data_relasi_cbl');
-              if (cached) { globalRelasi = JSON.parse(cached); renderDatalistRelasi(); }
+              if (cached) globalRelasi = JSON.parse(cached); 
           }
       }
 
-      function renderDatalistRelasi() {
-          let dl = document.getElementById('list-relasi-master');
-          dl.innerHTML = "";
-          globalRelasi.forEach(r => {
-              let opt = document.createElement('option');
-              opt.value = r.nama;
-              dl.appendChild(opt);
-          });
-      }
+      function tampilkanSaran(inputElement, listId, isGudang) {
+          let val = inputElement.value;
+          let listContainer = document.getElementById(listId);
+          listContainer.innerHTML = "";
+          listContainer.classList.add('hidden');
 
-      function isiOtomatisAlamat() {
-          let inputNama = document.getElementById('relasi').value;
-          let lokasiTerpilih = document.querySelector('input[name="lokasi"]:checked').value;
+          if (!val) return;
+
+          // Cari data yang namanya mengandung huruf yang diketik
+          let matches = globalRelasi.filter(r => r.nama.toLowerCase().includes(val.toLowerCase()));
           
-          // Fitur Autofill khusus untuk Gudang (bukan Kandang)
-          if (lokasiTerpilih === '/kandang') return;
-
-          let relasiDitemukan = globalRelasi.find(r => r.nama.toLowerCase() === inputNama.toLowerCase());
-          if (relasiDitemukan && relasiDitemukan.alamat !== "") {
-              document.getElementById('ekor').value = relasiDitemukan.alamat; 
+          if (matches.length > 0) {
+              listContainer.classList.remove('hidden');
+              matches.forEach(match => {
+                  let div = document.createElement("div");
+                  div.className = "autocomplete-item";
+                  
+                  // Bikin huruf yang cocok jadi tebal/bold
+                  let regex = new RegExp(`(${val})`, "gi");
+                  let namaBerwarna = match.nama.replace(regex, "<strong>$1</strong>");
+                  
+                  div.innerHTML = namaBerwarna;
+                  if (match.alamat) {
+                      div.innerHTML += `<span class="alamat-hint">${match.alamat}</span>`;
+                  }
+                  
+                  // Saat item dipilih
+                  div.addEventListener("click", function() {
+                      inputElement.value = match.nama;
+                      listContainer.innerHTML = "";
+                      listContainer.classList.add('hidden');
+                      
+                      // Isi otomatis alamat kalau ini di menu Gudang
+                      if (isGudang) isiOtomatisAlamatTepat(match.alamat);
+                  });
+                  listContainer.appendChild(div);
+              });
           }
       }
-      // ============================
+
+      function isiOtomatisAlamatTepat(alamatPast) {
+          let lokasiTerpilih = document.querySelector('input[name="lokasi"]:checked').value;
+          if (lokasiTerpilih === '/kandang') return;
+          if (alamatPast) document.getElementById('ekor').value = alamatPast;
+      }
+
+      // Tutup daftar saran kalau user klik di tempat lain
+      document.addEventListener("click", function (e) {
+          if (e.target.id !== "relasi") document.getElementById("saran-relasi-gudang")?.classList.add("hidden");
+          if (e.target.id !== "cf_relasi") document.getElementById("saran-relasi-cf")?.classList.add("hidden");
+      });
+      // ===================================
 
       function pindahMenu(menu) {
           if(menu === 'rekap' && !navigator.onLine) { alert("⚠️ Menu Rekap membutuhkan koneksi internet."); return; }
@@ -403,8 +440,6 @@
           let btn = document.getElementById('btn-kirim-cf'); let statusLabel = document.getElementById('cf_status');
           btn.innerText = "⏳ Sedang Mengunggah Data..."; btn.disabled = true; statusLabel.innerText = "Mohon tunggu...";
 
-          // JANGAN LUPA URL CASHFLOW (UBAH KE URL SCRIPT CASHFLOW JIKA BERBEDA)
-          // Asumsi API_URL di atas masih nembak ke script utama yang merouting ke cashflow (Atau ganti URL manual di fetch ini)
           fetch(API_URL, { method: 'POST', body: JSON.stringify({ source: 'cashflow', payload: payload }) })
           .then(res => res.json()).then(res => {
               if (res.status === 'success') {
@@ -498,9 +533,10 @@
       function gantiLokasi() {
           let lokasi = document.querySelector('input[name="lokasi"]:checked').value;
           
-          let inputRelasi = document.getElementById('relasi');
+          let inputRelasi = document.getElementById('wrapper-relasi');
           let selKandang = document.getElementById('relasi_kandang');
           let labelRelasi = document.getElementById('label-relasi');
+          
           if(lokasi === '/kandang') {
               labelRelasi.innerText = "Kelompok Sapi";
               inputRelasi.classList.add('hidden');
