@@ -681,13 +681,16 @@
           let valRelasi = isKandang ? document.getElementById('relasi_kandang').value : document.getElementById('relasi').value.trim();
           let statusPilihan = document.getElementById('status').value;
 
-          // BLOK VALIDASI SJ UNTUK BARANG MASUK (KECUALI KANDANG)
-          if (!navigator.onLine && statusPilihan === 'Masuk' && lokasiTerpilih !== '/kandang') {
+          // Deteksi apakah relasi yang diketik adalah "Kandang"
+          let isMutasiKandang = valRelasi.toLowerCase().includes('kandang');
+
+          // BLOK VALIDASI SJ UNTUK BARANG MASUK DARI SUPPLIER (Relasi BUKAN Kandang)
+          if (!navigator.onLine && statusPilihan === 'Masuk' && !isMutasiKandang) {
               alert("⚠️ Barang Masuk wajib menyertakan foto SJ. Anda harus ONLINE untuk mengirimkan laporan ini!");
               return;
           }
 
-          if (statusPilihan === 'Masuk' && !fileBase64_SJ && lokasiTerpilih !== '/kandang') {
+          if (statusPilihan === 'Masuk' && !fileBase64_SJ && !isMutasiKandang) {
               alert("⚠️ Foto Surat Jalan (SJ) wajib diisi untuk Barang Masuk dari Supplier!");
               return;
           }
@@ -698,7 +701,8 @@
               relasi: valRelasi, ekor: isAngka ? parseFloat(inputVal) : 0, 
               alamat: !isAngka ? inputVal : "", ongkir: document.getElementById('ongkir').value, 
               catatan: document.getElementById('catatan').value, items: {},
-              fileSJ: (statusPilihan === 'Masuk' && lokasiTerpilih !== '/kandang') ? { base64: fileBase64_SJ, mime: fileMime_SJ } : null
+              // Jika ada foto SJ, kirim. Kalau tidak ada (karena mutasi), biarkan null
+              fileSJ: (statusPilihan === 'Masuk' && fileBase64_SJ) ? { base64: fileBase64_SJ, mime: fileMime_SJ } : null
           };
 
           if (!payload.relasi) { alert("Nama Relasi / Kelompok tidak boleh kosong!"); return; }
@@ -712,8 +716,11 @@
 
           // UX Tombol Loading
           let btn = document.getElementById('btn-kirim');
-          if(statusPilihan === 'Masuk' && lokasiTerpilih !== '/kandang') {
+          if(statusPilihan === 'Masuk' && fileBase64_SJ) {
               btn.innerText = "⏳ Sedang Mengunggah Foto SJ...";
+              btn.disabled = true;
+          } else {
+              btn.innerText = "⏳ Memproses Laporan...";
               btn.disabled = true;
           }
 
@@ -767,17 +774,17 @@
               fetch(API_URL, { method: 'POST', body: JSON.stringify({ source: 'pwa_cbl', payload: payload }) })
               .then(res => res.json())
               .then(res => {
-                  if(statusPilihan === 'Masuk' && lokasiTerpilih !== '/kandang') alert("✅ " + alertMsg); 
-                  else if(statusPilihan === 'Masuk' && lokasiTerpilih === '/kandang') alert(alertMsg);
+                  if(statusPilihan === 'Masuk') alert("✅ " + alertMsg); 
               })
               .catch(e => {
-                  if(statusPilihan === 'Masuk') alert("❌ Gagal Mengunggah Laporan, silahkan coba lagi.");
+                  if(statusPilihan === 'Masuk') alert("❌ Gagal Mengirim Laporan, silahkan coba lagi.");
               })
               .finally(() => {
                   btn.innerText = "Kirim Laporan"; btn.disabled = false; hapusSJ();
               });
           } else { 
               let antrian = JSON.parse(localStorage.getItem('antrian_pakan')) || []; antrian.push(payload); localStorage.setItem('antrian_pakan', JSON.stringify(antrian)); updateStatusKoneksi(); 
+              btn.innerText = "Kirim Laporan"; btn.disabled = false; hapusSJ();
           }
           
           if(!isKandang) document.getElementById('relasi').value = ""; 
