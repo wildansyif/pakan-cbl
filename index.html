@@ -189,7 +189,7 @@
                     <div id="saran-relasi-cf" class="autocomplete-items hidden"></div>
                 </div>
             </div>
-            <div class="form-group"><label>Nominal (Rp)</label><input type="text" inputmode="numeric" id="cf_nominal" class="calc-input" placeholder="0" oninput="formatRupiah(this)" style="font-size: 18px; font-weight: bold; padding: 15px 10px !important;"></div>
+            <div class="form-group"><label>Nominal Bayar (Rp)</label><input type="text" inputmode="numeric" id="cf_nominal" class="calc-input" placeholder="0" oninput="formatRupiah(this)" style="font-size: 18px; font-weight: bold; padding: 15px 10px !important;"></div> <div class="form-group"><label style="color: #e91e63;">Diskon / Potongan (Rp)</label><input type="text" inputmode="numeric" id="cf_diskon" class="calc-input" placeholder="0" oninput="formatRupiah(this)" style="font-size: 18px; font-weight: bold; padding: 15px 10px !important; color: #e91e63;"></div>
             <div class="form-group"><label>Berita / Keterangan</label><textarea id="cf_deskripsi" rows="2" placeholder="Tuliskan berita transfer / keterangan rinci..."></textarea></div>
 
             <div class="form-group" style="background: #f9f9f9; padding: 15px; border-radius: 8px; border: 1px dashed #ccc; box-sizing: border-box;">
@@ -469,18 +469,27 @@
           fileBase64_Global = ""; fileMime_Global = "";
       }
 
-      function kirimCashflow() {
+     function kirimCashflow() {
           if (!navigator.onLine) { alert("⚠️ Fitur Cashflow WAJIB online!"); return; }
           let nominalStr = document.getElementById('cf_nominal').value.replace(/\./g, '');
           let nominal = parseFloat(nominalStr) || 0;
+          
+          // --- TAMBAHAN: TANGKAP NILAI DISKON ---
+          let diskonStr = document.getElementById('cf_diskon').value.replace(/\./g, '');
+          let diskon = parseFloat(diskonStr) || 0;
+
           let relasi = document.getElementById('cf_relasi').value.trim();
           if (!relasi) { alert("Nama Relasi / Tujuan harus diisi!"); return; }
-          if (nominal <= 0) { alert("Nominal harus lebih dari 0!"); return; }
+          // Ubah validasi: Minimal harus ada uang masuk ATAU diskon
+          if (nominal <= 0 && diskon <= 0) { alert("Nominal bayar atau diskon harus diisi!"); return; }
 
           let payload = {
               tanggal: document.getElementById('cf_tanggal').value, jenis: document.querySelector('input[name="cf_jenis"]:checked').value,
               metode: document.getElementById('cf_metode').value, perkiraan: document.getElementById('cf_perkiraan').value,
-              relasi: relasi, nominal: nominal, deskripsi: document.getElementById('cf_deskripsi').value,
+              relasi: relasi, 
+              nominal: nominal, 
+              diskon: diskon, // <-- Variabel diskon dikirim ke backend
+              deskripsi: document.getElementById('cf_deskripsi').value,
               fileData: { base64: fileBase64_Global, mime: fileMime_Global }
           };
 
@@ -491,7 +500,8 @@
           .then(res => res.json()).then(res => {
               if (res.status === 'success') {
                   statusLabel.innerText = "✅ Berhasil Disimpan!"; setTimeout(() => { statusLabel.innerText = ""; }, 3000);
-                  document.getElementById('cf_relasi').value = ""; document.getElementById('cf_nominal').value = ""; document.getElementById('cf_deskripsi').value = ""; hapusBukti();
+                  // Jangan lupa reset kolom diskon setelah sukses
+                  document.getElementById('cf_relasi').value = ""; document.getElementById('cf_nominal').value = ""; document.getElementById('cf_diskon').value = ""; document.getElementById('cf_deskripsi').value = ""; hapusBukti();
               } else { alert("Gagal: " + res.message); statusLabel.innerText = "❌ Gagal."; }
           }).catch(e => { alert("Terjadi kesalahan jaringan."); statusLabel.innerText = "❌ Gagal."; })
           .finally(() => { btn.innerText = "Kirim Data Cashflow"; btn.disabled = false; });
