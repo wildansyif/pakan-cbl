@@ -88,9 +88,9 @@
       .filter-group { margin-bottom: 15px; }
       .filter-group label { display: block; font-size: 11px; font-weight: 600; color: #555; margin-bottom: 5px; text-transform: uppercase;}
       .pill-container { display: flex; gap: 8px; flex-wrap: wrap; }
-      .pill-container input[type="radio"] { display: none; }
+      .pill-container input[type="radio"], .pill-container input[type="checkbox"] { display: none; }
       .pill-container label { background: #eee; padding: 8px 12px; border-radius: 20px; cursor: pointer; font-size: 11px; color: #555; border: 1px solid #ddd; transition: all 0.2s;}
-      .pill-container input[type="radio"]:checked + label { background: #1a5c40; color: white; border-color: #1a5c40; font-weight: bold;}
+      .pill-container input[type="radio"]:checked + label, .pill-container input[type="checkbox"]:checked + label { background: #1a5c40; color: white; border-color: #1a5c40; font-weight: bold;}
     </style>
   </head>
   <body>
@@ -193,12 +193,12 @@
             <div class="filter-group">
                 <label>Kategori Transaksi</label>
                 <div class="pill-container">
-                    <input type="radio" id="kat_pm" name="f_kategori" value="Penjualan & Mutasi"><label for="kat_pm">Penjualan & Mutasi</label>
-                    <input type="radio" id="kat_masuk" name="f_kategori" value="Masuk"><label for="kat_masuk">Masuk</label>
-                    <input type="radio" id="kat_pakai" name="f_kategori" value="Pemakaian"><label for="kat_pakai">Pemakaian</label>
-                    <input type="radio" id="kat_giling" name="f_kategori" value="Giling"><label for="kat_giling">Giling</label>
-                    <input type="radio" id="kat_cf" name="f_kategori" value="Cashflow"><label for="kat_cf">Cashflow</label>
-                    <input type="radio" id="kat_all" name="f_kategori" value="ALL" checked><label for="kat_all">ALL Master</label>
+                    <input type="checkbox" id="kat_pm" name="f_kategori" value="Penjualan & Mutasi" class="kat-cb" onchange="handleKatChange(this)"><label for="kat_pm">Penjualan & Mutasi</label>
+                    <input type="checkbox" id="kat_masuk" name="f_kategori" value="Masuk" class="kat-cb" onchange="handleKatChange(this)"><label for="kat_masuk">Masuk</label>
+                    <input type="checkbox" id="kat_pakai" name="f_kategori" value="Pemakaian" class="kat-cb" onchange="handleKatChange(this)"><label for="kat_pakai">Pemakaian</label>
+                    <input type="checkbox" id="kat_giling" name="f_kategori" value="Giling" class="kat-cb" onchange="handleKatChange(this)"><label for="kat_giling">Giling</label>
+                    <input type="checkbox" id="kat_cf" name="f_kategori" value="Cashflow" class="kat-cb" onchange="handleKatChange(this)"><label for="kat_cf">Cashflow</label>
+                    <input type="checkbox" id="kat_all" name="f_kategori" value="ALL" class="kat-cb" checked onchange="handleKatChange(this)"><label for="kat_all">ALL Master</label>
                 </div>
             </div>
 
@@ -611,9 +611,24 @@
       // ==========================================
       // DASHBOARD MASTER (REKAP)
       // ==========================================
+      function handleKatChange(checkbox) {
+          let allCb = document.getElementById('kat_all');
+          let cfCb = document.getElementById('kat_cf');
+          let otherCbs = document.querySelectorAll('.kat-cb:not(#kat_all):not(#kat_cf)');
+
+          if (checkbox.id === 'kat_all' && checkbox.checked) {
+              cfCb.checked = false; otherCbs.forEach(cb => cb.checked = false);
+          } else if (checkbox.id === 'kat_cf' && checkbox.checked) {
+              allCb.checked = false; otherCbs.forEach(cb => cb.checked = false);
+          } else if (checkbox.checked) {
+              allCb.checked = false; cfCb.checked = false;
+          }
+          if (document.querySelectorAll('.kat-cb:checked').length === 0) allCb.checked = true;
+      }
+
       function tarikDataRekapDB() {
           if (!navigator.onLine) { alert("Butuh internet untuk tarik data Master Database!"); return; }
-          let kategori = document.querySelector('input[name="f_kategori"]:checked').value;
+          let kategoriArr = Array.from(document.querySelectorAll('input[name="f_kategori"]:checked')).map(cb => cb.value);
           let gudang = document.querySelector('input[name="f_gudang"]:checked').value;
           let bulan = document.getElementById('f_bulan').value;
           let tahun = document.getElementById('f_tahun').value;
@@ -623,24 +638,24 @@
           document.getElementById('rekap-hasil').innerHTML = '<div class="loader">Menyisir Master Database...</div>'; 
           document.getElementById('btn-copy-rekap').classList.add('hidden');
           
-          let payload = { source: 'pwa_rekap', kategori: kategori, gudang: gudang, bulan: bulan, tahun: tahun };
+          let payload = { source: 'pwa_rekap', kategori: kategoriArr, gudang: gudang, bulan: bulan, tahun: tahun };
           
           fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) })
               .then(res => res.json()).then(res => { 
                   if (res.status === 'success') { 
                       globalDataBulan = res.dataByDate;
-                      renderMonthlySummary(res.summary, kategori, bulan, tahun);
-                      renderCalendar(bulan, tahun);
+                      renderMonthlySummary(res.summary, kategoriArr, bulan, tahun);
+                      renderCalendar(bulan, tahun, kategoriArr);
                       document.getElementById('rekap-hasil').innerHTML = '<div style="text-align:center; padding:20px; color:#888; font-size:12px; font-weight:bold;">👆 Pilih tanggal pada kalender untuk melihat detail.</div>';
                   } else { document.getElementById('rekap-hasil').innerHTML = `<div style="color:red; text-align:center;">Gagal: ${res.message}</div>`; } 
               }).catch(e => { document.getElementById('rekap-hasil').innerHTML = '<div style="color:red; text-align:center;">Terjadi kesalahan jaringan.</div>'; });
       }
 
-      function renderMonthlySummary(summary, kategori, bulan, tahun) {
+      function renderMonthlySummary(summary, kategoriArr, bulan, tahun) {
           let bNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
           let html = `<div class="summary-card"><div style="font-weight:bold; margin-bottom:15px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 5px;">📊 Rekap Global ${bNames[bulan-1]} ${tahun}</div>`;
           
-          if (kategori === 'Cashflow') {
+          if (kategoriArr.includes('Cashflow')) {
               let masuk = new Intl.NumberFormat('id-ID').format(summary.totalMasuk);
               let keluar = new Intl.NumberFormat('id-ID').format(summary.totalKeluar);
               let saldoStr = new Intl.NumberFormat('id-ID').format(Math.abs(summary.totalMasuk - summary.totalKeluar));
@@ -652,7 +667,6 @@
               let jual = new Intl.NumberFormat('id-ID').format(summary.penjualan);
               let mutasi = new Intl.NumberFormat('id-ID').format(summary.mutasi);
               let masuk = new Intl.NumberFormat('id-ID').format(summary.masuk);
-              
               html += `<div class="sum-title">Total Penjualan</div><div class="sum-val">${jual} Kg</div>
                        <div class="sum-row">
                           <div class="sum-box"><div class="sum-title">Total Mutasi</div><div style="font-size:13px; font-weight:bold; color:#a5d6a7;">${mutasi} Kg</div></div>
@@ -663,28 +677,33 @@
           document.getElementById('rekap-summary-container').innerHTML = html;
       }
 
-      function renderCalendar(bulan, tahun) {
+      function renderCalendar(bulan, tahun, kategoriArr) {
           let daysInMonth = new Date(tahun, bulan, 0).getDate();
           let firstDayIndex = new Date(tahun, bulan - 1, 1).getDay(); 
-          let html = '<div class="cal-grid">';
+          
+          let html = '';
+          if (!kategoriArr.includes('Cashflow')) {
+              html += `<div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 15px; font-size: 11px; font-weight: bold; color: #555;">
+                  <div style="display:flex; align-items:center; gap:4px;"><div class="dot dot-green"></div> Pjl/Mut</div>
+                  <div style="display:flex; align-items:center; gap:4px;"><div class="dot dot-yellow"></div> Masuk</div>
+                  <div style="display:flex; align-items:center; gap:4px;"><div class="dot dot-blue"></div> Pemakaian</div>
+                  <div style="display:flex; align-items:center; gap:4px;"><div class="dot dot-purple"></div> Giling</div>
+              </div>`;
+          }
+          
+          html += '<div class="cal-grid">';
           ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'].forEach(d => html += `<div class="cal-header">${d}</div>`);
-          
-          for (let i = 0; i < firstDayIndex; i++) { html += `<div></div>`; } 
-          
+          for (let i = 0; i < firstDayIndex; i++) html += `<div></div>`; 
           for (let d = 1; d <= daysInMonth; d++) {
               let dateStr = `${tahun}-${("0"+bulan).slice(-2)}-${("0"+d).slice(-2)}`;
-              let dayData = globalDataBulan[dateStr];
-              let dotsHtml = "";
-              
+              let dayData = globalDataBulan[dateStr]; let dotsHtml = "";
               if (dayData && dayData.dots) {
                   if (dayData.dots.green) dotsHtml += '<div class="dot dot-green"></div>';
                   if (dayData.dots.yellow) dotsHtml += '<div class="dot dot-yellow"></div>';
                   if (dayData.dots.blue) dotsHtml += '<div class="dot dot-blue"></div>';
                   if (dayData.dots.purple) dotsHtml += '<div class="dot dot-purple"></div>';
               }
-              html += `<div class="cal-day ${dayData ? 'active' : ''}" id="cal-${dateStr}" ${dayData ? `onclick="klikTanggalMaster('${dateStr}')"` : ''}>
-                         ${d}<div class="dot-container">${dotsHtml}</div>
-                       </div>`;
+              html += `<div class="cal-day ${dayData ? 'active' : ''}" id="cal-${dateStr}" ${dayData ? `onclick="klikTanggalMaster('${dateStr}')"` : ''}>${d}<div class="dot-container">${dotsHtml}</div></div>`;
           }
           html += '</div>';
           document.getElementById('rekap-calendar').innerHTML = html;
