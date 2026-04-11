@@ -62,6 +62,16 @@
       .autocomplete-item:hover { background-color: #e8f5e9; color: #1a5c40; }
       .autocomplete-item strong { color: #1a5c40; }
       .alamat-hint { font-size: 10px; color: #888; display: block; margin-top: 2px; }
+      .summary-card { background: linear-gradient(135deg, #1a5c40, #2e7d32); color: white; padding: 15px; border-radius: 10px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+      .sum-title { font-size: 11px; opacity: 0.8; margin-bottom: 3px; }
+      .sum-val { font-size: 18px; font-weight: bold; margin-bottom: 10px; }
+      .sum-row { display: flex; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 10px; }
+      .sum-box { flex: 1; }
+      .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-top: 10px; margin-bottom: 20px;}
+      .cal-day { padding: 10px 0; text-align: center; border-radius: 6px; font-size: 13px; font-weight: bold; cursor: default; border: 1px solid #eee; background: #fafafa; color: #bbb; }
+      .cal-day.active { background: #e8f5e9; border-color: #4CAF50; color: #1a5c40; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.05);}
+      .cal-day.selected { background: #1a5c40 !important; color: white !important; border-color: #1a5c40;}
+      .cal-header { text-align: center; font-size: 10px; font-weight: bold; color: #888; }
     </style>
   </head>
   <body>
@@ -150,7 +160,7 @@
         </div>
 
         <div id="page-rekap" class="container hidden">
-            <h2>Rekap Pakan Harian</h2>
+            <h2>Dashboard Bulanan</h2>
             <div class="sub-header">Berdasarkan Database Spreadsheet</div>
             <div class="form-group">
                 <label>Pilih Database</label>
@@ -160,11 +170,18 @@
                     <option value="/cashflow">DB Cashflow</option>
                 </select>
             </div>
-            <div class="form-group"><label>Pilih Tanggal</label><input type="date" id="rekap-tanggal"></div>
-            <button class="btn-submit" onclick="tarikDataRekapDB()" style="background:#2196F3; margin-bottom: 10px;">📊 Tarik Rekap Database</button>
+            <div class="form-group"><label>Pilih Bulan</label><input type="month" id="rekap-bulan"></div>
+            
+            <button class="btn-submit" onclick="tarikDataRekapDB()" style="background:#2196F3; margin-bottom: 10px;">📊 Tarik Data Bulanan</button>
             <button id="btn-copy-rekap" class="btn-submit hidden" onclick="copyRekapWA()" style="background:#FF9800;">📋 Copy Text WA</button>
             <textarea id="raw-rekap-text" class="hidden"></textarea>
-            <div id="rekap-hasil" style="margin-top:20px; padding-bottom: 20px;"><div style="text-align:center; padding:20px; color:#888; font-size:12px;">Pilih lokasi dan tanggal, lalu tekan tombol Tarik Rekap.</div></div>
+            
+            <div id="rekap-summary-container" style="margin-top: 15px;"></div>
+            <div id="rekap-calendar" class="hidden"></div>
+            
+            <div id="rekap-hasil" style="margin-top:20px; padding-bottom: 20px;">
+                <div style="text-align:center; padding:20px; color:#888; font-size:12px;">Pilih lokasi dan bulan, lalu tekan tombol Tarik Data.</div>
+            </div>
         </div>
 
         <div id="page-cashflow" class="container hidden">
@@ -551,17 +568,101 @@
           }
       }
 
+     // === VARIABEL GLOBAL BARU UNTUK REKAP BULANAN ===
+      let globalDataBulan = {};
+      let globalIsKandang = false;
+      let globalIsCashflow = false;
+      let globalLocName = "";
+
       function tarikDataRekapDB() {
           if (!navigator.onLine) { alert("Butuh internet untuk tarik data Database!"); return; }
-          let tgl = document.getElementById('rekap-tanggal').value; let loc = document.getElementById('rekap-lokasi').value;
-          if(!tgl) { alert("Pilih tanggal dulu!"); return; }
-          document.getElementById('rekap-hasil').innerHTML = '<div class="loader">Menyisir Database Google Sheet...</div>'; document.getElementById('btn-copy-rekap').classList.add('hidden');
-          fetch(API_URL, { method: 'POST', body: JSON.stringify({ source: 'pwa_rekap', lokasi: loc, tanggal: tgl }) })
+          let bulan = document.getElementById('rekap-bulan').value; // Format: yyyy-MM
+          let loc = document.getElementById('rekap-lokasi').value;
+          if(!bulan) { alert("Pilih bulan dulu!"); return; }
+          
+          globalLocName = document.getElementById('rekap-lokasi').options[document.getElementById('rekap-lokasi').selectedIndex].text;
+          
+          document.getElementById('rekap-summary-container').innerHTML = "";
+          document.getElementById('rekap-calendar').classList.add('hidden');
+          document.getElementById('rekap-hasil').innerHTML = '<div class="loader">Menyisir Database 1 Bulan Penuh...</div>'; 
+          document.getElementById('btn-copy-rekap').classList.add('hidden');
+          
+          // Kirim format YYYY-MM ke Backend
+          fetch(API_URL, { method: 'POST', body: JSON.stringify({ source: 'pwa_rekap', lokasi: loc, tanggal: bulan }) })
               .then(res => res.json()).then(res => { 
-                  if (res.status === 'success') { renderTabelRekap(res.data, res.isKandang, tgl, loc, res.isCashflow); } 
+                  if (res.status === 'success') { 
+                      globalDataBulan = res.dataByDate;
+                      globalIsKandang = res.isKandang;
+                      globalIsCashflow = res.isCashflow;
+                      
+                      renderMonthlySummary(res.summary, bulan);
+                      renderCalendar(bulan);
+                      document.getElementById('rekap-hasil').innerHTML = '<div style="text-align:center; padding:20px; color:#888; font-size:12px; font-weight:bold;">👆 Pilih tanggal berwarna HIJAU pada kalender di atas untuk melihat detail laporannya.</div>';
+                  } 
                   else { document.getElementById('rekap-hasil').innerHTML = `<div style="color:red; text-align:center;">Gagal: ${res.message}</div>`; } 
               })
               .catch(e => { document.getElementById('rekap-hasil').innerHTML = '<div style="color:red; text-align:center;">Terjadi kesalahan koneksi ke server.</div>'; });
+      }
+
+      function renderMonthlySummary(summary, bulan) {
+          let bNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+          let [y, m] = bulan.split('-');
+          let blnTxt = bNames[parseInt(m)-1] + " " + y;
+
+          let html = `<div class="summary-card"><div style="font-weight:bold; margin-bottom:15px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 5px;">📊 Rekap Global ${blnTxt}</div>`;
+          
+          if (globalIsCashflow) {
+              let masuk = new Intl.NumberFormat('id-ID').format(summary.totalMasuk);
+              let keluar = new Intl.NumberFormat('id-ID').format(summary.totalKeluar);
+              let saldo = summary.totalMasuk - summary.totalKeluar;
+              let saldoStr = new Intl.NumberFormat('id-ID').format(Math.abs(saldo));
+              let sign = saldo >= 0 ? "+" : "-";
+              
+              html += `<div class="sum-title">Saldo Kas Bersih</div>
+                       <div class="sum-val">${sign} Rp ${saldoStr}</div>
+                       <div class="sum-row">
+                          <div class="sum-box"><div class="sum-title">Uang Masuk</div><div style="font-size:13px; font-weight:bold;">Rp ${masuk}</div></div>
+                          <div class="sum-box"><div class="sum-title">Uang Keluar</div><div style="font-size:13px; font-weight:bold;">Rp ${keluar}</div></div>
+                       </div>`;
+          } else {
+              let kg = new Intl.NumberFormat('id-ID').format(summary.totalKg);
+              let txtLabel = globalIsKandang ? "Total Pakan Terpakai" : "Total Barang Keluar (Terjual / Mutasi)";
+              html += `<div class="sum-title">${txtLabel}</div>
+                       <div class="sum-val" style="font-size: 24px; color: #ffeb3b;">${kg} Kg</div>
+                       <div style="font-size: 11px; opacity: 0.8; margin-top: -5px;">*Akumulasi selama 1 bulan</div>`;
+          }
+          html += `</div>`;
+          document.getElementById('rekap-summary-container').innerHTML = html;
+      }
+
+      function renderCalendar(bulan) {
+          let [y, m] = bulan.split('-');
+          let daysInMonth = new Date(y, m, 0).getDate();
+          let firstDayIndex = new Date(y, m - 1, 1).getDay(); // 0 = Minggu
+          
+          let html = '<div class="cal-grid">';
+          let days = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+          days.forEach(d => html += `<div class="cal-header">${d}</div>`);
+          
+          for (let i = 0; i < firstDayIndex; i++) { html += `<div></div>`; } // Kotak kosong awal bulan
+          
+          for (let d = 1; d <= daysInMonth; d++) {
+              let dateStr = `${y}-${m}-${("0"+d).slice(-2)}`;
+              let hasData = globalDataBulan[dateStr] ? true : false;
+              html += `<div class="cal-day ${hasData ? 'active' : ''}" id="cal-${dateStr}" ${hasData ? `onclick="klikTanggalHeatmap('${dateStr}')"` : ''}>${d}</div>`;
+          }
+          html += '</div>';
+          document.getElementById('rekap-calendar').innerHTML = html;
+          document.getElementById('rekap-calendar').classList.remove('hidden');
+      }
+
+      function klikTanggalHeatmap(dateStr) {
+          // Reset warna kalender, hijaukan yang dipilih
+          document.querySelectorAll('.cal-day').forEach(el => el.classList.remove('selected'));
+          document.getElementById(`cal-${dateStr}`).classList.add('selected');
+          
+          // Lempar data hari itu ke fungsi tabel lama bos
+          renderTabelRekap(globalDataBulan[dateStr], globalIsKandang, dateStr, globalLocName, globalIsCashflow);
       }
 
       function renderTabelRekap(data, isKandang, tanggal, locName, isCashflow) {
