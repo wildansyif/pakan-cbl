@@ -739,6 +739,14 @@
           let yy = dObj.getFullYear().toString().substring(2);
           let tglFormatShort = ("0"+dObj.getDate()).slice(-2)+"/"+("0"+(dObj.getMonth()+1)).slice(-2)+"/"+yy;
 
+          // ==========================================
+          // LOGIKA ANTI-SPAM WHATSAPP (LAPORAN HARIAN)
+          // ==========================================
+          let relUpper = payload.relasi.toUpperCase();
+          // Cek apakah lokasinya SPN/Kandang DAN relasinya RD/RL (atau mengandung kata Ransum)
+          let skipWA = (payload.lokasi === '/kandang' || payload.lokasi === '/spn') && 
+                       (relUpper === 'RD' || relUpper === 'RL' || relUpper.includes('RANSUM'));
+
           if (!isKandang) {
               alertMsg += `LAPORAN GUDANG BERHASIL TERKIRIM.\n${tglFormatShort}\n${payload.relasi}\n${payload.status}\n--------------------\n`;
               let ringkasanItem = ""; let grandTotal = 0;
@@ -763,7 +771,10 @@
               
               if(statusPilihan !== 'Masuk') {
                   alert(alertMsg);
-                  let a = document.createElement('a'); a.href = `https://wa.me/${NOMOR_WA_ADMIN}?text=${encodeURIComponent(teksWA)}`; a.target = '_blank'; document.body.appendChild(a); a.click();
+                  // EKSEKUSI SKIP WA: Hanya buka WhatsApp jika BUKAN laporan harian
+                  if (!skipWA) {
+                      let a = document.createElement('a'); a.href = `https://wa.me/${NOMOR_WA_ADMIN}?text=${encodeURIComponent(teksWA)}`; a.target = '_blank'; document.body.appendChild(a); a.click();
+                  }
               }
           } else { 
               alertMsg += `LAPORAN PEMAKAIAN "KAND. PM" BERHASIL TERKIRIM.\n${payload.relasi}\nEkor: ${payload.ekor}\n-----------\n`;
