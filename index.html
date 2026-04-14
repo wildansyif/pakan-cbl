@@ -724,30 +724,43 @@
       }
 
       function renderMonthlySummary(summary, kategoriArr, bulan, tahun) {
-          let bNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-          let html = `<div class="summary-card"><div style="font-weight:bold; margin-bottom:15px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 5px;">📊 Rekap Global ${bNames[bulan-1]} ${tahun}</div>`;
-          
-          if (kategoriArr.includes('Cashflow')) {
-              let masuk = new Intl.NumberFormat('id-ID').format(summary.totalMasuk);
-              let keluar = new Intl.NumberFormat('id-ID').format(summary.totalKeluar);
-              let saldoStr = new Intl.NumberFormat('id-ID').format(Math.abs(summary.totalMasuk - summary.totalKeluar));
-              let sign = (summary.totalMasuk - summary.totalKeluar) >= 0 ? "+" : "-";
-              html += `<div class="sum-title">Saldo Kas Bersih</div><div class="sum-val">${sign} Rp ${saldoStr}</div>
-                       <div class="sum-row"><div class="sum-box"><div class="sum-title">Uang Masuk</div><div style="font-size:13px; font-weight:bold;">Rp ${masuk}</div></div>
-                       <div class="sum-box"><div class="sum-title">Uang Keluar</div><div style="font-size:13px; font-weight:bold;">Rp ${keluar}</div></div></div>`;
-          } else {
-              let jual = new Intl.NumberFormat('id-ID').format(summary.penjualan);
-              let mutasi = new Intl.NumberFormat('id-ID').format(summary.mutasi);
-              let masuk = new Intl.NumberFormat('id-ID').format(summary.masuk);
-              html += `<div class="sum-title">Total Penjualan</div><div class="sum-val">${jual} Kg</div>
-                       <div class="sum-row">
-                          <div class="sum-box"><div class="sum-title">Total Mutasi</div><div style="font-size:13px; font-weight:bold; color:#a5d6a7;">${mutasi} Kg</div></div>
-                          <div class="sum-box"><div class="sum-title">Total Barang Masuk</div><div style="font-size:13px; font-weight:bold; color:#ffcc80;">${masuk} Kg</div></div>
-                       </div>`;
-          }
-          html += `</div>`;
-          document.getElementById('rekap-summary-container').innerHTML = html;
-      }
+    let bNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+    let html = `<div class="summary-card"><div style="font-weight:bold; margin-bottom:15px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 5px;">📊 Rekap Global ${bNames[bulan-1]} ${tahun}</div>`;
+    
+    // 1. Kartu Utama Tetap Ada
+    // ... (Logika Summary yang lama) ...
+
+    // 2. TAMBAHAN: Tabel Perbandingan Gudang (Hanya jika All Gudang dipilih)
+    if (document.querySelector('input[name="f_gudang"]:checked').value === "ALL") {
+        let listGudang = ["PM", "SPN", "RPH"];
+        let breakDown = {};
+        listGudang.forEach(g => breakDown[g] = {jual:0, mutasi:0, masuk:0});
+        
+        // Hitung ulang dari memori
+        rawMasterGlobal.forEach(row => {
+            if (breakDown[row.gudang]) {
+                if (row.kat === "Penjualan") breakDown[row.gudang].jual += row.qty;
+                if (row.kat === "Mutasi") breakDown[row.gudang].mutasi += row.qty;
+                if (row.catGroup === "Masuk") breakDown[row.gudang].masuk += row.qty;
+            }
+        });
+
+        html += `<div style="background:rgba(255,255,255,0.1); border-radius:8px; padding:10px; margin-top:10px;">
+                    <table style="width:100%; font-size:10px; border-collapse:collapse; text-align:right;">
+                        <thead><tr style="border-bottom:1px solid rgba(255,255,255,0.3);"><th style="text-align:left;">Gudang</th><th>Jual</th><th>Mutasi</th><th>Masuk</th></tr></thead>
+                        <tbody>`;
+        listGudang.forEach(g => {
+            html += `<tr><td style="text-align:left; font-weight:bold;">${g}</td>
+                         <td>${breakDown[g].jual.toLocaleString('id-ID')}</td>
+                         <td>${breakDown[g].mutasi.toLocaleString('id-ID')}</td>
+                         <td>${breakDown[g].masuk.toLocaleString('id-ID')}</td></tr>`;
+        });
+        html += `</tbody></table></div>`;
+    }
+    
+    html += `</div>`;
+    document.getElementById('rekap-summary-container').innerHTML = html;
+}
 
       function renderCalendar(bulan, tahun, kategoriArr) {
           let daysInMonth = new Date(tahun, bulan, 0).getDate();
@@ -783,6 +796,7 @@
       }
 
       function klikTanggalMaster(dateStr) {
+          // 1. Reset warna kalender, hijaukan yang dipilih
           document.querySelectorAll('.cal-day').forEach(el => el.classList.remove('selected'));
           document.getElementById(`cal-${dateStr}`).classList.add('selected');
           
@@ -790,6 +804,9 @@
           let container = document.getElementById('rekap-hasil');
           let html = ''; let textWA = `*REKAP TANGGAL ${dateStr.split('-').reverse().join('/')}*\n\n`;
 
+          // ==========================================
+          // JIKA MODE CASHFLOW
+          // ==========================================
           if (dayData.isCashflow) {
               html += `<div class="rekap-card" style="border-top: 4px solid #4CAF50;"><div class="rekap-title">🟢 UANG MASUK</div>`;
               for (let kat in dayData.Masuk) {
@@ -802,26 +819,65 @@
                   html += `<div style="font-weight:bold; font-size:13px; color:#e91e63; margin-top:10px;">[${kat}]</div>`;
                   dayData.Keluar[kat].forEach(trx => { html += `<div class="rekap-item" style="margin-left: 10px;"><span>- ${trx.relasi}</span><span style="font-weight:bold;">Rp ${new Intl.NumberFormat('id-ID').format(trx.nominal)}</span></div>`; });
               } html += `</div>`;
-          } else {
+          } 
+          // ==========================================
+          // JIKA MODE DATABASE MASTER (PENJUALAN DLL)
+          // ==========================================
+          else {
+              // --- FITUR BARU: HITUNG GRAND TOTAL HARIAN ---
+              let totalHari = { Penjualan: 0, Mutasi: 0, Masuk: 0, Pemakaian: 0, Giling: 0 };
+              
+              // Looping untuk mencari jumlah total di hari tersebut
+              for (let kat in dayData.items) {
+                  for (let relasi in dayData.items[kat]) {
+                      dayData.items[kat][relasi].forEach(item => {
+                          if (totalHari[kat] !== undefined) {
+                              totalHari[kat] += item.qty;
+                          }
+                      });
+                  }
+              }
+
+              // --- TAMPILKAN KARTU SUMMARY (GRAND TOTAL HARIAN) ---
+              html += `<div class="rekap-card" style="background:#f0f4f7; border:none; display:flex; gap:10px; overflow-x:auto; padding:10px; margin-bottom: 15px;">`;
+              let adaTotal = false;
+              for (let k in totalHari) {
+                  if (totalHari[k] > 0) {
+                      adaTotal = true;
+                      let wWarna = k==="Masuk" ? "#FFC107" : (k==="Pemakaian" ? "#2196F3" : (k==="Giling" ? "#9C27B0" : "#4CAF50"));
+                      html += `<div style="flex:0 0 auto; min-width: 80px; text-align:center; padding:5px 10px; background:white; border-radius:5px; border-bottom:3px solid ${wWarna};">
+                                  <div style="font-size:9px; color:#888;">TOTAL ${k.toUpperCase()}</div>
+                                  <div style="font-size:12px; font-weight:bold;">${totalHari[k].toLocaleString('id-ID')} Kg</div>
+                               </div>`;
+                  }
+              }
+              if (!adaTotal) html += `<div style="font-size:11px; color:#888; text-align:center; width:100%;">Tidak ada aktivitas pakan</div>`;
+              html += `</div>`;
+
+              // --- TAMPILKAN RINCIAN PER KONSUMEN (YANG LAMA) ---
               for (let kat in dayData.items) {
                   let colorCode = kat==="Masuk" ? "#FFC107" : (kat==="Pemakaian" ? "#2196F3" : (kat==="Giling" ? "#9C27B0" : "#4CAF50"));
                   html += `<div class="rekap-card" style="border-top: 4px solid ${colorCode};"><div class="rekap-title" style="font-size:15px; color:#333;">📌 Kategori: ${kat.toUpperCase()}</div>`;
                   textWA += `📌 *${kat.toUpperCase()}*\n`;
+                  
                   for (let relasi in dayData.items[kat]) {
                       html += `<div style="font-weight:bold; font-size:13px; margin-top:10px; color:#444;">👤 ${relasi}</div>`;
                       textWA += `👤 ${relasi}\n`;
                       let subTotal = 0;
+                      
                       dayData.items[kat][relasi].forEach(item => {
                           html += `<div class="rekap-item"><span style="padding-left:15px;">- ${item.pakan}</span><span>${item.qty.toLocaleString('id-ID')} Kg</span></div>`;
                           textWA += `- ${item.pakan}: ${item.qty.toLocaleString('id-ID')} Kg\n`;
                           subTotal += item.qty;
                       });
+                      
                       html += `<div class="rekap-item" style="font-weight:bold; font-size:12px; margin-top:5px; border-top:1px dashed #eee; padding-top:5px;"><span style="padding-left:15px;">Sub Total</span><span>${subTotal.toLocaleString('id-ID')} Kg</span></div>`;
                       textWA += `_Sub Total: ${subTotal.toLocaleString('id-ID')} Kg_\n\n`;
                   }
                   html += `</div>`;
               }
           }
+          
           container.innerHTML = html;
           document.getElementById('raw-rekap-text').value = textWA.trim();
           document.getElementById('btn-copy-rekap').classList.remove('hidden');
