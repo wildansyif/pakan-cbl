@@ -608,9 +608,12 @@
           Promise.all(janjiKirim).then(() => { localStorage.removeItem('antrian_pakan'); updateStatusKoneksi(); }).catch(e => console.log("Gagal sinkron."));
       }
 
-      // ==========================================
-      // DASHBOARD MASTER (REKAP)
-      // ==========================================
+      let rawMasterGlobal = [];
+      let rawCashflowGlobal = [];
+      let currentBulan = "";
+      let currentTahun = "";
+
+      // FUNGSI 1: Atur centang filter & langsung terapkan
       function handleKatChange(checkbox) {
           let allCb = document.getElementById('kat_all');
           let cfCb = document.getElementById('kat_cf');
@@ -624,31 +627,100 @@
               allCb.checked = false; cfCb.checked = false;
           }
           if (document.querySelectorAll('.kat-cb:checked').length === 0) allCb.checked = true;
+          
+          terapkanFilter(); // Langsung render ulang tanpa loading!
       }
 
+      // FUNGSI 2: Tarik SELURUH data 1 bulan (Hanya jalan saat tombol diklik)
       function tarikDataRekapDB() {
           if (!navigator.onLine) { alert("Butuh internet untuk tarik data Master Database!"); return; }
-          let kategoriArr = Array.from(document.querySelectorAll('input[name="f_kategori"]:checked')).map(cb => cb.value);
-          let gudang = document.querySelector('input[name="f_gudang"]:checked').value;
           let bulan = document.getElementById('f_bulan').value;
           let tahun = document.getElementById('f_tahun').value;
           
           document.getElementById('rekap-summary-container').innerHTML = "";
           document.getElementById('rekap-calendar').classList.add('hidden');
-          document.getElementById('rekap-hasil').innerHTML = '<div class="loader">Menyisir Master Database...</div>'; 
+          document.getElementById('rekap-hasil').innerHTML = '<div class="loader">Menyisir Database 1 Bulan Penuh...</div>'; 
           document.getElementById('btn-copy-rekap').classList.add('hidden');
           
-          let payload = { source: 'pwa_rekap', kategori: kategoriArr, gudang: gudang, bulan: bulan, tahun: tahun };
-          
-          fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) })
+          fetch(API_URL, { method: 'POST', body: JSON.stringify({ source: 'pwa_rekap', bulan: bulan, tahun: tahun }) })
               .then(res => res.json()).then(res => { 
                   if (res.status === 'success') { 
-                      globalDataBulan = res.dataByDate;
-                      renderMonthlySummary(res.summary, kategoriArr, bulan, tahun);
-                      renderCalendar(bulan, tahun, kategoriArr);
-                      document.getElementById('rekap-hasil').innerHTML = '<div style="text-align:center; padding:20px; color:#888; font-size:12px; font-weight:bold;">👆 Pilih tanggal pada kalender untuk melihat detail.</div>';
+                      rawMasterGlobal = res.rawMaster;       // Simpan ke memori HP
+                      rawCashflowGlobal = res.rawCashflow;   // Simpan ke memori HP
+                      currentBulan = bulan;
+                      currentTahun = tahun;
+                      terapkanFilter(); // Proses saringan pertama
                   } else { document.getElementById('rekap-hasil').innerHTML = `<div style="color:red; text-align:center;">Gagal: ${res.message}</div>`; } 
               }).catch(e => { document.getElementById('rekap-hasil').innerHTML = '<div style="color:red; text-align:center;">Terjadi kesalahan jaringan.</div>'; });
+      }
+
+      // FUNGSI 3: Mesin Penyaring Instan (Tanpa Loading)
+      function terapkanFilter() {
+          // Jika belum pernah tarik data, diam saja
+          if (rawMasterGlobal.length === 0 && rawCashflowGlobal.length === 0) return;
+          
+          let kategoriArr = Array.from(document.querySelectorAll('input[name="f_kategori"]:checked')).map(cb => cb.value);
+          let gudang = document.querySelector('input[name="f_gudang"]:checked').value;
+          
+          globalDataBulan = {};
+          let summary = { penjualan: 0, mutasi: 0, masuk: 0, totalMasuk: 0, totalKeluar: 0 };
+
+          // JIKA MODE CASHFLOW
+          if (kategoriArr.includes('Cashflow')) {
+              rawCashflowGlobal.forEach(row => {
+                  if (!globalDataBulan[row.tgl]) globalDataBulan[row.tgl] = { isCashflow: true, dots: { green: true }, Masuk: {}, Keluar: {} };
+                  if (row.debet > 0) {
+                      if (!globalDataBulan[row.tgl].Masuk[row.katCF]) globalDataBulan[row.tgl].Masuk[row.katCF] = [];
+                      globalDataBulan[row.tgl].Masuk[row.katCF].push(row); summary.totalMasuk += row.debet;
+                  }
+                  if (row.kredit > 0) {
+                      if (!globalDataBulan[row.tgl].Keluar[row.katCF]) globalDataBulan[row.tgl].Keluar[row.katCF] = [];
+                      globalDataBulan[row.tgl].Keluar[row.katCF].push(row); summary.totalKeluar += row.kredit;
+                  }
+              });
+          } 
+          // JIKA MODE DATABASE MASTER
+          else {
+              rawMasterGlobal.forEach(row => {
+                  if (gudang !== "ALL" && row.gudang !== gudang) return; // Filter Gudang
+                  
+                  // Filter Multi Kategori
+                  let pass = false;
+                  if (kategoriArr.includes("ALL")) pass = true;
+                  else {
+                      if (kategoriArr.includes("Penjualan & Mutasi") && (row.kat === "Penjualan" || row.kat === "Mutasi")) pass = true;
+                      if (kategoriArr.includes("Masuk") && row.catGroup === "Masuk") pass = true;
+                      if (kategoriArr.includes("Pemakaian") && row.kat === "Pemakaian") pass = true;
+                      if (kategoriArr.includes("Giling") && row.kat === "Giling") pass = true;
+                  }
+                  if (!pass) return;
+
+                  // Hitung Ulang Summary
+                  if (row.kat === "Penjualan") summary.penjualan += row.qty;
+                  if (row.kat === "Mutasi") summary.mutasi += row.qty;
+                  if (row.catGroup === "Masuk") summary.masuk += row.qty;
+
+                  if (!globalDataBulan[row.tgl]) globalDataBulan[row.tgl] = { isCashflow: false, dots: {}, items: {} };
+                  
+                  // Nyalakan Dot Warna
+                  if (row.kat === "Penjualan" || row.kat === "Mutasi") globalDataBulan[row.tgl].dots.green = true;
+                  if (row.catGroup === "Masuk") globalDataBulan[row.tgl].dots.yellow = true;
+                  if (row.kat === "Pemakaian") globalDataBulan[row.tgl].dots.blue = true;
+                  if (row.kat === "Giling") globalDataBulan[row.tgl].dots.purple = true;
+
+                  if (!globalDataBulan[row.tgl].items[row.catGroup]) globalDataBulan[row.tgl].items[row.catGroup] = {};
+                  if (!globalDataBulan[row.tgl].items[row.catGroup][row.relasi]) globalDataBulan[row.tgl].items[row.catGroup][row.relasi] = [];
+
+                  let exist = globalDataBulan[row.tgl].items[row.catGroup][row.relasi].find(x => x.pakan === row.pakan);
+                  if (exist) exist.qty += row.qty; else globalDataBulan[row.tgl].items[row.catGroup][row.relasi].push({ pakan: row.pakan, qty: row.qty });
+              });
+          }
+
+          // Gambar Ulang UI
+          renderMonthlySummary(summary, kategoriArr, currentBulan, currentTahun);
+          renderCalendar(currentBulan, currentTahun, kategoriArr);
+          document.getElementById('rekap-hasil').innerHTML = '<div style="text-align:center; padding:20px; color:#888; font-size:12px; font-weight:bold;">👆 Pilih tanggal pada kalender untuk melihat detail.</div>';
+          document.getElementById('btn-copy-rekap').classList.add('hidden');
       }
 
       function renderMonthlySummary(summary, kategoriArr, bulan, tahun) {
