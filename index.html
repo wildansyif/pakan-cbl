@@ -282,10 +282,57 @@
             <div id="cf_status" style="text-align:center; font-size:13px; margin-top:15px; font-weight:bold; color: #1a5c40;"></div>
         </div>
 
+      <div id="page-analytics" class="container hidden">
+    <h2>Customer 360°</h2>
+    <div class="sub-header">Analisa Perilaku & Performa Relasi</div>
+    
+    <div class="form-group">
+        <label>Cari Relasi / Peternak</label>
+        <div class="autocomplete-wrapper">
+            <input type="text" id="analytics_relasi" placeholder="Ketik Nama Relasi..." autocomplete="off" oninput="tampilkanSaran(this, 'saran-relasi-analytics', false)">
+            <div id="saran-relasi-analytics" class="autocomplete-items hidden"></div>
+        </div>
+        <button class="btn-submit" onclick="tarikDataAnalytics()" style="background:#1a5c40; margin-top: 10px;">🔍 Analisa Relasi</button>
+    </div>
+
+    <div id="analytics-loader" class="loader hidden">Menganalisa riwayat transaksi...</div>
+
+    <div id="analytics-result" class="hidden">
+        <div class="summary-card" style="background: linear-gradient(135deg, #2c3e50, #3498db);">
+            <div style="font-size:12px; opacity:0.8; margin-bottom:5px;">Profil & Demografi</div>
+            <div id="an_profil" style="font-size:16px; font-weight:bold; color:#fff;">-</div>
+        </div>
+
+        <div class="rekap-card">
+            <div class="rekap-title">💰 Total Lifetime Value (LTV)</div>
+            <div id="an_ltv" style="font-size:22px; font-weight:bold; color:#1a5c40;">Rp 0</div>
+            <div style="font-size:11px; color:#888; margin-top:5px;">Total omzet yang dihasilkan relasi ini.</div>
+        </div>
+
+        <div class="form-row">
+            <div class="rekap-card" style="margin-bottom:0;">
+                <div class="rekap-title" style="font-size:12px;">⏱️ Siklus Order</div>
+                <div id="an_siklus" style="font-size:16px; font-weight:bold; color:#ff9800;">-</div>
+            </div>
+            <div class="rekap-card" style="margin-bottom:0;">
+                <div class="rekap-title" style="font-size:12px;">💳 Rapor Bayar</div>
+                <div id="an_rapor" style="font-size:16px; font-weight:bold; color:#e91e63;">-</div>
+            </div>
+        </div>
+
+        <div class="rekap-card" style="margin-top:15px;">
+            <div class="rekap-title">🏆 Top Produk Dominan</div>
+            <div id="an_top" style="font-size:16px; font-weight:bold; color:#333;">-</div>
+        </div>
+    </div>
+</div>
+
         <div class="bottom-nav">
             <div class="nav-item active" id="nav-input" onclick="pindahMenu('input')"><span class="nav-icon">📝</span><span>Input</span></div>
             <div class="nav-item" id="nav-rekap" onclick="pindahMenu('rekap')"><span class="nav-icon">📊</span><span>Dashboard</span></div>
             <div class="nav-item" id="nav-cashflow" onclick="pindahMenu('cashflow')"><span class="nav-icon">💸</span><span>Cashflow</span></div>
+          <div class="nav-item" id="nav-analytics" onclick="pindahMenu('analytics')">
+    <span class="nav-icon">📈</span><span>Analitik</span></div>
         </div>
     </div>
 
