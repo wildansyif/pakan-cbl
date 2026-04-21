@@ -7,6 +7,7 @@
     <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/wildansyif/pakan-cbl/2e732398572a6ac7d3512559c4344d40ab0902f9/Logo%20CBL.png">
     <link rel="manifest" href="manifest.json">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
       body { font-family: 'Poppins', sans-serif; background-color: #f5f5f5; margin: 0; padding-bottom: 80px; }
       .container { max-width: 500px; margin: auto; background: white; min-height: 100vh; padding: 15px; box-sizing: border-box; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
@@ -89,6 +90,17 @@
       .pill-container input[type="radio"], .pill-container input[type="checkbox"] { display: none; }
       .pill-container label { background: #eee; padding: 8px 12px; border-radius: 20px; cursor: pointer; font-size: 11px; color: #555; border: 1px solid #ddd; transition: all 0.2s;}
       .pill-container input[type="radio"]:checked + label, .pill-container input[type="checkbox"]:checked + label { background: #1a5c40; color: white; border-color: #1a5c40; font-weight: bold;}
+
+      /* TAMBAHAN ANALYTICS CSS */
+      .analytics-tabs { display: flex; background: #eee; border-radius: 12px; padding: 4px; margin-bottom: 20px; }
+      .tab-btn { flex: 1; padding: 10px 0; border: none; background: none; border-radius: 8px; font-size: 11px; font-weight: bold; color: #888; cursor: pointer; text-transform: uppercase;}
+      .tab-btn.active { background: white; color: #1a5c40; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+      .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+      .stat-card { background: white; border: 1px solid #eee; padding: 12px; border-radius: 12px; }
+      .stat-label { font-size: 10px; color: #888; text-transform: uppercase; margin-bottom: 4px; font-weight: bold;}
+      .stat-value { font-size: 16px; font-weight: bold; color: #333; }
+      .stat-value.loss { color: #e91e63; }
+      .chart-container { background: white; border: 1px solid #eee; padding: 15px; border-radius: 12px; margin-bottom: 20px; height: 250px; position: relative;}
     </style>
   </head>
   <body>
@@ -180,7 +192,6 @@
           <button class="btn-submit" id="btn-kirim" onclick="kirimData()">Kirim Laporan</button>
         </div>
 
-
         <div id="page-rekap" class="container hidden">
             <h2>Dashboard Master</h2>
             <div class="sub-header">Single Source of Truth Database</div>
@@ -241,7 +252,6 @@
             </div>
         </div>
 
-
         <div id="page-cashflow" class="container hidden">
             <h2>Input Cashflow</h2>
             <div class="sub-header">Pencatatan Arus Kas & Bukti Transaksi</div>
@@ -282,57 +292,92 @@
             <div id="cf_status" style="text-align:center; font-size:13px; margin-top:15px; font-weight:bold; color: #1a5c40;"></div>
         </div>
 
-      <div id="page-analytics" class="container hidden">
-    <h2>Customer 360°</h2>
-    <div class="sub-header">Analisa Perilaku & Performa Relasi</div>
-    
-    <div class="form-group">
-        <label>Cari Relasi / Peternak</label>
-        <div class="autocomplete-wrapper">
-            <input type="text" id="analytics_relasi" placeholder="Ketik Nama Relasi..." autocomplete="off" oninput="tampilkanSaran(this, 'saran-relasi-analytics', false)">
-            <div id="saran-relasi-analytics" class="autocomplete-items hidden"></div>
-        </div>
-        <button class="btn-submit" onclick="tarikDataAnalytics()" style="background:#1a5c40; margin-top: 10px;">🔍 Analisa Relasi</button>
-    </div>
+        <div id="page-analytics" class="container hidden">
+            <h2>Analytics Center</h2>
+            <div class="sub-header">Performa Bisnis & Analisa Perilaku</div>
 
-    <div id="analytics-loader" class="loader hidden">Menganalisa riwayat transaksi...</div>
-
-    <div id="analytics-result" class="hidden">
-        <div class="summary-card" style="background: linear-gradient(135deg, #2c3e50, #3498db);">
-            <div style="font-size:12px; opacity:0.8; margin-bottom:5px;">Profil & Demografi</div>
-            <div id="an_profil" style="font-size:16px; font-weight:bold; color:#fff;">-</div>
-        </div>
-
-        <div class="rekap-card">
-            <div class="rekap-title">💰 Total Lifetime Value (LTV)</div>
-            <div id="an_ltv" style="font-size:22px; font-weight:bold; color:#1a5c40;">Rp 0</div>
-            <div style="font-size:11px; color:#888; margin-top:5px;">Total omzet yang dihasilkan relasi ini.</div>
-        </div>
-
-        <div class="form-row">
-            <div class="rekap-card" style="margin-bottom:0;">
-                <div class="rekap-title" style="font-size:12px;">⏱️ Siklus Order</div>
-                <div id="an_siklus" style="font-size:16px; font-weight:bold; color:#ff9800;">-</div>
+            <div class="analytics-tabs">
+                <button class="tab-btn active" id="tab-global" onclick="switchTabAnalytics('global')">GLOBAL</button>
+                <button class="tab-btn" id="tab-konsumen" onclick="switchTabAnalytics('konsumen')">KONSUMEN</button>
+                <button class="tab-btn" id="tab-pakan" onclick="switchTabAnalytics('pakan')">PAKAN</button>
             </div>
-            <div class="rekap-card" style="margin-bottom:0;">
-                <div class="rekap-title" style="font-size:12px;">💳 Rapor Bayar</div>
-                <div id="an_rapor" style="font-size:16px; font-weight:bold; color:#e91e63;">-</div>
+
+            <div id="view-global" class="analytics-view">
+                <div class="stat-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Total Omzet</div>
+                        <div class="stat-value" id="gl_omzet">Rp 0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Total OPR</div>
+                        <div class="stat-value loss" id="gl_opr">Rp 0</div>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="chartOmzet"></canvas>
+                </div>
+            </div>
+
+            <div id="view-konsumen" class="analytics-view hidden">
+                <div class="form-group">
+                    <label>Pilih Relasi</label>
+                    <div class="autocomplete-wrapper">
+                        <input type="text" id="analytics_relasi" placeholder="Cari Nama Peternak..." autocomplete="off" oninput="tampilkanSaran(this, 'saran-relasi-analytics', false)">
+                        <div id="saran-relasi-analytics" class="autocomplete-items hidden"></div>
+                    </div>
+                    <button class="btn-submit" onclick="tarikDataAnalytics()" style="margin-top:10px;">📊 ANALISA RELASI</button>
+                </div>
+                
+                <div id="analytics-loader" class="loader hidden">Menganalisa riwayat transaksi...</div>
+
+                <div id="analytics-result" class="hidden">
+                    <div class="summary-card" style="background: linear-gradient(135deg, #2c3e50, #3498db);">
+                        <div style="font-size:12px; opacity:0.8; margin-bottom:5px;">Profil & Demografi</div>
+                        <div id="an_profil" style="font-size:16px; font-weight:bold; color:#fff;">-</div>
+                    </div>
+
+                    <div class="rekap-card">
+                        <div class="rekap-title">💰 Total Lifetime Value (LTV)</div>
+                        <div id="an_ltv" style="font-size:22px; font-weight:bold; color:#1a5c40;">Rp 0</div>
+                        <div style="font-size:11px; color:#888; margin-top:5px;">Total omzet yang dihasilkan relasi ini.</div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="rekap-card" style="margin-bottom:0;">
+                            <div class="rekap-title" style="font-size:12px;">⏱️ Siklus Order</div>
+                            <div id="an_siklus" style="font-size:16px; font-weight:bold; color:#ff9800;">-</div>
+                        </div>
+                        <div class="rekap-card" style="margin-bottom:0;">
+                            <div class="rekap-title" style="font-size:12px;">💳 Rapor Bayar</div>
+                            <div id="an_rapor" style="font-size:16px; font-weight:bold; color:#e91e63;">-</div>
+                        </div>
+                    </div>
+
+                    <div class="rekap-card" style="margin-top:15px;">
+                        <div class="rekap-title">🏆 Top Produk Dominan</div>
+                        <div id="an_top" style="font-size:16px; font-weight:bold; color:#333;">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-pakan" class="analytics-view hidden">
+                <div class="form-group">
+                    <label>Jenis Pakan</label>
+                    <select id="an_pilih_pakan" onchange="tarikAnalisaPakan()">
+                        <option value="">Pilih Produk...</option>
+                    </select>
+                </div>
+                <div class="chart-container">
+                    <canvas id="chartPakan"></canvas>
+                </div>
             </div>
         </div>
-
-        <div class="rekap-card" style="margin-top:15px;">
-            <div class="rekap-title">🏆 Top Produk Dominan</div>
-            <div id="an_top" style="font-size:16px; font-weight:bold; color:#333;">-</div>
-        </div>
-    </div>
-</div>
 
         <div class="bottom-nav">
             <div class="nav-item active" id="nav-input" onclick="pindahMenu('input')"><span class="nav-icon">📝</span><span>Input</span></div>
             <div class="nav-item" id="nav-rekap" onclick="pindahMenu('rekap')"><span class="nav-icon">📊</span><span>Dashboard</span></div>
+            <div class="nav-item" id="nav-analytics" onclick="pindahMenu('analytics')"><span class="nav-icon">📈</span><span>Analitik</span></div>
             <div class="nav-item" id="nav-cashflow" onclick="pindahMenu('cashflow')"><span class="nav-icon">💸</span><span>Cashflow</span></div>
-          <div class="nav-item" id="nav-analytics" onclick="pindahMenu('analytics')">
-    <span class="nav-icon">📈</span><span>Analitik</span></div>
         </div>
     </div>
 
@@ -406,14 +451,101 @@
 
       function pindahMenu(menu) {
           if(menu === 'rekap' && !navigator.onLine && rawMasterGlobal.length === 0) { alert("⚠️ Menu Dashboard membutuhkan koneksi internet untuk tarik data pertama kali."); return; }
-          document.getElementById('page-input').classList.add('hidden'); document.getElementById('page-rekap').classList.add('hidden'); document.getElementById('page-cashflow').classList.add('hidden');
-          document.getElementById('nav-input').classList.remove('active'); document.getElementById('nav-rekap').classList.remove('active'); document.getElementById('nav-cashflow').classList.remove('active');
-          document.getElementById('page-' + menu).classList.remove('hidden'); document.getElementById('nav-' + menu).classList.add('active');
+          document.querySelectorAll('.container').forEach(p => p.classList.add('hidden'));
+          document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+          
+          document.getElementById('page-' + menu).classList.remove('hidden'); 
+          document.getElementById('nav-' + menu).classList.add('active');
           tutupKeyboard();
 
-          // Auto-Load Dashboard dari Memori
           if (menu === 'rekap') { tarikDataRekapDB(false); }
+          if (menu === 'analytics') { initAnalytics(); }
       }
+
+      // === FUNGSI ANALITICS BARU ===
+      function switchTabAnalytics(tab) {
+          document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+          document.querySelectorAll('.analytics-view').forEach(v => v.classList.add('hidden'));
+          document.getElementById('tab-' + tab).classList.add('active');
+          document.getElementById('view-' + tab).classList.remove('hidden');
+      }
+
+      function initAnalytics() {
+          if(!navigator.onLine) { alert("Butuh internet untuk fitur Analitik!"); return; }
+          
+          // Tarik Data Global
+          fetch(API_URL + "?action=getAnalyticsGlobal").then(r => r.json()).then(res => {
+              if(res.status === 'success') {
+                  document.getElementById('gl_omzet').innerText = "Rp " + new Intl.NumberFormat('id-ID').format(res.omzet);
+                  document.getElementById('gl_opr').innerText = "Rp " + new Intl.NumberFormat('id-ID').format(res.opr);
+                  renderChartOmzet(res.chartLabels, res.chartData);
+              }
+          }).catch(e => console.log(e));
+          
+          // Populate Pakan
+          let select = document.getElementById('an_pilih_pakan');
+          if(select.options.length <= 1) {
+              fetch(API_URL + "?action=getPakan&lokasi=/pm").then(r => r.json()).then(res => {
+                  if(res.status === 'success') {
+                      res.data.forEach(p => { let opt = new Option(p.nama, p.nama); select.add(opt); });
+                  }
+              }).catch(e => console.log(e));
+          }
+      }
+
+      let chartGlobal;
+      function renderChartOmzet(labels, data) {
+          const ctx = document.getElementById('chartOmzet').getContext('2d');
+          if(chartGlobal) chartGlobal.destroy();
+          chartGlobal = new Chart(ctx, {
+              type: 'line',
+              data: {
+                  labels: labels || ['Jan', 'Feb', 'Mar'],
+                  datasets: [{ label: 'Omzet Bulanan', data: data || [0,0,0], borderColor: '#1a5c40', backgroundColor: 'rgba(26, 92, 64, 0.1)', fill: true, tension: 0.4 }]
+              },
+              options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+          });
+      }
+
+      function tarikAnalisaPakan() {
+          let pakan = document.getElementById('an_pilih_pakan').value;
+          if(!pakan) return;
+          console.log("Fetch pakan data (Menunggu Backend Setup): " + pakan);
+      }
+
+      function tarikDataAnalytics() {
+          let namaRelasi = document.getElementById('analytics_relasi').value.trim();
+          if (!namaRelasi) { alert("Nama relasi harus diisi!"); return; }
+          if (!navigator.onLine) { alert("Fitur Analitik wajib menggunakan koneksi internet!"); return; }
+
+          document.getElementById('analytics-result').classList.add('hidden');
+          document.getElementById('analytics-loader').classList.remove('hidden');
+
+          fetch(API_URL, { 
+              method: 'POST', 
+              body: JSON.stringify({ source: 'analytics_relasi', nama: namaRelasi }) 
+          })
+          .then(res => res.json())
+          .then(res => {
+              document.getElementById('analytics-loader').classList.add('hidden');
+              if (res.status === 'success') {
+                  document.getElementById('an_profil').innerText = res.data.profil;
+                  document.getElementById('an_ltv').innerText = "Rp " + new Intl.NumberFormat('id-ID').format(res.data.ltv);
+                  document.getElementById('an_siklus').innerText = res.data.siklus;
+                  document.getElementById('an_rapor').innerText = res.data.rapor;
+                  document.getElementById('an_top').innerText = res.data.topProduk;
+                  document.getElementById('analytics-result').classList.remove('hidden');
+              } else {
+                  alert("Data tidak ditemukan atau terjadi kesalahan.");
+              }
+          })
+          .catch(e => {
+              document.getElementById('analytics-loader').classList.add('hidden');
+              alert("Terjadi kesalahan jaringan.");
+          });
+      }
+      // === END FUNGSI ANALITICS BARU ===
+
 
       function getLokasiAktif() {
           let utama = document.querySelector('input[name="lokasi_utama"]:checked').value;
@@ -482,9 +614,13 @@
               });
           }
       }
-      document.addEventListener("click", function (e) { if (e.target.id !== "relasi") document.getElementById("saran-relasi-gudang")?.classList.add("hidden"); if (e.target.id !== "cf_relasi") document.getElementById("saran-relasi-cf")?.classList.add("hidden"); });
 
-      // === FUNGSI SURAT JALAN & KEYBOARD LAMA ===
+      document.addEventListener("click", function (e) { 
+          if (e.target.id !== "relasi") document.getElementById("saran-relasi-gudang")?.classList.add("hidden"); 
+          if (e.target.id !== "cf_relasi") document.getElementById("saran-relasi-cf")?.classList.add("hidden"); 
+          if (e.target.id !== "analytics_relasi") document.getElementById("saran-relasi-analytics")?.classList.add("hidden"); 
+      });
+
       function cekStatusSJ() { let status = document.getElementById('status').value; if(status === 'Masuk') { document.getElementById('container-sj').classList.remove('hidden'); } else { document.getElementById('container-sj').classList.add('hidden'); hapusSJ(); } }
       function handlePasteSJ(e) { e.preventDefault(); let items = (e.clipboardData || e.originalEvent.clipboardData).items; let foundImage = false; for (let index in items) { let item = items[index]; if (item.kind === 'file' && item.type.includes('image/')) { let blob = item.getAsFile(); prosesFileGambarSJ(blob); foundImage = true; break; } } if(!foundImage) alert("⚠️ Tidak ada gambar yang disalin!"); }
       function previewSJ(input) { let file = input.files[0]; if (file) { prosesFileGambarSJ(file); } else { hapusSJ(); } }
@@ -498,7 +634,6 @@
       function ubahQty(index, delta) { let el = document.getElementById('qty-' + index); let currentTotal = parseFloat(el.getAttribute('data-total')) || 0; let newVal = currentTotal + delta; if(newVal < 0) newVal = 0; el.value = newVal > 0 ? newVal.toString() : ""; hitungCalc(index); }
       function hitungCalc(index) { let el = document.getElementById('qty-' + index); let val = el.value.replace(/[^0-9+\-*/.,]/g, ''); if(el.value !== val) el.value = val; let mathStr = val.replace(/,/g, '.'); let total = 0; try { while(mathStr.endsWith('+') || mathStr.endsWith('-') || mathStr.endsWith('*') || mathStr.endsWith('/')) mathStr = mathStr.slice(0, -1); if(mathStr) total = new Function('return (' + mathStr + ')')(); } catch(e) { total = 0; } el.setAttribute('data-total', total || 0); let kemasan = parseFloat(el.getAttribute('data-kemasan')) || 0; let satuan = el.getAttribute('data-satuan') || "Kg"; let namaItem = currentItems[index].nama.toLowerCase(); let namaKemasan = (satuan.toLowerCase() === 'ltr' || namaItem.includes('bio smart')) ? "Jirigen" : "Karung"; let lblKarung = document.getElementById('lbl-karung-' + index); let hasilEl = document.getElementById('hasil-' + index); if (kemasan > 0) { let jmlKarung = total / kemasan; el.setAttribute('data-karung', jmlKarung); if (lblKarung) { if (total > 0) { let formatKarung = Number.isInteger(jmlKarung) ? jmlKarung : jmlKarung.toFixed(2); lblKarung.innerText = `(${formatKarung} ${namaKemasan})`; } else { lblKarung.innerText = ""; } } } else { let jmlKarung = val.split(/[+\-*/]/).filter(x => parseFloat(x) > 0).length; el.setAttribute('data-karung', jmlKarung); if (hasilEl) { let textHasil = "= " + Number(total || 0).toLocaleString('id-ID'); if (total > 0 && jmlKarung > 0) { textHasil += ` (${jmlKarung} Krg)`; } hasilEl.innerText = textHasil; } } }
 
-      // === SUBMIT DATA PAKAN ===
       function kirimData() {
           tutupKeyboard(); 
           let inputVal = document.getElementById('ekor').value.trim(); let isAngka = !isNaN(inputVal) && inputVal !== "";
@@ -559,10 +694,6 @@
           Promise.all(janjiKirim).then(() => { localStorage.removeItem('antrian_pakan'); updateStatusKoneksi(); }).catch(e => console.log("Gagal sinkron."));
       }
 
-
-      // ==========================================
-      // DASHBOARD MASTER (CACHE & FILTER)
-      // ==========================================
       function handleKatChange(checkbox) {
           let allCb = document.getElementById('kat_all');
           let cfCb = document.getElementById('kat_cf');
@@ -730,10 +861,6 @@
 
       function copyRekapWA() { let text = document.getElementById('raw-rekap-text'); text.classList.remove('hidden'); text.select(); document.execCommand('copy'); text.classList.add('hidden'); alert("✅ Rekap berhasil dicopy! Silakan paste di WhatsApp."); }
 
-
-      // ==========================================
-      // CASHFLOW
-      // ==========================================
       function updateKategoriCashflow() { let jenis = document.querySelector('input[name="cf_jenis"]:checked').value; let select = document.getElementById('cf_perkiraan'); select.innerHTML = ""; let list = jenis === 'Masuk' ? KATG_MASUK : KATG_KELUAR; list.forEach(k => { let opt = document.createElement('option'); opt.value = k; opt.innerHTML = k; select.appendChild(opt); }); }
       function formatRupiah(input) { let value = input.value.replace(/[^,\d]/g, '').toString(); let split = value.split(','); let sisa = split[0].length % 3; let rupiah = split[0].substr(0, sisa); let ribuan = split[0].substr(sisa).match(/\d{3}/gi); if (ribuan) { let separator = sisa ? '.' : ''; rupiah += separator + ribuan.join('.'); } rupiah = split[1] != undefined ? rupiah + ',' + split[1] : rupiah; input.value = rupiah; }
       function handlePaste(e) { e.preventDefault(); let items = (e.clipboardData || e.originalEvent.clipboardData).items; let foundImage = false; for (let index in items) { let item = items[index]; if (item.kind === 'file' && item.type.includes('image/')) { let blob = item.getAsFile(); prosesFileGambar(blob); foundImage = true; break; } } if(!foundImage) alert("⚠️ Tidak ada gambar yang disalin!"); }
