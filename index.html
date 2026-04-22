@@ -22,7 +22,7 @@
       .radio-group { display: flex; gap: 8px; flex-wrap: wrap; padding-bottom: 5px;}
       .radio-group input[type="radio"] { display: none; }
       .radio-group label { background: #eee; padding: 10px; border-radius: 8px; cursor: pointer; flex: 1 1 45%; text-align: center; white-space: nowrap; font-size: 12px; margin: 0; box-sizing: border-box; }
-      .radio-group input[type="radio"]:checked + label { background: #1a5c40; color: white; }
+      .radio-group input[type="radio"]:checked + label { background: #1a5c40; color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
       
       .menu-item { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #eee; }
       .item-info { flex: 1; }
@@ -48,6 +48,8 @@
       .rekap-card { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
       .rekap-title { font-weight: bold; font-size: 14px; color: #1a5c40; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px;}
       .rekap-item { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px; color: #555;}
+      
+      /* KEYBOARD CSS */
       #custom-keyboard { position: fixed; bottom: -400px; left: 0; right: 0; background: #e0e0e0; padding: 15px; padding-bottom: calc(15px + env(safe-area-inset-bottom)); transition: bottom 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); z-index: 2000; box-shadow: 0 -4px 15px rgba(0,0,0,0.1); border-top-left-radius: 20px; border-top-right-radius: 20px; display: flex; flex-direction: column; gap: 10px; max-width: 500px; margin: auto;}
       #custom-keyboard.show { bottom: 0; }
       .key-row { display: flex; gap: 10px; }
@@ -56,6 +58,7 @@
       .key-btn.action { background: #1a5c40; color: white; font-size: 24px; }
       .key-btn.delete { flex: 1; background: #f44336; color: white; font-size: 18px; }
       .key-btn.done { flex: 1; background: #2196F3; color: white; font-size: 18px; }
+      
       .autocomplete-wrapper { position: relative; width: 100%; }
       .autocomplete-items { position: absolute; border: 1px solid #ccc; border-top: none; z-index: 99; top: 100%; left: 0; right: 0; max-height: 200px; overflow-y: auto; background-color: #fff; border-radius: 0 0 8px 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
       .autocomplete-item { padding: 12px; cursor: pointer; border-bottom: 1px solid #eee; font-size: 13px; color: #333; }
@@ -83,7 +86,6 @@
       .dot-blue { background-color: #2196F3; }   
       .dot-purple { background-color: #9C27B0; } 
 
-      /* FILTER BUTTONS PILL */
       .filter-group { margin-bottom: 15px; }
       .filter-group label { display: block; font-size: 11px; font-weight: 600; color: #555; margin-bottom: 5px; text-transform: uppercase;}
       .pill-container { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -91,7 +93,7 @@
       .pill-container label { background: #eee; padding: 8px 12px; border-radius: 20px; cursor: pointer; font-size: 11px; color: #555; border: 1px solid #ddd; transition: all 0.2s;}
       .pill-container input[type="radio"]:checked + label, .pill-container input[type="checkbox"]:checked + label { background: #1a5c40; color: white; border-color: #1a5c40; font-weight: bold;}
 
-      /* TAMBAHAN ANALYTICS CSS */
+      /* ANALYTICS CSS */
       .analytics-tabs { display: flex; background: #eee; border-radius: 12px; padding: 4px; margin-bottom: 20px; }
       .tab-btn { flex: 1; padding: 10px 0; border: none; background: none; border-radius: 8px; font-size: 11px; font-weight: bold; color: #888; cursor: pointer; text-transform: uppercase;}
       .tab-btn.active { background: white; color: #1a5c40; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
@@ -102,7 +104,6 @@
       .stat-value.loss { color: #e91e63; }
       .chart-container { background: white; border: 1px solid #eee; padding: 15px; border-radius: 12px; margin-bottom: 20px; height: 250px; position: relative;}
       
-      /* CSS KESEHATAN KEUANGAN & RANKING */
       .health-bar-container { display: flex; height: 12px; border-radius: 6px; overflow: hidden; margin-top: 15px; margin-bottom: 5px; background: #eee; }
       .hb-masuk { background-color: #4CAF50; transition: width 0.5s ease; }
       .hb-sehat { background-color: #FFC107; transition: width 0.5s ease; }
@@ -110,9 +111,10 @@
       .hb-legend { display: flex; justify-content: space-between; font-size: 10px; color: #555; text-align: center; }
       .hb-legend div { flex: 1; }
       .hb-legend span { display: block; font-weight: bold; font-size: 12px; }
-      .rank-list { margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; }
-      .rank-item { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 5px; padding: 5px; background: #f9f9f9; border-radius: 4px; }
+      .rank-list { margin-top: 10px; border-top: 1px dashed #eee; padding-top: 10px; }
+      .rank-item { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 8px; padding: 8px; background: #f9f9f9; border-radius: 4px; border-left: 3px solid #1a5c40;}
       .rank-item strong { color: #1a5c40; }
+      .text-small-mute { font-size: 10px; color: #888; font-weight: normal; display: block; margin-top:2px; }
     </style>
   </head>
   <body>
@@ -131,77 +133,126 @@
     <div id="app-screen" class="hidden">
         
         <div id="page-input" class="container">
-          <h2>Input Pakan Harian</h2>
+          <h2>Entry Data Harian</h2>
           <div id="koneksi-badge">🟢 ONLINE: Sinkronisasi Aktif</div>
-          <div class="sub-header">Petugas Aktif: <b id="nama-petugas" style="color:#1a5c40;"></b></div>
-
-          <div class="form-group">
-            <label>Lokasi Utama</label>
-            <div class="radio-group" onchange="updateSubLokasi()">
-                <input type="radio" id="loc_pm" name="lokasi_utama" value="PM" checked><label for="loc_pm">PM</label>
-                <input type="radio" id="loc_spn" name="lokasi_utama" value="SPN"><label for="loc_spn">SPN</label>
-                <input type="radio" id="loc_rph" name="lokasi_utama" value="RPH"><label for="loc_rph">RPH</label>
-            </div>
+          
+          <div class="form-group" style="margin-top: 15px;">
+              <div class="radio-group" style="background:#e0e0e0; padding:5px; border-radius:10px;" onchange="toggleModeInput()">
+                  <input type="radio" id="mode_pakan" name="mode_input" value="pakan" checked><label for="mode_pakan" style="font-weight:bold; font-size:13px; color:#333;">📝 Gudang Pakan</label>
+                  <input type="radio" id="mode_cf" name="mode_input" value="cf"><label for="mode_cf" style="font-weight:bold; font-size:13px; color:#333;">💸 Cashflow</label>
+              </div>
           </div>
 
-          <div class="form-group" id="group-sub-lokasi">
-            <label>Fasilitas</label>
-            <div class="radio-group" onchange="gantiLokasi()">
-                <input type="radio" id="sub_gudang" name="sub_lokasi" value="gudang" checked><label for="sub_gudang">Gudang</label>
-                <input type="radio" id="sub_kandang" name="sub_lokasi" value="kandang"><label for="sub_kandang">Kandang</label>
-            </div>
-          </div>
+          <div id="form-pakan">
+              <div class="sub-header">Petugas Aktif: <b id="nama-petugas" style="color:#1a5c40;"></b></div>
 
-          <div class="form-row">
-              <div><label>Tgl (Kosong = Hari ini)</label><input type="date" id="tanggal"></div>
-              <div><label>Status</label>
-                  <select id="status" onchange="cekStatusSJ()">
-                      <option value="Keluar">Keluar</option>
-                      <option value="Masuk">Masuk</option>
-                      <option value="Retur">Retur</option>
+              <div class="form-group">
+                <label>Lokasi Utama</label>
+                <div class="radio-group" onchange="updateSubLokasi()">
+                    <input type="radio" id="loc_pm" name="lokasi_utama" value="PM" checked><label for="loc_pm">PM</label>
+                    <input type="radio" id="loc_spn" name="lokasi_utama" value="SPN"><label for="loc_spn">SPN</label>
+                    <input type="radio" id="loc_rph" name="lokasi_utama" value="RPH"><label for="loc_rph">RPH</label>
+                </div>
+              </div>
+
+              <div class="form-group" id="group-sub-lokasi">
+                <label>Fasilitas</label>
+                <div class="radio-group" onchange="gantiLokasi()">
+                    <input type="radio" id="sub_gudang" name="sub_lokasi" value="gudang" checked><label for="sub_gudang">Gudang</label>
+                    <input type="radio" id="sub_kandang" name="sub_lokasi" value="kandang"><label for="sub_kandang">Kandang</label>
+                </div>
+              </div>
+
+              <div class="form-row">
+                  <div><label>Tgl (Kosong = Hari ini)</label><input type="date" id="tanggal"></div>
+                  <div><label>Status</label>
+                      <select id="status" onchange="cekStatusSJ()">
+                          <option value="Keluar">Keluar</option>
+                          <option value="Masuk">Masuk</option>
+                          <option value="Retur">Retur</option>
+                      </select>
+                  </div>
+              </div>
+              
+              <div class="form-group">
+                  <label id="label-relasi">Nama Relasi / Tujuan</label>
+                  <div id="wrapper-relasi" class="autocomplete-wrapper">
+                      <input type="text" id="relasi" placeholder="Ketik Nama Konsumen..." autocomplete="off" oninput="tampilkanSaran(this, 'saran-relasi-gudang', true)">
+                      <div id="saran-relasi-gudang" class="autocomplete-items hidden"></div>
+                  </div>
+                  <select id="relasi_kandang" class="hidden">
+                      <option value="Kapalang">Kapalang</option>
+                      <option value="Dewasa">Dewasa</option>
+                      <option value="Jantan">Jantan</option>
+                      <option value="Laktasi">Laktasi</option>
+                      <option value="Bunting">Bunting</option>
+                      <option value="Pedet">Pedet</option>
                   </select>
               </div>
-          </div>
-          
-          <div class="form-group">
-              <label id="label-relasi">Nama Relasi / Tujuan</label>
-              <div id="wrapper-relasi" class="autocomplete-wrapper">
-                  <input type="text" id="relasi" placeholder="Ketik Nama Konsumen..." autocomplete="off" oninput="tampilkanSaran(this, 'saran-relasi-gudang', true)">
-                  <div id="saran-relasi-gudang" class="autocomplete-items hidden"></div>
+
+              <div class="form-row">
+                  <div><label>Ekor / Alamat</label><input type="text" id="ekor" placeholder="Cth: 10 atau Jln.."></div>
+                  <div><label>Ongkir/Dari (Opsional)</label><input type="text" id="ongkir" placeholder="Keterangan ongkir..."></div>
               </div>
-              <select id="relasi_kandang" class="hidden">
-                  <option value="Kapalang">Kapalang</option>
-                  <option value="Dewasa">Dewasa</option>
-                  <option value="Jantan">Jantan</option>
-                  <option value="Laktasi">Laktasi</option>
-                  <option value="Bunting">Bunting</option>
-                  <option value="Pedet">Pedet</option>
-              </select>
-          </div>
 
-          <div class="form-row">
-              <div><label>Ekor / Alamat</label><input type="text" id="ekor" placeholder="Cth: 10 atau Jln.."></div>
-              <div><label>Ongkir/Dari (Opsional)</label><input type="text" id="ongkir" placeholder="Keterangan ongkir..."></div>
-          </div>
-
-          <hr style="border: 0; border-top: 1px dashed #ddd; margin: 15px 0;">
-          <label style="font-size: 13px; text-transform: uppercase;">Daftar Pakan</label>
-          <div id="product-list"><div class="loader">Memuat data...</div></div>
-          
-          <div class="form-group" style="margin-top: 20px;"><label>Catatan Khusus (Opsional)</label><textarea id="catatan" rows="2" placeholder="Tambahkan pesan di sini..."></textarea></div>
-          
-          <div id="container-sj" class="form-group hidden" style="background: #fff8e1; padding: 15px; border-radius: 8px; border: 1px dashed #4CAF50; box-sizing: border-box; margin-top: 15px;">
-              <label style="color: #1a5c40;">📄 Lampiran Surat Jalan (Wajib Barang Masuk)</label>
-              <input type="file" id="input_sj" accept="image/*" onchange="previewSJ(this)" style="font-size: 12px; padding: 5px; margin-top: 5px; background: white; width: 100%; box-sizing: border-box;">
-              <div style="text-align: center; margin: 10px 0; font-size: 11px; color: #888; font-weight: bold;">ATAU</div>
-              <div id="paste-zone-sj" contenteditable="true" onpaste="handlePasteSJ(event)" style="border: 2px dashed #4CAF50; padding: 15px 10px; border-radius: 8px; background: #e8f5e9; text-align: center; color: #2e7d32; font-size: 12px; outline: none; cursor: text;">Tap di sini, lalu tekan <b>"Paste"</b> gambar SJ</div>
-              <div id="sj_preview_container" style="margin-top: 15px; display: none; text-align: center; position: relative;">
-                  <img id="sj_preview" style="max-width: 100%; max-height: 250px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
-                  <div onclick="hapusSJ()" style="margin-top: 8px; color: white; background: #e91e63; padding: 5px 10px; border-radius: 5px; display: inline-block; font-size: 11px; cursor: pointer; font-weight: bold;">🗑️ Hapus Gambar</div>
+              <hr style="border: 0; border-top: 1px dashed #ddd; margin: 15px 0;">
+              <label style="font-size: 13px; text-transform: uppercase;">Daftar Pakan</label>
+              <div id="product-list"><div class="loader">Memuat data...</div></div>
+              
+              <div class="form-group" style="margin-top: 20px;"><label>Catatan Khusus (Opsional)</label><textarea id="catatan" rows="2" placeholder="Tambahkan pesan di sini..."></textarea></div>
+              
+              <div id="container-sj" class="form-group hidden" style="background: #fff8e1; padding: 15px; border-radius: 8px; border: 1px dashed #4CAF50; box-sizing: border-box; margin-top: 15px;">
+                  <label style="color: #1a5c40;">📄 Lampiran Surat Jalan (Wajib Masuk)</label>
+                  <input type="file" id="input_sj" accept="image/*" onchange="previewSJ(this)" style="font-size: 12px; padding: 5px; margin-top: 5px; background: white; width: 100%; box-sizing: border-box;">
+                  <div style="text-align: center; margin: 10px 0; font-size: 11px; color: #888; font-weight: bold;">ATAU</div>
+                  <div id="paste-zone-sj" contenteditable="true" onpaste="handlePasteSJ(event)" style="border: 2px dashed #4CAF50; padding: 15px 10px; border-radius: 8px; background: #e8f5e9; text-align: center; color: #2e7d32; font-size: 12px; outline: none; cursor: text;">Tap di sini, lalu tekan <b>"Paste"</b> gambar SJ</div>
+                  <div id="sj_preview_container" style="margin-top: 15px; display: none; text-align: center; position: relative;">
+                      <img id="sj_preview" style="max-width: 100%; max-height: 250px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+                      <div onclick="hapusSJ()" style="margin-top: 8px; color: white; background: #e91e63; padding: 5px 10px; border-radius: 5px; display: inline-block; font-size: 11px; cursor: pointer; font-weight: bold;">🗑️ Hapus Gambar</div>
+                  </div>
               </div>
+
+              <button class="btn-submit" id="btn-kirim" onclick="kirimData()">Kirim Laporan Pakan</button>
           </div>
 
-          <button class="btn-submit" id="btn-kirim" onclick="kirimData()">Kirim Laporan</button>
+          <div id="form-cashflow" class="hidden">
+              <div class="sub-header">Pencatatan Arus Kas & Bukti Transaksi</div>
+              <div class="form-group">
+                  <label>Jenis Transaksi</label>
+                  <div class="radio-group" onchange="updateKategoriCashflow()">
+                      <input type="radio" id="cf_masuk" name="cf_jenis" value="Masuk" checked><label for="cf_masuk">Uang Masuk</label>
+                      <input type="radio" id="cf_keluar" name="cf_jenis" value="Keluar"><label for="cf_keluar">Uang Keluar</label>
+                  </div>
+              </div>
+              <div class="form-row">
+                  <div><label>Tgl Transaksi</label><input type="date" id="cf_tanggal"></div>
+                  <div><label>Metode</label><select id="cf_metode"><option value="Tranfer">Transfer</option><option value="Cash">Cash</option></select></div>
+              </div>
+              <div class="form-group"><label>Kategori</label><select id="cf_perkiraan"></select></div>
+              <div class="form-group">
+                  <label>Relasi (Dari / Ke)</label>
+                  <div class="autocomplete-wrapper">
+                      <input type="text" id="cf_relasi" placeholder="Ketik Nama Relasi..." autocomplete="off" oninput="tampilkanSaran(this, 'saran-relasi-cf', false)">
+                      <div id="saran-relasi-cf" class="autocomplete-items hidden"></div>
+                  </div>
+              </div>
+              <div class="form-group"><label>Nominal Bayar (Rp)</label><input type="text" inputmode="numeric" id="cf_nominal" class="calc-input" placeholder="0" oninput="formatRupiah(this)" style="font-size: 18px; font-weight: bold; padding: 15px 10px !important;"></div>
+              <div class="form-group"><label style="color: #e91e63;">Diskon / Potongan (Rp)</label><input type="text" inputmode="numeric" id="cf_diskon" class="calc-input" placeholder="0" oninput="formatRupiah(this)" style="font-size: 18px; font-weight: bold; padding: 15px 10px !important; color: #e91e63;"></div>
+              <div class="form-group"><label>Keterangan</label><textarea id="cf_deskripsi" rows="2" placeholder="Tuliskan keterangan rinci..."></textarea></div>
+
+              <div class="form-group" style="background: #f9f9f9; padding: 15px; border-radius: 8px; border: 1px dashed #ccc; box-sizing: border-box;">
+                  <label style="color: #333;">Lampiran Bukti Transaksi (Opsional)</label>
+                  <input type="file" id="cf_bukti" accept="image/*" onchange="previewBukti(this)" style="font-size: 12px; padding: 5px; margin-top: 5px; background: white; width: 100%; box-sizing: border-box;">
+                  <div style="text-align: center; margin: 10px 0; font-size: 11px; color: #888; font-weight: bold;">ATAU</div>
+                  <div id="paste-zone" contenteditable="true" onpaste="handlePaste(event)" style="border: 2px dashed #2196F3; padding: 15px 10px; border-radius: 8px; background: #e3f2fd; text-align: center; color: #1565c0; font-size: 12px; outline: none; cursor: text;">Tap di sini, lalu tekan <b>"Paste"</b> gambar dari WA</div>
+                  <div id="cf_preview_container" style="margin-top: 15px; display: none; text-align: center; position: relative;">
+                      <img id="cf_preview" style="max-width: 100%; max-height: 250px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+                      <div onclick="hapusBukti()" style="margin-top: 8px; color: white; background: #e91e63; padding: 5px 10px; border-radius: 5px; display: inline-block; font-size: 11px; cursor: pointer; font-weight: bold;">🗑️ Hapus Gambar</div>
+                  </div>
+              </div>
+              <button class="btn-submit" id="btn-kirim-cf" onclick="kirimCashflow()" style="background: #2196F3; margin-top: 10px;">Kirim Data Cashflow</button>
+              <div id="cf_status" style="text-align:center; font-size:13px; margin-top:15px; font-weight:bold; color: #1a5c40;"></div>
+          </div>
         </div>
 
         <div id="page-rekap" class="container hidden">
@@ -264,46 +315,6 @@
             </div>
         </div>
 
-        <div id="page-cashflow" class="container hidden">
-            <h2>Input Cashflow</h2>
-            <div class="sub-header">Pencatatan Arus Kas & Bukti Transaksi</div>
-            <div class="form-group">
-                <label>Jenis Transaksi</label>
-                <div class="radio-group" onchange="updateKategoriCashflow()">
-                    <input type="radio" id="cf_masuk" name="cf_jenis" value="Masuk" checked><label for="cf_masuk">Uang Masuk</label>
-                    <input type="radio" id="cf_keluar" name="cf_jenis" value="Keluar"><label for="cf_keluar">Uang Keluar</label>
-                </div>
-            </div>
-            <div class="form-row">
-                <div><label>Tgl Transaksi</label><input type="date" id="cf_tanggal"></div>
-                <div><label>Metode</label><select id="cf_metode"><option value="Tranfer">Transfer</option><option value="Cash">Cash</option></select></div>
-            </div>
-            <div class="form-group"><label>Kategori</label><select id="cf_perkiraan"></select></div>
-            <div class="form-group">
-                <label>Relasi (Dari / Ke)</label>
-                <div class="autocomplete-wrapper">
-                    <input type="text" id="cf_relasi" placeholder="Ketik Nama Relasi..." autocomplete="off" oninput="tampilkanSaran(this, 'saran-relasi-cf', false)">
-                    <div id="saran-relasi-cf" class="autocomplete-items hidden"></div>
-                </div>
-            </div>
-            <div class="form-group"><label>Nominal Bayar (Rp)</label><input type="text" inputmode="numeric" id="cf_nominal" class="calc-input" placeholder="0" oninput="formatRupiah(this)" style="font-size: 18px; font-weight: bold; padding: 15px 10px !important;"></div>
-            <div class="form-group"><label style="color: #e91e63;">Diskon / Potongan (Rp)</label><input type="text" inputmode="numeric" id="cf_diskon" class="calc-input" placeholder="0" oninput="formatRupiah(this)" style="font-size: 18px; font-weight: bold; padding: 15px 10px !important; color: #e91e63;"></div>
-            <div class="form-group"><label>Keterangan</label><textarea id="cf_deskripsi" rows="2" placeholder="Tuliskan keterangan rinci..."></textarea></div>
-
-            <div class="form-group" style="background: #f9f9f9; padding: 15px; border-radius: 8px; border: 1px dashed #ccc; box-sizing: border-box;">
-                <label style="color: #333;">Lampiran Bukti Transaksi (Opsional)</label>
-                <input type="file" id="cf_bukti" accept="image/*" onchange="previewBukti(this)" style="font-size: 12px; padding: 5px; margin-top: 5px; background: white; width: 100%; box-sizing: border-box;">
-                <div style="text-align: center; margin: 10px 0; font-size: 11px; color: #888; font-weight: bold;">ATAU</div>
-                <div id="paste-zone" contenteditable="true" onpaste="handlePaste(event)" style="border: 2px dashed #2196F3; padding: 15px 10px; border-radius: 8px; background: #e3f2fd; text-align: center; color: #1565c0; font-size: 12px; outline: none; cursor: text;">Tap di sini, lalu tekan <b>"Paste"</b> gambar dari WA</div>
-                <div id="cf_preview_container" style="margin-top: 15px; display: none; text-align: center; position: relative;">
-                    <img id="cf_preview" style="max-width: 100%; max-height: 250px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
-                    <div onclick="hapusBukti()" style="margin-top: 8px; color: white; background: #e91e63; padding: 5px 10px; border-radius: 5px; display: inline-block; font-size: 11px; cursor: pointer; font-weight: bold;">🗑️ Hapus Gambar</div>
-                </div>
-            </div>
-            <button class="btn-submit" id="btn-kirim-cf" onclick="kirimCashflow()" style="background: #2196F3; margin-top: 10px;">Kirim Data Cashflow</button>
-            <div id="cf_status" style="text-align:center; font-size:13px; margin-top:15px; font-weight:bold; color: #1a5c40;"></div>
-        </div>
-
         <div id="page-analytics" class="container hidden">
             <h2>Analytics Center</h2>
             <div class="sub-header">Performa Bisnis & Analisa Perilaku</div>
@@ -358,10 +369,23 @@
                             <div id="bar_sehat" class="hb-sehat" style="width: 0%;"></div>
                             <div id="bar_telat" class="hb-telat" style="width: 0%;"></div>
                         </div>
-                        <div class="hb-legend">
-                            <div style="color: #4CAF50;">Uang Masuk<span id="lbl_masuk">0%</span></div>
-                            <div style="color: #FF9800;">Ptng. Sehat<span id="lbl_sehat">0%</span></div>
-                            <div style="color: #F44336;">Jatuh Tempo<span id="lbl_telat">0%</span></div>
+                        
+                        <div style="display:flex; justify-content:space-between; margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px;">
+                            <div style="text-align:left; flex:1;">
+                                <div style="font-size:10px; color:#4CAF50; font-weight:bold;">UANG MASUK</div>
+                                <div id="lbl_nm_masuk" style="font-size:12px; font-weight:bold; color:#333;">-</div>
+                                <div id="lbl_masuk" style="font-size:11px; color:#666;">0%</div>
+                            </div>
+                            <div style="text-align:center; flex:1; border-left:1px dashed #eee; border-right:1px dashed #eee;">
+                                <div style="font-size:10px; color:#FF9800; font-weight:bold;">PTNG. SEHAT</div>
+                                <div id="lbl_nm_sehat" style="font-size:12px; font-weight:bold; color:#333;">-</div>
+                                <div id="lbl_sehat" style="font-size:11px; color:#666;">0%</div>
+                            </div>
+                            <div style="text-align:right; flex:1;">
+                                <div style="font-size:10px; color:#F44336; font-weight:bold;">JATUH TEMPO</div>
+                                <div id="lbl_nm_telat" style="font-size:12px; font-weight:bold; color:#333;">-</div>
+                                <div id="lbl_telat" style="font-size:11px; color:#666;">0%</div>
+                            </div>
                         </div>
                     </div>
 
@@ -372,22 +396,33 @@
                         </div>
                         <div class="rekap-card" style="margin-bottom:0;">
                             <div class="rekap-title" style="font-size:12px;">💳 Rapor Bayar</div>
-                            <div id="an_rapor" style="font-size:14px; font-weight:bold; color:#e91e63;">-</div>
+                            <div id="an_rapor" style="font-size:11px; font-weight:bold; color:#e91e63;">-</div>
+                        </div>
+                    </div>
+                    
+                    <div class="rekap-card" style="margin-top:15px;">
+                        <div class="rekap-title">📈 Omzet Relasi (Tahun Ini)</div>
+                        <div style="height: 180px; position: relative;">
+                            <canvas id="chartOmzetRelasi"></canvas>
                         </div>
                     </div>
 
-                    <div class="rekap-card" style="margin-top:15px; border-left: 4px solid #2196F3;">
-                        <div class="rekap-title">🛒 Transaksi Terakhir</div>
-                        <div id="an_last_date" style="font-size:13px; font-weight:bold; color:#2196F3;">-</div>
-                        <div id="an_last_items" class="rank-list" style="border:none; padding-top:5px;"></div>
+                    <div class="rekap-card" style="margin-top:15px; border-left: 4px solid #4CAF50;">
+                        <div class="rekap-title">💸 Riwayat Pembayaran (Terbaru)</div>
+                        <div id="an_riwayat_bayar" class="rank-list" style="border:none; padding-top:0;"></div>
+                    </div>
+
+                    <div class="rekap-card" style="margin-top:15px; border-left: 4px solid #F44336;">
+                        <div class="rekap-title">🛒 Daftar Piutang Aktif (Belum Lunas)</div>
+                        <div id="an_piutang_aktif" class="rank-list" style="border:none; padding-top:0;"></div>
                     </div>
 
                     <div class="rekap-card" style="margin-top:15px;">
-                        <div class="rekap-title">🏆 Peringkat Produk</div>
+                        <div class="rekap-title">🏆 Peringkat Produk Dibeli</div>
                         <div id="an_rank_produk" class="rank-list"></div>
                     </div>
                 </div>
-                </div>
+            </div>
 
             <div id="view-pakan" class="analytics-view hidden">
                 <div class="form-group">
@@ -403,10 +438,9 @@
         </div>
 
         <div class="bottom-nav">
-            <div class="nav-item active" id="nav-input" onclick="pindahMenu('input')"><span class="nav-icon">📝</span><span>Input</span></div>
+            <div class="nav-item active" id="nav-input" onclick="pindahMenu('input')"><span class="nav-icon">📝</span><span>Entry Data</span></div>
             <div class="nav-item" id="nav-rekap" onclick="pindahMenu('rekap')"><span class="nav-icon">📊</span><span>Dashboard</span></div>
             <div class="nav-item" id="nav-analytics" onclick="pindahMenu('analytics')"><span class="nav-icon">📈</span><span>Analitik</span></div>
-            <div class="nav-item" id="nav-cashflow" onclick="pindahMenu('cashflow')"><span class="nav-icon">💸</span><span>Cashflow</span></div>
         </div>
     </div>
 
@@ -420,7 +454,6 @@
 
     <script>
       // ==========================================
-      // PASTIKAN URL API INI SESUAI DENGAN DEPLOYMENT TERBARU BOS
       const API_URL = "https://script.google.com/macros/s/AKfycbxm8APTPE4lgMIimnOOUetQPY2vWiNqkL5_4afV_jY5AoC_bPVp2z1IsMKImJXOroi0/exec";
       const NOMOR_WA_ADMIN = "6282143601114"; 
       // ==========================================
@@ -442,7 +475,6 @@
       let fileBase64_SJ = ""; let fileMime_SJ = "";
       let globalRelasi = [];
       
-      // VARIABLE CACHE GLOBAL DASHBOARD
       let rawMasterGlobal = [];
       let rawCashflowGlobal = [];
       let currentBulan = "";
@@ -456,7 +488,7 @@
       function updateStatusKoneksi() {
           let badge = document.getElementById('koneksi-badge');
           if (navigator.onLine) {
-              badge.innerText = "🟢 ONLINE: Menyinkronkan Data..."; badge.classList.remove('offline-badge'); sinkronisasiAntrianLokal(); 
+              badge.innerText = "🟢 ONLINE: Sinkronisasi Aktif"; badge.classList.remove('offline-badge'); sinkronisasiAntrianLokal(); 
           } else {
               let antrian = JSON.parse(localStorage.getItem('antrian_pakan')) || [];
               badge.innerText = `🔴 OFFLINE: ${antrian.length} Laporan Menunggu`; badge.classList.add('offline-badge');
@@ -468,14 +500,11 @@
           if (USERS[pin]) {
               activeUser = USERS[pin]; document.getElementById('nama-petugas').innerText = activeUser;
               document.getElementById('login-screen').classList.add('hidden'); document.getElementById('app-screen').classList.remove('hidden');
-              
               let t = new Date();
               document.getElementById('f_bulan').value = t.getMonth() + 1;
               document.getElementById('f_tahun').value = t.getFullYear();
-              
               document.getElementById('cf_tanggal').valueAsDate = new Date(); 
-              updateStatusKoneksi(); gantiLokasi(); updateKategoriCashflow();
-              fetchMasterRelasi();
+              updateStatusKoneksi(); gantiLokasi(); updateKategoriCashflow(); fetchMasterRelasi();
           } else { document.getElementById('login-error').style.display = 'block'; }
       }
 
@@ -492,6 +521,18 @@
           if (menu === 'analytics') { initAnalytics(); }
       }
 
+      // === LOGIKA TOGGLE INPUT PAKAN VS CASHFLOW ===
+      function toggleModeInput() {
+          let mode = document.querySelector('input[name="mode_input"]:checked').value;
+          if (mode === 'pakan') {
+              document.getElementById('form-pakan').classList.remove('hidden');
+              document.getElementById('form-cashflow').classList.add('hidden');
+          } else {
+              document.getElementById('form-pakan').classList.add('hidden');
+              document.getElementById('form-cashflow').classList.remove('hidden');
+          }
+      }
+
       // === FUNGSI ANALITICS ===
       function switchTabAnalytics(tab) {
           document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -502,7 +543,6 @@
 
       function initAnalytics() {
           if(!navigator.onLine) { alert("Butuh internet untuk fitur Analitik!"); return; }
-          
           fetch(API_URL + "?action=getAnalyticsGlobal").then(r => r.json()).then(res => {
               if(res.status === 'success') {
                   document.getElementById('gl_omzet').innerText = "Rp " + new Intl.NumberFormat('id-ID').format(res.omzet);
@@ -510,38 +550,36 @@
                   renderChartOmzet(res.chartLabels, res.chartData);
               }
           }).catch(e => console.log(e));
-          
           let select = document.getElementById('an_pilih_pakan');
           if(select.options.length <= 1) {
               fetch(API_URL + "?action=getPakan&lokasi=/pm").then(r => r.json()).then(res => {
-                  if(res.status === 'success') {
-                      res.data.forEach(p => { let opt = new Option(p.nama, p.nama); select.add(opt); });
-                  }
+                  if(res.status === 'success') { res.data.forEach(p => { let opt = new Option(p.nama, p.nama); select.add(opt); }); }
               }).catch(e => console.log(e));
           }
       }
 
-      let chartGlobal;
+      let chartGlobal, chartKonsumen;
       function renderChartOmzet(labels, data) {
           const ctx = document.getElementById('chartOmzet').getContext('2d');
           if(chartGlobal) chartGlobal.destroy();
-          chartGlobal = new Chart(ctx, {
-              type: 'line',
-              data: {
-                  labels: labels || ['Jan', 'Feb', 'Mar'],
-                  datasets: [{ label: 'Omzet Bulanan', data: data || [0,0,0], borderColor: '#1a5c40', backgroundColor: 'rgba(26, 92, 64, 0.1)', fill: true, tension: 0.4 }]
-              },
-              options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+          chartGlobal = new Chart(ctx, { type: 'line', data: { labels: labels, datasets: [{ label: 'Omzet', data: data, borderColor: '#1a5c40', backgroundColor: 'rgba(26, 92, 64, 0.1)', fill: true, tension: 0.4 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } } });
+      }
+
+      function renderChartOmzetRelasi(labels, data) {
+          const ctx = document.getElementById('chartOmzetRelasi').getContext('2d');
+          if(chartKonsumen) chartKonsumen.destroy();
+          chartKonsumen = new Chart(ctx, {
+              type: 'bar',
+              data: { labels: labels, datasets: [{ label: 'Omzet (Rp)', data: data, backgroundColor: '#3498db', borderRadius: 4 }] },
+              options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { callback: function(val) { return 'Rp ' + Number(val/1000000).toFixed(0) + ' Jt'; } } } } }
           });
       }
 
       function tarikAnalisaPakan() {
           let pakan = document.getElementById('an_pilih_pakan').value;
-          if(!pakan) return;
-          console.log("Fetch pakan data (Menunggu Backend Setup): " + pakan);
+          if(!pakan) return; console.log("Fetch pakan data: " + pakan);
       }
 
-      // === FUNGSI ANALISA RELASI TERBARU ===
       function tarikDataAnalytics() {
           let namaRelasi = document.getElementById('analytics_relasi').value.trim();
           if (!namaRelasi) { alert("Nama relasi harus diisi!"); return; }
@@ -556,14 +594,19 @@
               document.getElementById('analytics-loader').classList.add('hidden');
               if (res.status === 'success') {
                   let d = res.data;
-                  
                   document.getElementById('an_profil').innerText = d.profil;
                   document.getElementById('an_ltv').innerText = "Rp " + new Intl.NumberFormat('id-ID').format(d.ltv);
                   document.getElementById('an_qty').innerText = new Intl.NumberFormat('id-ID').format(d.qty) + " Kg";
                   document.getElementById('an_siklus').innerText = d.siklus;
-                  document.getElementById('an_rapor').innerText = d.rapor;
+                  
+                  // Render HTML Rapor
+                  let raporHTML = "";
+                  d.rapor.forEach(line => {
+                      if(line.trim() !== "") raporHTML += `<div style="margin-bottom:4px;">${line}</div>`;
+                  });
+                  document.getElementById('an_rapor').innerHTML = raporHTML || "-";
 
-                  // Kalkulasi Persentase Kesehatan Keuangan (Health Bar 100%)
+                  // Hitung Base LTV untuk persentase
                   let baseLTV = d.ltv > 0 ? d.ltv : (d.uangMasuk + d.keuangan.totalPiutang); 
                   if (baseLTV === 0) baseLTV = 1;
 
@@ -571,49 +614,56 @@
                   let pctSehat = (d.keuangan.piutangSehat / baseLTV) * 100;
                   let pctTelat = (d.keuangan.piutangTelat / baseLTV) * 100;
                   
+                  // Render Lebar Bar
                   document.getElementById('bar_masuk').style.width = pctMasuk + "%";
                   document.getElementById('bar_sehat').style.width = pctSehat + "%";
                   document.getElementById('bar_telat').style.width = pctTelat + "%";
                   
+                  // Render Label Persentase
                   document.getElementById('lbl_masuk').innerText = Math.round(pctMasuk) + "%";
-                  document.getElementById('lbl_masuk').title = "Rp " + new Intl.NumberFormat('id-ID').format(d.uangMasuk);
-                  
                   document.getElementById('lbl_sehat').innerText = Math.round(pctSehat) + "%";
-                  document.getElementById('lbl_sehat').title = "Rp " + new Intl.NumberFormat('id-ID').format(d.keuangan.piutangSehat);
-                  
                   document.getElementById('lbl_telat').innerText = Math.round(pctTelat) + "%";
-                  document.getElementById('lbl_telat').title = "Rp " + new Intl.NumberFormat('id-ID').format(d.keuangan.piutangTelat);
+                  
+                  // Render Nominal di bawah persentase
+                  document.getElementById('lbl_nm_masuk').innerText = "Rp " + new Intl.NumberFormat('id-ID').format(d.uangMasuk);
+                  document.getElementById('lbl_nm_sehat').innerText = "Rp " + new Intl.NumberFormat('id-ID').format(d.keuangan.piutangSehat);
+                  document.getElementById('lbl_nm_telat').innerText = "Rp " + new Intl.NumberFormat('id-ID').format(d.keuangan.piutangTelat);
 
-                  // Render Transaksi Terakhir
-                  document.getElementById('an_last_date').innerText = d.transaksiTerakhir.tanggal;
-                  let htmlLast = "";
-                  d.transaksiTerakhir.items.forEach(itm => {
-                      let parts = itm.split(':');
-                      if(parts.length === 2) {
-                           htmlLast += `<div class="rank-item"><span>${parts[0]}</span> <strong>${parts[1]}</strong></div>`;
-                      }
-                  });
-                  document.getElementById('an_last_items').innerHTML = htmlLast || "<i>Belum ada detail barang</i>";
+                  // Render Piutang Aktif
+                  let htmlPiutang = "";
+                  if (d.piutangAktif && d.piutangAktif.length > 0) {
+                      d.piutangAktif.forEach(p => {
+                          let isTelat = String(p.status).toLowerCase().includes("terlambat") ? 'color:#F44336;' : 'color:#FF9800;';
+                          htmlPiutang += `<div class="rank-item" style="border-left-color:${String(p.status).toLowerCase().includes('terlambat') ? '#F44336' : '#FF9800'};"><div><span>${p.tgl} | <b>${p.pakan}</b></span><span class="text-small-mute" style="${isTelat}">${p.status}</span></div><strong>Rp ${new Intl.NumberFormat('id-ID').format(p.nominal)}</strong></div>`;
+                      });
+                  }
+                  document.getElementById('an_piutang_aktif').innerHTML = htmlPiutang || "<i>Tidak ada piutang aktif</i>";
+
+                  // Render Riwayat Pembayaran (Cashflow)
+                  let htmlBayar = "";
+                  if (d.riwayatBayar && d.riwayatBayar.length > 0) {
+                      d.riwayatBayar.forEach(b => {
+                          htmlBayar += `<div class="rank-item" style="border-left-color:#4CAF50;"><div><span>${b.tgl}</span><span class="text-small-mute">${b.ket}</span></div><strong>+ Rp ${new Intl.NumberFormat('id-ID').format(b.nominal)}</strong></div>`;
+                      });
+                  }
+                  document.getElementById('an_riwayat_bayar').innerHTML = htmlBayar || "<i>Belum ada riwayat pembayaran</i>";
 
                   // Render Ranking Produk
                   let htmlRank = "";
                   d.rankingProduk.forEach((str, index) => {
                       if(str.trim() === "") return;
                       let parts = str.split(':');
-                      if(parts.length === 2) {
-                          htmlRank += `<div class="rank-item"><span><b>#${index+1}</b> ${parts[0]}</span> <strong>${parts[1]}</strong></div>`;
-                      }
+                      if(parts.length === 2) htmlRank += `<div class="rank-item"><span><b>#${index+1}</b> ${parts[0]}</span> <strong>${parts[1]}</strong></div>`;
                   });
                   document.getElementById('an_rank_produk').innerHTML = htmlRank || "<i>Belum ada data produk</i>";
+                  
+                  // Render Chart Relasi
+                  if (d.chart) renderChartOmzetRelasi(d.chart.labels, d.chart.data);
 
                   document.getElementById('analytics-result').classList.remove('hidden');
-              } else {
-                  alert(res.message || "Data tidak ditemukan atau terjadi kesalahan.");
-              }
-          })
-          .catch(e => {
+              } else { alert(res.message || "Data tidak ditemukan atau terjadi kesalahan."); }
+          }).catch(e => {
               document.getElementById('analytics-loader').classList.add('hidden');
-              // MENAMPILKAN PESAN ERROR ASLI
               alert("Sistem Error: " + e.message);
           });
       }
@@ -697,38 +747,18 @@
       function handlePasteSJ(e) { e.preventDefault(); let items = (e.clipboardData || e.originalEvent.clipboardData).items; let foundImage = false; for (let index in items) { let item = items[index]; if (item.kind === 'file' && item.type.includes('image/')) { let blob = item.getAsFile(); prosesFileGambarSJ(blob); foundImage = true; break; } } if(!foundImage) alert("⚠️ Tidak ada gambar yang disalin!"); }
       function previewSJ(input) { let file = input.files[0]; if (file) { prosesFileGambarSJ(file); } else { hapusSJ(); } }
       
-      // === KOMPRESI 600px - GAMBAR SJ ===
+      // Kompresi Gambar SJ (600px, quality 0.6)
       function prosesFileGambarSJ(file) { 
-        let reader = new FileReader(); 
-        reader.onload = function(e) { 
-            document.getElementById('sj_preview_container').style.display = 'block'; 
-            document.getElementById('sj_preview').src = e.target.result; 
-            
-            let img = new Image(); 
-            img.onload = function() { 
-                let canvas = document.createElement('canvas'); 
-                const MAX_WIDTH = 600; 
-                let width = img.width; 
-                let height = img.height; 
-                if (width > MAX_WIDTH) { 
-                    height *= MAX_WIDTH / width; 
-                    width = MAX_WIDTH; 
-                } 
-                canvas.width = width; 
-                canvas.height = height; 
-                let ctx = canvas.getContext('2d'); 
-                ctx.drawImage(img, 0, 0, width, height); 
-                
-                let dataUrl = canvas.toDataURL('image/jpeg', 0.6); 
-                fileBase64_SJ = dataUrl.split(',')[1]; 
-                fileMime_SJ = 'image/jpeg'; 
-                document.getElementById('paste-zone-sj').innerHTML = "<b>✅ Gambar SJ berhasil dikompresi & disalin!</b>"; 
-            }; 
-            img.src = e.target.result; 
-        }; 
-        reader.readAsDataURL(file); 
+        let reader = new FileReader(); reader.onload = function(e) { 
+            document.getElementById('sj_preview_container').style.display = 'block'; document.getElementById('sj_preview').src = e.target.result; 
+            let img = new Image(); img.onload = function() { 
+                let canvas = document.createElement('canvas'); const MAX_WIDTH = 600; let width = img.width; let height = img.height; 
+                if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; } 
+                canvas.width = width; canvas.height = height; let ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, width, height); 
+                let dataUrl = canvas.toDataURL('image/jpeg', 0.6); fileBase64_SJ = dataUrl.split(',')[1]; fileMime_SJ = 'image/jpeg'; document.getElementById('paste-zone-sj').innerHTML = "<b>✅ Gambar SJ disalin!</b>"; 
+            }; img.src = e.target.result; 
+        }; reader.readAsDataURL(file); 
       }
-      
       function hapusSJ() { document.getElementById('sj_preview_container').style.display = 'none'; document.getElementById('input_sj').value = ""; document.getElementById('paste-zone-sj').innerHTML = "Tap di sini, lalu tekan <b>'Paste'</b>"; fileBase64_SJ = ""; fileMime_SJ = ""; }
 
       function bukaKeyboard(index) { activeKeyboardIndex = index; document.getElementById('custom-keyboard').classList.add('show'); let el = document.getElementById('qty-' + index); el.focus(); setTimeout(() => { el.scrollLeft = el.scrollWidth; }, 10); }
@@ -784,10 +814,10 @@
               fetch(API_URL, { method: 'POST', body: JSON.stringify({ source: 'pwa_cbl', payload: payload }) })
               .then(res => res.json()).then(res => { if(statusPilihan === 'Masuk') alert("✅ " + alertMsg); })
               .catch(e => { if(statusPilihan === 'Masuk') alert("❌ Gagal Mengirim Laporan"); })
-              .finally(() => { btn.innerText = "Kirim Laporan"; btn.disabled = false; hapusSJ(); });
+              .finally(() => { btn.innerText = "Kirim Laporan Pakan"; btn.disabled = false; hapusSJ(); });
           } else { 
               let antrian = JSON.parse(localStorage.getItem('antrian_pakan')) || []; antrian.push(payload); localStorage.setItem('antrian_pakan', JSON.stringify(antrian)); updateStatusKoneksi(); 
-              btn.innerText = "Kirim Laporan"; btn.disabled = false; hapusSJ();
+              btn.innerText = "Kirim Laporan Pakan"; btn.disabled = false; hapusSJ();
           }
           if(!isKandang) document.getElementById('relasi').value = ""; document.getElementById('ekor').value = ""; document.getElementById('ongkir').value = ""; document.getElementById('catatan').value = ""; currentItems.forEach((item, index) => { let el = document.getElementById('qty-'+index); el.value = ""; el.setAttribute('data-total', "0"); el.setAttribute('data-karung', "0"); if (document.getElementById('hasil-'+index)) document.getElementById('hasil-'+index).innerText = "= 0"; if (document.getElementById('lbl-karung-'+index)) document.getElementById('lbl-karung-'+index).innerText = ""; });
       }
@@ -810,33 +840,20 @@
       }
 
       function tarikDataRekapDB(forceRefresh = false) {
-          let bulan = document.getElementById('f_bulan').value;
-          let tahun = document.getElementById('f_tahun').value;
-          let cacheKey = `rekap_cbl_${tahun}_${bulan}`;
-          
-          document.getElementById('rekap-summary-container').innerHTML = "";
-          document.getElementById('rekap-calendar').classList.add('hidden');
-          document.getElementById('btn-copy-rekap').classList.add('hidden');
+          let bulan = document.getElementById('f_bulan').value; let tahun = document.getElementById('f_tahun').value; let cacheKey = `rekap_cbl_${tahun}_${bulan}`;
+          document.getElementById('rekap-summary-container').innerHTML = ""; document.getElementById('rekap-calendar').classList.add('hidden'); document.getElementById('btn-copy-rekap').classList.add('hidden');
 
           if (!forceRefresh) {
               let savedData = localStorage.getItem(cacheKey);
               if (savedData) {
-                  let parsed = JSON.parse(savedData);
-                  rawMasterGlobal = parsed.rawMaster;
-                  rawCashflowGlobal = parsed.rawCashflow;
-                  currentBulan = bulan; currentTahun = tahun;
-                  document.getElementById('info-cache').innerText = `Data Offline: Terakhir ditarik ${parsed.waktuTarik}`;
-                  document.getElementById('info-cache').style.color = "#4CAF50";
-                  terapkanFilter(); 
-                  return; 
+                  let parsed = JSON.parse(savedData); rawMasterGlobal = parsed.rawMaster; rawCashflowGlobal = parsed.rawCashflow; currentBulan = bulan; currentTahun = tahun;
+                  document.getElementById('info-cache').innerText = `Data Offline: Terakhir ditarik ${parsed.waktuTarik}`; document.getElementById('info-cache').style.color = "#4CAF50"; terapkanFilter(); return; 
               }
           }
-
           if (!navigator.onLine) { alert("Data bulan ini belum ada di HP. Butuh internet untuk sinkronisasi pertama!"); return; }
           
           document.getElementById('rekap-hasil').innerHTML = '<div class="loader">Menyisir Database dari Server Google...</div>'; 
-          document.getElementById('info-cache').innerText = "Menyinkronkan...";
-          document.getElementById('info-cache').style.color = "#888";
+          document.getElementById('info-cache').innerText = "Menyinkronkan..."; document.getElementById('info-cache').style.color = "#888";
 
           fetch(API_URL, { method: 'POST', body: JSON.stringify({ source: 'pwa_rekap', bulan: bulan, tahun: tahun }) })
               .then(res => res.json()).then(res => { 
@@ -844,9 +861,7 @@
                       rawMasterGlobal = res.rawMaster; rawCashflowGlobal = res.rawCashflow; currentBulan = bulan; currentTahun = tahun;
                       let waktuSekarang = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
                       localStorage.setItem(cacheKey, JSON.stringify({ rawMaster: res.rawMaster, rawCashflow: res.rawCashflow, waktuTarik: waktuSekarang }));
-                      document.getElementById('info-cache').innerText = `Data Server: Terakhir ditarik ${waktuSekarang}`;
-                      document.getElementById('info-cache').style.color = "#2196F3";
-                      terapkanFilter(); 
+                      document.getElementById('info-cache').innerText = `Data Server: Terakhir ditarik ${waktuSekarang}`; document.getElementById('info-cache').style.color = "#2196F3"; terapkanFilter(); 
                   } else { document.getElementById('rekap-hasil').innerHTML = `<div style="color:red; text-align:center;">Gagal: ${res.message}</div>`; } 
               }).catch(e => { document.getElementById('rekap-hasil').innerHTML = '<div style="color:red; text-align:center;">Terjadi kesalahan jaringan.</div>'; });
       }
@@ -895,7 +910,6 @@
                   if (exist) exist.qty += row.qty; else globalDataBulan[row.tgl].items[row.catGroup][row.relasi].push({ pakan: row.pakan, qty: row.qty });
               });
           }
-
           renderMonthlySummary(summary, kategoriArr, currentBulan, currentTahun);
           renderCalendar(currentBulan, currentTahun, kategoriArr);
           document.getElementById('rekap-hasil').innerHTML = '<div style="text-align:center; padding:20px; color:#888; font-size:12px; font-weight:bold;">👆 Pilih tanggal pada kalender untuk melihat detail.</div>';
@@ -970,38 +984,18 @@
       function handlePaste(e) { e.preventDefault(); let items = (e.clipboardData || e.originalEvent.clipboardData).items; let foundImage = false; for (let index in items) { let item = items[index]; if (item.kind === 'file' && item.type.includes('image/')) { let blob = item.getAsFile(); prosesFileGambar(blob); foundImage = true; break; } } if(!foundImage) alert("⚠️ Tidak ada gambar yang disalin!"); }
       function previewBukti(input) { let file = input.files[0]; if (file) { prosesFileGambar(file); } else { hapusBukti(); } }
       
-      // === KOMPRESI 600px - GAMBAR CASHFLOW ===
+      // Kompresi Gambar Cashflow (600px, quality 0.6)
       function prosesFileGambar(file) { 
-        let reader = new FileReader(); 
-        reader.onload = function(e) { 
-            document.getElementById('cf_preview_container').style.display = 'block'; 
-            document.getElementById('cf_preview').src = e.target.result; 
-            
-            let img = new Image(); 
-            img.onload = function() { 
-                let canvas = document.createElement('canvas'); 
-                const MAX_WIDTH = 600; 
-                let width = img.width; 
-                let height = img.height; 
-                if (width > MAX_WIDTH) { 
-                    height *= MAX_WIDTH / width; 
-                    width = MAX_WIDTH; 
-                } 
-                canvas.width = width; 
-                canvas.height = height; 
-                let ctx = canvas.getContext('2d'); 
-                ctx.drawImage(img, 0, 0, width, height); 
-                
-                let dataUrl = canvas.toDataURL('image/jpeg', 0.6); 
-                fileBase64_Global = dataUrl.split(',')[1]; 
-                fileMime_Global = 'image/jpeg'; 
-                document.getElementById('paste-zone').innerHTML = "<b>✅ Gambar berhasil dikompresi & disalin!</b>"; 
-            }; 
-            img.src = e.target.result; 
-        }; 
-        reader.readAsDataURL(file); 
+        let reader = new FileReader(); reader.onload = function(e) { 
+            document.getElementById('cf_preview_container').style.display = 'block'; document.getElementById('cf_preview').src = e.target.result; 
+            let img = new Image(); img.onload = function() { 
+                let canvas = document.createElement('canvas'); const MAX_WIDTH = 600; let width = img.width; let height = img.height; 
+                if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; } 
+                canvas.width = width; canvas.height = height; let ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, width, height); 
+                let dataUrl = canvas.toDataURL('image/jpeg', 0.6); fileBase64_Global = dataUrl.split(',')[1]; fileMime_Global = 'image/jpeg'; document.getElementById('paste-zone').innerHTML = "<b>✅ Gambar berhasil disalin!</b>"; 
+            }; img.src = e.target.result; 
+        }; reader.readAsDataURL(file); 
       }
-      
       function hapusBukti() { document.getElementById('cf_preview_container').style.display = 'none'; document.getElementById('cf_bukti').value = ""; document.getElementById('paste-zone').innerHTML = "Tap di sini, lalu tekan <b>'Paste'</b>"; fileBase64_Global = ""; fileMime_Global = ""; }
 
       function kirimCashflow() {
