@@ -112,7 +112,7 @@
       .hb-legend div { flex: 1; }
       .hb-legend span { display: block; font-weight: bold; font-size: 12px; }
       .rank-list { margin-top: 10px; border-top: 1px dashed #eee; padding-top: 10px; }
-      .rank-item { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 8px; padding: 8px; background: #f9f9f9; border-radius: 4px; border-left: 3px solid #1a5c40;}
+      .rank-item { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 8px; padding: 8px; background: #f9f9f9; border-radius: 4px; border-left: 3px solid #1a5c40; cursor: pointer;}
       .rank-item strong { color: #1a5c40; }
       .text-small-mute { font-size: 10px; color: #888; font-weight: normal; display: block; margin-top:2px; }
     </style>
@@ -413,7 +413,7 @@
                     </div>
 
                     <div class="rekap-card" style="margin-top:15px; border-left: 4px solid #F44336;">
-                        <div class="rekap-title">🛒 Daftar Piutang Aktif (Belum Lunas)</div>
+                        <div class="rekap-title">🛒 Piutang Aktif (Klik Rincian)</div>
                         <div id="an_piutang_aktif" class="rank-list" style="border:none; padding-top:0;"></div>
                     </div>
 
@@ -453,10 +453,8 @@
     </div>
 
     <script>
-      // ==========================================
       const API_URL = "https://script.google.com/macros/s/AKfycbxm8APTPE4lgMIimnOOUetQPY2vWiNqkL5_4afV_jY5AoC_bPVp2z1IsMKImJXOroi0/exec";
       const NOMOR_WA_ADMIN = "6282143601114"; 
-      // ==========================================
       
       const USERS = { "1234": "Admin Pusat", "5678": "Petugas Lapangan", "0000": "Pak Agus", "8888": "Petugas SPN" };
       const KATG_MASUK = ["Bayar Pakan", "Dll"];
@@ -521,7 +519,6 @@
           if (menu === 'analytics') { initAnalytics(); }
       }
 
-      // === LOGIKA TOGGLE INPUT PAKAN VS CASHFLOW ===
       function toggleModeInput() {
           let mode = document.querySelector('input[name="mode_input"]:checked').value;
           if (mode === 'pakan') {
@@ -533,7 +530,6 @@
           }
       }
 
-      // === FUNGSI ANALITICS ===
       function switchTabAnalytics(tab) {
           document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
           document.querySelectorAll('.analytics-view').forEach(v => v.classList.add('hidden'));
@@ -580,6 +576,11 @@
           if(!pakan) return; console.log("Fetch pakan data: " + pakan);
       }
 
+      function toggleDetail(id) {
+          let el = document.getElementById(id);
+          el.classList.toggle('hidden');
+      }
+
       function tarikDataAnalytics() {
           let namaRelasi = document.getElementById('analytics_relasi').value.trim();
           if (!namaRelasi) { alert("Nama relasi harus diisi!"); return; }
@@ -594,19 +595,19 @@
               document.getElementById('analytics-loader').classList.add('hidden');
               if (res.status === 'success') {
                   let d = res.data;
+                  let nf = new Intl.NumberFormat('id-ID');
+                  
                   document.getElementById('an_profil').innerText = d.profil;
-                  document.getElementById('an_ltv').innerText = "Rp " + new Intl.NumberFormat('id-ID').format(d.ltv);
-                  document.getElementById('an_qty').innerText = new Intl.NumberFormat('id-ID').format(d.qty) + " Kg";
+                  document.getElementById('an_ltv').innerText = "Rp " + nf.format(d.ltv);
+                  document.getElementById('an_qty').innerText = nf.format(d.qty) + " Kg";
                   document.getElementById('an_siklus').innerText = d.siklus;
                   
-                  // Render HTML Rapor
                   let raporHTML = "";
                   d.rapor.forEach(line => {
                       if(line.trim() !== "") raporHTML += `<div style="margin-bottom:4px;">${line}</div>`;
                   });
                   document.getElementById('an_rapor').innerHTML = raporHTML || "-";
 
-                  // Hitung Base LTV untuk persentase
                   let baseLTV = d.ltv > 0 ? d.ltv : (d.uangMasuk + d.keuangan.totalPiutang); 
                   if (baseLTV === 0) baseLTV = 1;
 
@@ -614,41 +615,56 @@
                   let pctSehat = (d.keuangan.piutangSehat / baseLTV) * 100;
                   let pctTelat = (d.keuangan.piutangTelat / baseLTV) * 100;
                   
-                  // Render Lebar Bar
                   document.getElementById('bar_masuk').style.width = pctMasuk + "%";
                   document.getElementById('bar_sehat').style.width = pctSehat + "%";
                   document.getElementById('bar_telat').style.width = pctTelat + "%";
                   
-                  // Render Label Persentase
                   document.getElementById('lbl_masuk').innerText = Math.round(pctMasuk) + "%";
                   document.getElementById('lbl_sehat').innerText = Math.round(pctSehat) + "%";
                   document.getElementById('lbl_telat').innerText = Math.round(pctTelat) + "%";
                   
-                  // Render Nominal di bawah persentase
-                  document.getElementById('lbl_nm_masuk').innerText = "Rp " + new Intl.NumberFormat('id-ID').format(d.uangMasuk);
-                  document.getElementById('lbl_nm_sehat').innerText = "Rp " + new Intl.NumberFormat('id-ID').format(d.keuangan.piutangSehat);
-                  document.getElementById('lbl_nm_telat').innerText = "Rp " + new Intl.NumberFormat('id-ID').format(d.keuangan.piutangTelat);
+                  document.getElementById('lbl_nm_masuk').innerText = "Rp " + nf.format(d.uangMasuk);
+                  document.getElementById('lbl_nm_sehat').innerText = "Rp " + nf.format(d.keuangan.piutangSehat);
+                  document.getElementById('lbl_nm_telat').innerText = "Rp " + nf.format(d.keuangan.piutangTelat);
 
-                  // Render Piutang Aktif
+                  // RENDER PIUTANG AKTIF (ACCORDION)
                   let htmlPiutang = "";
                   if (d.piutangAktif && d.piutangAktif.length > 0) {
-                      d.piutangAktif.forEach(p => {
+                      d.piutangAktif.forEach((p, idx) => {
                           let isTelat = String(p.status).toLowerCase().includes("terlambat") ? 'color:#F44336;' : 'color:#FF9800;';
-                          htmlPiutang += `<div class="rank-item" style="border-left-color:${String(p.status).toLowerCase().includes('terlambat') ? '#F44336' : '#FF9800'};"><div><span>${p.tgl} | <b>${p.pakan}</b></span><span class="text-small-mute" style="${isTelat}">${p.status}</span></div><strong>Rp ${new Intl.NumberFormat('id-ID').format(p.nominal)}</strong></div>`;
+                          let borderColor = String(p.status).toLowerCase().includes('terlambat') ? '#F44336' : '#FF9800';
+                          
+                          let itemDetail = "";
+                          p.items.forEach(it => {
+                              itemDetail += `<div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>• ${it.pakan} (${it.qty} Kg)</span><span>Rp ${nf.format(it.nominal)}</span></div>`;
+                          });
+                          
+                          htmlPiutang += `
+                            <div class="rank-item" style="border-left-color:${borderColor}; margin-bottom:10px;" onclick="toggleDetail('det-${idx}')">
+                                <div style="display:flex; justify-content:space-between; align-items:center;">
+                                    <div>
+                                        <span style="font-weight:bold; font-size:13px;">${p.tgl}</span>
+                                        <div class="text-small-mute" style="${isTelat}">${p.status}</div>
+                                    </div>
+                                    <strong style="font-size:14px;">Rp ${nf.format(p.total)}</strong>
+                                </div>
+                                <div id="det-${idx}" class="hidden" style="margin-top:10px; padding-top:10px; border-top:1px dashed #ccc; font-size:11px; color:#555;">
+                                    ${itemDetail}
+                                </div>
+                            </div>`;
                       });
                   }
                   document.getElementById('an_piutang_aktif').innerHTML = htmlPiutang || "<i>Tidak ada piutang aktif</i>";
 
-                  // Render Riwayat Pembayaran (Cashflow)
+                  // RENDER RIWAYAT PEMBAYARAN
                   let htmlBayar = "";
                   if (d.riwayatBayar && d.riwayatBayar.length > 0) {
                       d.riwayatBayar.forEach(b => {
-                          htmlBayar += `<div class="rank-item" style="border-left-color:#4CAF50;"><div><span>${b.tgl}</span><span class="text-small-mute">${b.ket}</span></div><strong>+ Rp ${new Intl.NumberFormat('id-ID').format(b.nominal)}</strong></div>`;
+                          htmlBayar += `<div class="rank-item" style="border-left-color:#4CAF50;"><div><span>${b.tgl}</span><span class="text-small-mute">${b.ket}</span></div><strong>+ Rp ${nf.format(b.nominal)}</strong></div>`;
                       });
                   }
                   document.getElementById('an_riwayat_bayar').innerHTML = htmlBayar || "<i>Belum ada riwayat pembayaran</i>";
 
-                  // Render Ranking Produk
                   let htmlRank = "";
                   d.rankingProduk.forEach((str, index) => {
                       if(str.trim() === "") return;
@@ -657,7 +673,6 @@
                   });
                   document.getElementById('an_rank_produk').innerHTML = htmlRank || "<i>Belum ada data produk</i>";
                   
-                  // Render Chart Relasi
                   if (d.chart) renderChartOmzetRelasi(d.chart.labels, d.chart.data);
 
                   document.getElementById('analytics-result').classList.remove('hidden');
