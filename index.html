@@ -521,22 +521,68 @@
           document.getElementById('analytics-result').classList.add('hidden');
           document.getElementById('analytics-loader').classList.remove('hidden');
 
-          fetch(API_URL, { 
-              method: 'POST', 
-              body: JSON.stringify({ source: 'analytics_relasi', nama: namaRelasi }) 
-          })
+          fetch(API_URL, { method: 'POST', body: JSON.stringify({ source: 'analytics_relasi', nama: namaRelasi }) })
           .then(res => res.json())
           .then(res => {
               document.getElementById('analytics-loader').classList.add('hidden');
               if (res.status === 'success') {
-                  document.getElementById('an_profil').innerText = res.data.profil;
-                  document.getElementById('an_ltv').innerText = "Rp " + new Intl.NumberFormat('id-ID').format(res.data.ltv);
-                  document.getElementById('an_siklus').innerText = res.data.siklus;
-                  document.getElementById('an_rapor').innerText = res.data.rapor;
-                  document.getElementById('an_top').innerText = res.data.topProduk;
+                  let d = res.data;
+                  
+                  // Render Teks Standar
+                  document.getElementById('an_profil').innerText = d.profil;
+                  document.getElementById('an_ltv').innerText = "Rp " + new Intl.NumberFormat('id-ID').format(d.ltv);
+                  document.getElementById('an_qty').innerText = new Intl.NumberFormat('id-ID').format(d.qty) + " Kg";
+                  document.getElementById('an_siklus').innerText = d.siklus;
+                  document.getElementById('an_rapor').innerText = d.rapor;
+
+                  // Kalkulasi Persentase Kesehatan Keuangan (Health Bar 100%)
+                  let baseLTV = d.ltv > 0 ? d.ltv : (d.uangMasuk + d.keuangan.totalPiutang); 
+                  if (baseLTV === 0) baseLTV = 1; // Cegah error pembagian 0 jika data kosong mutlak
+
+                  let pctMasuk = (d.uangMasuk / baseLTV) * 100;
+                  let pctSehat = (d.keuangan.piutangSehat / baseLTV) * 100;
+                  let pctTelat = (d.keuangan.piutangTelat / baseLTV) * 100;
+                  
+                  // Render Diagram Batang
+                  document.getElementById('bar_masuk').style.width = pctMasuk + "%";
+                  document.getElementById('bar_sehat').style.width = pctSehat + "%";
+                  document.getElementById('bar_telat').style.width = pctTelat + "%";
+                  
+                  document.getElementById('lbl_masuk').innerText = Math.round(pctMasuk) + "%";
+                  document.getElementById('lbl_masuk').title = "Rp " + new Intl.NumberFormat('id-ID').format(d.uangMasuk);
+                  
+                  document.getElementById('lbl_sehat').innerText = Math.round(pctSehat) + "%";
+                  document.getElementById('lbl_sehat').title = "Rp " + new Intl.NumberFormat('id-ID').format(d.keuangan.piutangSehat);
+                  
+                  document.getElementById('lbl_telat').innerText = Math.round(pctTelat) + "%";
+                  document.getElementById('lbl_telat').title = "Rp " + new Intl.NumberFormat('id-ID').format(d.keuangan.piutangTelat);
+
+                  // Render Transaksi Terakhir
+                  document.getElementById('an_last_date').innerText = d.transaksiTerakhir.tanggal;
+                  let htmlLast = "";
+                  d.transaksiTerakhir.items.forEach(itm => {
+                      let parts = itm.split(':');
+                      if(parts.length === 2) {
+                           htmlLast += `<div class="rank-item"><span>${parts[0]}</span> <strong>${parts[1]}</strong></div>`;
+                      }
+                  });
+                  document.getElementById('an_last_items').innerHTML = htmlLast || "<i>Belum ada detail barang</i>";
+
+                  // Render Ranking Produk
+                  let htmlRank = "";
+                  d.rankingProduk.forEach((str, index) => {
+                      if(str.trim() === "") return;
+                      let parts = str.split(':');
+                      if(parts.length === 2) {
+                          htmlRank += `<div class="rank-item"><span><b>#${index+1}</b> ${parts[0]}</span> <strong>${parts[1]}</strong></div>`;
+                      }
+                  });
+                  document.getElementById('an_rank_produk').innerHTML = htmlRank || "<i>Belum ada data produk</i>";
+
+                  // Munculkan Hasil
                   document.getElementById('analytics-result').classList.remove('hidden');
               } else {
-                  alert("Data tidak ditemukan atau terjadi kesalahan.");
+                  alert(res.message || "Data tidak ditemukan atau terjadi kesalahan.");
               }
           })
           .catch(e => {
