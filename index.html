@@ -326,18 +326,89 @@
             </div>
 
             <div id="view-global" class="analytics-view">
-                <div class="stat-grid">
-                    <div class="stat-card">
-                        <div class="stat-label">Total Omzet</div>
-                        <div class="stat-value" id="gl_omzet">Rp 0</div>
+                <div class="form-row" style="margin-bottom: 15px;">
+                    <div>
+                        <select id="gl_bulan" style="font-size:12px; padding:8px;">
+                            <option value="ALL">Semua Bulan</option>
+                            <option value="1">Januari</option><option value="2">Februari</option>
+                            <option value="3">Maret</option><option value="4" selected>April</option>
+                            <option value="5">Mei</option><option value="6">Juni</option>
+                            <option value="7">Juli</option><option value="8">Agustus</option>
+                            <option value="9">September</option><option value="10">Oktober</option>
+                            <option value="11">November</option><option value="12">Desember</option>
+                        </select>
                     </div>
-                    <div class="stat-card">
-                        <div class="stat-label">Total OPR</div>
-                        <div class="stat-value loss" id="gl_opr">Rp 0</div>
+                    <div>
+                        <select id="gl_tahun" style="font-size:12px; padding:8px;">
+                            <option value="ALL">Semua Tahun</option>
+                            <option value="2025">2025</option><option value="2026" selected>2026</option>
+                        </select>
+                    </div>
+                    <div style="flex: 0.5;">
+                        <button class="btn-submit" onclick="tarikDataGlobal()" style="margin:0; padding:8px; font-size:12px; border-radius:8px;">Tarik</button>
                     </div>
                 </div>
-                <div class="chart-container">
-                    <canvas id="chartOmzet"></canvas>
+
+                <div id="gl_loader" class="loader hidden">Menghitung Laba Rugi & Render Chart...</div>
+
+                <div id="gl_result" class="hidden">
+                    <div class="summary-card" style="background: linear-gradient(135deg, #1e3c72, #2a5298);">
+                        <div class="sum-title">Total Omzet Penjualan</div>
+                        <div id="gl_val_omzet" class="sum-val">Rp 0</div>
+                        <div class="sum-row" style="gap:5px;">
+                            <div class="sum-box">
+                                <div class="sum-title">HPP (Modal)</div>
+                                <div id="gl_val_hpp" style="font-size:12px; font-weight:bold; color:#ffcc80;">Rp 0</div>
+                            </div>
+                            <div class="sum-box">
+                                <div class="sum-title">Cost (OPR)</div>
+                                <div id="gl_val_opr" style="font-size:12px; font-weight:bold; color:#ffab91;">Rp 0</div>
+                            </div>
+                            <div class="sum-box">
+                                <div class="sum-title">Net Profit</div>
+                                <div id="gl_val_profit" style="font-size:13px; font-weight:bold; color:#a5d6a7;">Rp 0</div>
+                            </div>
+                        </div>
+                        <div style="text-align:center; margin-top:10px; font-size:11px; background:rgba(0,0,0,0.2); padding:5px; border-radius:5px;">
+                            Net Profit Margin: <strong id="gl_val_margin" style="color:#00e676; font-size:14px;">0%</strong>
+                        </div>
+                    </div>
+
+                    <div class="rekap-card">
+                        <div class="rekap-title">💧 Arus Kas vs Omzet</div>
+                        <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:bold; margin-bottom:5px;">
+                            <span style="color:#4CAF50;">Cash In: <span id="gl_val_masuk">Rp 0</span></span>
+                            <span style="color:#F44336;">Piutang Belum Cair</span>
+                        </div>
+                        <div class="health-bar-container">
+                            <div id="gl_bar_kas" style="background:#4CAF50; width:0%;"></div>
+                            <div id="gl_bar_piutang" style="background:#F44336; width:0%;"></div>
+                        </div>
+                        <div style="text-align:center; font-size:11px; margin-top:5px; color:#555;">
+                            Rasio Uang Tunai Cair: <strong id="gl_lbl_kasRatio" style="color:#333;">0%</strong>
+                        </div>
+                    </div>
+
+                    <div class="rekap-card">
+                        <div class="rekap-title">📊 Tren Volume (Kg) vs Omzet (Tahunan)</div>
+                        <div style="height: 220px; position: relative;">
+                            <canvas id="chartMixGlobal"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="rekap-card hidden" id="cardDailyGlobal" style="border-left: 4px solid #e67e22;">
+                        <div class="rekap-title">📈 Tren Harian Volume vs Omzet</div>
+                        <div style="height: 200px; position: relative;">
+                            <canvas id="chartDailyGlobal"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="rekap-card">
+                        <div class="rekap-title">🍩 Distribusi Penjualan Produk (Kg)</div>
+                        <div style="height: 200px; position: relative;">
+                            <canvas id="chartDonutGlobal"></canvas>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -537,38 +608,96 @@
           document.getElementById('view-' + tab).classList.remove('hidden');
       }
 
+      // === INIT ANALYTICS ===
       function initAnalytics() {
-          if(!navigator.onLine) { alert("Butuh internet untuk fitur Analitik!"); return; }
-          fetch(API_URL + "?action=getAnalyticsGlobal").then(r => r.json()).then(res => {
-              if(res.status === 'success') {
-                  document.getElementById('gl_omzet').innerText = "Rp " + new Intl.NumberFormat('id-ID').format(res.omzet);
-                  document.getElementById('gl_opr').innerText = "Rp " + new Intl.NumberFormat('id-ID').format(res.opr);
-                  renderChartOmzet(res.chartLabels, res.chartData);
-              }
-          }).catch(e => console.log(e));
           let select = document.getElementById('an_pilih_pakan');
           if(select.options.length <= 1) {
               fetch(API_URL + "?action=getPakan&lokasi=/pm").then(r => r.json()).then(res => {
-                  if(res.status === 'success') { res.data.forEach(p => { let opt = new Option(p.nama, p.nama); select.add(opt); }); }
+                  if(res.status === 'success') { res.data.forEach(p => { select.add(new Option(p.nama, p.nama)); }); }
               }).catch(e => console.log(e));
           }
+          tarikDataGlobal();
       }
 
-      let chartGlobal, chartKonsumen;
-      function renderChartOmzet(labels, data) {
-          const ctx = document.getElementById('chartOmzet').getContext('2d');
-          if(chartGlobal) chartGlobal.destroy();
-          chartGlobal = new Chart(ctx, { type: 'line', data: { labels: labels, datasets: [{ label: 'Omzet', data: data, borderColor: '#1a5c40', backgroundColor: 'rgba(26, 92, 64, 0.1)', fill: true, tension: 0.4 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } } });
-      }
+      // === TARIK DATA GLOBAL ===
+      let chMix, chDonut, chDaily;
+      
+      function tarikDataGlobal() {
+          if(!navigator.onLine) { alert("Wajib online untuk menarik data Master Laba Rugi!"); return; }
+          let p = {
+              source: 'analytics_global',
+              bulan: document.getElementById('gl_bulan').value,
+              tahun: document.getElementById('gl_tahun').value
+          };
+          
+          document.getElementById('gl_result').classList.add('hidden');
+          document.getElementById('gl_loader').classList.remove('hidden');
 
-      function renderChartOmzetRelasi(labels, data) {
-          const ctx = document.getElementById('chartOmzetRelasi').getContext('2d');
-          if(chartKonsumen) chartKonsumen.destroy();
-          chartKonsumen = new Chart(ctx, {
-              type: 'bar',
-              data: { labels: labels, datasets: [{ label: 'Omzet (Rp)', data: data, backgroundColor: '#3498db', borderRadius: 4 }] },
-              options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { callback: function(val) { return 'Rp ' + Number(val/1000000).toFixed(0) + ' Jt'; } } } } }
-          });
+          fetch(API_URL, { method: 'POST', body: JSON.stringify(p) })
+          .then(res => res.json()).then(res => {
+              document.getElementById('gl_loader').classList.add('hidden');
+              if(res.status === 'success') {
+                  let d = res.data; let nf = new Intl.NumberFormat('id-ID');
+                  
+                  document.getElementById('gl_val_omzet').innerText = "Rp " + nf.format(d.omzet);
+                  document.getElementById('gl_val_hpp').innerText = "Rp " + nf.format(d.hpp);
+                  document.getElementById('gl_val_opr').innerText = "Rp " + nf.format(d.opr);
+                  document.getElementById('gl_val_profit').innerText = "Rp " + nf.format(d.profit);
+                  document.getElementById('gl_val_margin').innerText = d.margin.toFixed(1) + "%";
+
+                  document.getElementById('gl_val_masuk').innerText = "Rp " + nf.format(d.masuk);
+                  let ratio = d.kasRatio > 100 ? 100 : d.kasRatio;
+                  document.getElementById('gl_bar_kas').style.width = ratio + "%";
+                  document.getElementById('gl_bar_piutang').style.width = (100 - ratio) + "%";
+                  document.getElementById('gl_lbl_kasRatio').innerText = d.kasRatio.toFixed(1) + "%";
+
+                  let ctxMix = document.getElementById('chartMixGlobal').getContext('2d');
+                  if(chMix) chMix.destroy();
+                  chMix = new Chart(ctxMix, {
+                      type: 'line',
+                      data: {
+                          labels: d.chartMix.label,
+                          datasets: [
+                              { type: 'bar', label: 'Volume (Kg)', data: d.chartMix.qty, backgroundColor: 'rgba(52, 152, 219, 0.7)', yAxisID: 'yQty', borderRadius: 4 },
+                              { type: 'line', label: 'Omzet (Rp)', data: d.chartMix.omzet, borderColor: '#1a5c40', backgroundColor: '#1a5c40', tension: 0.4, yAxisID: 'yOmzet' }
+                          ]
+                      },
+                      options: { responsive: true, maintainAspectRatio: false, scales: { yQty: { type: 'linear', position: 'left', ticks:{ display:false } }, yOmzet: { type: 'linear', position: 'right', ticks:{ display:false } } }, plugins: { legend: { display: false } } }
+                  });
+
+                  if(d.isFiltered) {
+                      document.getElementById('cardDailyGlobal').classList.remove('hidden');
+                      let ctxDaily = document.getElementById('chartDailyGlobal').getContext('2d');
+                      if(chDaily) chDaily.destroy();
+                      chDaily = new Chart(ctxDaily, {
+                          type: 'line',
+                          data: {
+                              labels: d.chartDaily.label,
+                              datasets: [
+                                  { type: 'bar', label: 'Volume (Kg)', data: d.chartDaily.qty, backgroundColor: 'rgba(230, 126, 34, 0.7)', yAxisID: 'yQty', borderRadius: 2 },
+                                  { type: 'line', label: 'Omzet (Rp)', data: d.chartDaily.omzet, borderColor: '#e74c3c', backgroundColor: '#e74c3c', tension: 0.3, borderWidth: 2, pointRadius: 1, yAxisID: 'yOmzet' }
+                              ]
+                          },
+                          options: { responsive: true, maintainAspectRatio: false, scales: { yQty: { type: 'linear', position: 'left', ticks:{ display:false } }, yOmzet: { type: 'linear', position: 'right', ticks:{ display:false } } }, plugins: { legend: { display: false } } }
+                      });
+                  } else {
+                      document.getElementById('cardDailyGlobal').classList.add('hidden');
+                  }
+
+                  let ctxDonut = document.getElementById('chartDonutGlobal').getContext('2d');
+                  if(chDonut) chDonut.destroy();
+                  chDonut = new Chart(ctxDonut, {
+                      type: 'doughnut',
+                      data: {
+                          labels: d.chartDonut.label,
+                          datasets: [{ data: d.chartDonut.data, backgroundColor: ['#1a5c40', '#3498db', '#e91e63', '#f1c40f', '#9b59b6', '#95a5a6'], borderWidth: 0 }]
+                      },
+                      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: { size: 10 } } } } }
+                  });
+
+                  document.getElementById('gl_result').classList.remove('hidden');
+              }
+          }).catch(e => { alert("Error: " + e.message); document.getElementById('gl_loader').classList.add('hidden'); });
       }
 
       function tarikAnalisaPakan() {
@@ -579,6 +708,18 @@
       function toggleDetail(id) {
           let el = document.getElementById(id);
           el.classList.toggle('hidden');
+      }
+
+      // === TARIK DATA ANALYTICS KONSUMEN ===
+      let chartKonsumen;
+      function renderChartOmzetRelasi(labels, data) {
+          const ctx = document.getElementById('chartOmzetRelasi').getContext('2d');
+          if(chartKonsumen) chartKonsumen.destroy();
+          chartKonsumen = new Chart(ctx, {
+              type: 'bar',
+              data: { labels: labels, datasets: [{ label: 'Omzet (Rp)', data: data, backgroundColor: '#3498db', borderRadius: 4 }] },
+              options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { callback: function(val) { return 'Rp ' + Number(val/1000000).toFixed(0) + ' Jt'; } } } } }
+          });
       }
 
       function tarikDataAnalytics() {
@@ -764,7 +905,6 @@
       function handlePasteSJ(e) { e.preventDefault(); let items = (e.clipboardData || e.originalEvent.clipboardData).items; let foundImage = false; for (let index in items) { let item = items[index]; if (item.kind === 'file' && item.type.includes('image/')) { let blob = item.getAsFile(); prosesFileGambarSJ(blob); foundImage = true; break; } } if(!foundImage) alert("⚠️ Tidak ada gambar yang disalin!"); }
       function previewSJ(input) { let file = input.files[0]; if (file) { prosesFileGambarSJ(file); } else { hapusSJ(); } }
       
-      // Kompresi Gambar SJ (600px, quality 0.6)
       function prosesFileGambarSJ(file) { 
         let reader = new FileReader(); reader.onload = function(e) { 
             document.getElementById('sj_preview_container').style.display = 'block'; document.getElementById('sj_preview').src = e.target.result; 
@@ -1001,7 +1141,6 @@
       function handlePaste(e) { e.preventDefault(); let items = (e.clipboardData || e.originalEvent.clipboardData).items; let foundImage = false; for (let index in items) { let item = items[index]; if (item.kind === 'file' && item.type.includes('image/')) { let blob = item.getAsFile(); prosesFileGambar(blob); foundImage = true; break; } } if(!foundImage) alert("⚠️ Tidak ada gambar yang disalin!"); }
       function previewBukti(input) { let file = input.files[0]; if (file) { prosesFileGambar(file); } else { hapusBukti(); } }
       
-      // Kompresi Gambar Cashflow (600px, quality 0.6)
       function prosesFileGambar(file) { 
         let reader = new FileReader(); reader.onload = function(e) { 
             document.getElementById('cf_preview_container').style.display = 'block'; document.getElementById('cf_preview').src = e.target.result; 
