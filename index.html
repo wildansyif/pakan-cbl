@@ -8,6 +8,7 @@
     <link rel="manifest" href="manifest.json">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
     <style>
       body { font-family: 'Poppins', sans-serif; background-color: #f5f5f5; margin: 0; padding-bottom: 80px; }
       .container { max-width: 500px; margin: auto; background: white; min-height: 100vh; padding: 15px; box-sizing: border-box; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
@@ -19,11 +20,17 @@
       input, select, textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-family: 'Poppins', sans-serif;}
       #login-screen { display: flex; flex-direction: column; justify-content: flex-start; align-items: center; min-height: 100vh; padding-top: 30px; margin-top: 0; box-sizing: border-box; }
       .pin-input { font-size: 24px; padding: 15px; width: 200px; text-align: center; letter-spacing: 10px; font-weight: bold; border: 2px solid #1a5c40; }
+      
       .radio-group { display: flex; gap: 8px; flex-wrap: wrap; padding-bottom: 5px;}
       .radio-group input[type="radio"] { display: none; }
       .radio-group label { background: #eee; padding: 10px; border-radius: 8px; cursor: pointer; flex: 1 1 45%; text-align: center; white-space: nowrap; font-size: 12px; margin: 0; box-sizing: border-box; }
       .radio-group input[type="radio"]:checked + label { background: #1a5c40; color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
       
+      .mode-toggle { display: flex; background: #eee; padding: 5px; border-radius: 12px; gap: 5px; margin-bottom: 20px;}
+      .mode-toggle input { display: none; }
+      .mode-toggle label { flex: 1; text-align: center; padding: 12px; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 13px; color: #555; transition: 0.3s; }
+      .mode-toggle input:checked + label { background: #1a5c40; color: white !important; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+
       .menu-item { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #eee; }
       .item-info { flex: 1; }
       .item-name { font-weight: 600; font-size: 14px; color: #333; }
@@ -45,6 +52,7 @@
       .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; color: #888; cursor: pointer; font-size: 11px; flex: 1; }
       .nav-item.active { color: #1a5c40; font-weight: bold; }
       .nav-icon { font-size: 20px; margin-bottom: 4px; }
+      
       .rekap-card { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
       .rekap-title { font-weight: bold; font-size: 14px; color: #1a5c40; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px;}
       .rekap-item { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px; color: #555;}
@@ -66,7 +74,7 @@
       .autocomplete-item strong { color: #1a5c40; }
       .alamat-hint { font-size: 10px; color: #888; display: block; margin-top: 2px; }
 
-      /* DASHBOARD MASTER CSS */
+      /* DASHBOARD MASTER & ANALYTICS CSS */
       .summary-card { background: linear-gradient(135deg, #1a5c40, #2e7d32); color: white; padding: 15px; border-radius: 10px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
       .sum-title { font-size: 11px; opacity: 0.8; margin-bottom: 3px; }
       .sum-val { font-size: 18px; font-weight: bold; margin-bottom: 10px; color: #ffeb3b; }
@@ -93,7 +101,6 @@
       .pill-container label { background: #eee; padding: 8px 12px; border-radius: 20px; cursor: pointer; font-size: 11px; color: #555; border: 1px solid #ddd; transition: all 0.2s;}
       .pill-container input[type="radio"]:checked + label, .pill-container input[type="checkbox"]:checked + label { background: #1a5c40; color: white; border-color: #1a5c40; font-weight: bold;}
 
-      /* ANALYTICS CSS */
       .analytics-tabs { display: flex; background: #eee; border-radius: 12px; padding: 4px; margin-bottom: 20px; }
       .tab-btn { flex: 1; padding: 10px 0; border: none; background: none; border-radius: 8px; font-size: 11px; font-weight: bold; color: #888; cursor: pointer; text-transform: uppercase;}
       .tab-btn.active { background: white; color: #1a5c40; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
@@ -115,6 +122,13 @@
       .rank-item { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 8px; padding: 8px; background: #f9f9f9; border-radius: 4px; border-left: 3px solid #1a5c40; cursor: pointer;}
       .rank-item strong { color: #1a5c40; }
       .text-small-mute { font-size: 10px; color: #888; font-weight: normal; display: block; margin-top:2px; }
+
+      /* Tabel Styling */
+      table { width: 100%; border-collapse: collapse; font-size: 11px; }
+      th { background: #f8f9fa; color: #1a5c40; text-align: left; padding: 8px; border-bottom: 2px solid #eee; }
+      td { padding: 8px; border-bottom: 1px solid #f1f1f1; color: #444; }
+      .tr-masuk { color: #2e7d32; font-weight: bold; }
+      .tr-keluar { color: #d32f2f; font-weight: bold; }
     </style>
   </head>
   <body>
@@ -137,9 +151,11 @@
           <div id="koneksi-badge">🟢 ONLINE: Sinkronisasi Aktif</div>
           
           <div class="form-group" style="margin-top: 15px;">
-              <div class="radio-group" style="background:#e0e0e0; padding:5px; border-radius:10px;" onchange="toggleModeInput()">
-                  <input type="radio" id="mode_pakan" name="mode_input" value="pakan" checked><label for="mode_pakan" style="font-weight:bold; font-size:13px; color:#333;">📝 Gudang Pakan</label>
-                  <input type="radio" id="mode_cf" name="mode_input" value="cf"><label for="mode_cf" style="font-weight:bold; font-size:13px; color:#333;">💸 Cashflow</label>
+              <div class="mode-toggle">
+                  <input type="radio" id="mode_pakan" name="mode_input" value="pakan" checked onchange="toggleModeInput()">
+                  <label for="mode_pakan">Gudang Pakan</label>
+                  <input type="radio" id="mode_cf" name="mode_input" value="cf" onchange="toggleModeInput()">
+                  <label for="mode_cf">Cashflow</label>
               </div>
           </div>
 
@@ -320,93 +336,65 @@
             <div class="sub-header">Performa Bisnis & Analisa Perilaku</div>
 
             <div class="analytics-tabs">
-                <button class="tab-btn active" id="tab-global" onclick="switchTabAnalytics('global')">GLOBAL</button>
+                <button class="tab-btn active" id="tab-global" onclick="switchTabAnalytics('global')">BISNIS GLOBAL</button>
                 <button class="tab-btn" id="tab-konsumen" onclick="switchTabAnalytics('konsumen')">KONSUMEN</button>
-                <button class="tab-btn" id="tab-pakan" onclick="switchTabAnalytics('pakan')">PAKAN</button>
             </div>
 
             <div id="view-global" class="analytics-view">
-                <div class="form-row" style="margin-bottom: 15px;">
-                    <div>
-                        <select id="gl_bulan" style="font-size:12px; padding:8px;">
-                            <option value="ALL">Semua Bulan</option>
-                            <option value="1">Januari</option><option value="2">Februari</option>
-                            <option value="3">Maret</option><option value="4" selected>April</option>
-                            <option value="5">Mei</option><option value="6">Juni</option>
-                            <option value="7">Juli</option><option value="8">Agustus</option>
-                            <option value="9">September</option><option value="10">Oktober</option>
-                            <option value="11">November</option><option value="12">Desember</option>
-                        </select>
-                    </div>
-                    <div>
-                        <select id="gl_tahun" style="font-size:12px; padding:8px;">
-                            <option value="ALL">Semua Tahun</option>
-                            <option value="2025">2025</option><option value="2026" selected>2026</option>
-                        </select>
-                    </div>
-                    <div style="flex: 0.5;">
-                        <button class="btn-submit" onclick="tarikDataGlobal()" style="margin:0; padding:8px; font-size:12px; border-radius:8px;">Tarik</button>
-                    </div>
+                <div class="form-row" style="margin-bottom: 15px; gap: 5px;">
+                    <select id="gl_bulan" style="flex: 1;"><option value="ALL">Semua Bulan</option><option value="1">Januari</option><option value="2">Februari</option><option value="3">Maret</option><option value="4" selected>April</option><option value="5">Mei</option><option value="6">Juni</option><option value="7">Juli</option><option value="8">Agustus</option><option value="9">September</option><option value="10">Oktober</option><option value="11">November</option><option value="12">Desember</option></select>
+                    <select id="gl_tahun" style="flex: 1;"><option value="ALL">Semua Tahun</option><option value="2025">2025</option><option value="2026" selected>2026</option></select>
+                    <button class="btn-submit" onclick="tarikDataGlobal(true)" style="margin:0; padding:10px; flex: 0.5; font-size:12px; border-radius:8px;">TARIK</button>
                 </div>
 
-                <div id="gl_loader" class="loader hidden">Menghitung Laba Rugi & Render Chart...</div>
+                <div id="gl_loader" class="loader hidden">Menganalisa Database Laba Rugi...</div>
 
                 <div id="gl_result" class="hidden">
                     <div class="summary-card" style="background: linear-gradient(135deg, #1e3c72, #2a5298);">
-                        <div class="sum-title">Total Omzet Penjualan</div>
-                        <div id="gl_val_omzet" class="sum-val">Rp 0</div>
+                        <div class="sum-title">Net Profit Bersih</div>
+                        <div id="gl_val_profit" class="sum-val" style="color:#a5d6a7; font-size:24px;">Rp 0</div>
                         <div class="sum-row" style="gap:5px;">
-                            <div class="sum-box">
-                                <div class="sum-title">HPP (Modal)</div>
-                                <div id="gl_val_hpp" style="font-size:12px; font-weight:bold; color:#ffcc80;">Rp 0</div>
-                            </div>
-                            <div class="sum-box">
-                                <div class="sum-title">Cost (OPR)</div>
-                                <div id="gl_val_opr" style="font-size:12px; font-weight:bold; color:#ffab91;">Rp 0</div>
-                            </div>
-                            <div class="sum-box">
-                                <div class="sum-title">Net Profit</div>
-                                <div id="gl_val_profit" style="font-size:13px; font-weight:bold; color:#a5d6a7;">Rp 0</div>
-                            </div>
+                            <div class="sum-box"><div class="sum-title">Omzet</div><div id="gl_val_omzet" style="font-size:12px; font-weight:bold; color:#fff;">Rp 0</div></div>
+                            <div class="sum-box"><div class="sum-title">HPP (Modal)</div><div id="gl_val_hpp" style="font-size:12px; font-weight:bold; color:#ffcc80;">Rp 0</div></div>
+                            <div class="sum-box"><div class="sum-title">Cost (OPR)</div><div id="gl_val_opr" style="font-size:12px; font-weight:bold; color:#ffab91;">Rp 0</div></div>
                         </div>
-                        <div style="text-align:center; margin-top:10px; font-size:11px; background:rgba(0,0,0,0.2); padding:5px; border-radius:5px;">
-                            Net Profit Margin: <strong id="gl_val_margin" style="color:#00e676; font-size:14px;">0%</strong>
-                        </div>
+                        <div style="text-align:center; margin-top:10px; font-size:11px; background:rgba(0,0,0,0.2); padding:5px; border-radius:5px;">Net Profit Margin: <strong id="gl_val_margin" style="color:#00e676; font-size:14px;">0%</strong></div>
                     </div>
 
                     <div class="rekap-card">
-                        <div class="rekap-title">💧 Arus Kas vs Omzet</div>
+                        <div class="rekap-title">💧 Kesehatan Arus Kas</div>
                         <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:bold; margin-bottom:5px;">
                             <span style="color:#4CAF50;">Cash In: <span id="gl_val_masuk">Rp 0</span></span>
-                            <span style="color:#F44336;">Piutang Belum Cair</span>
+                            <span style="color:#F44336;">Piutang Aktif</span>
                         </div>
-                        <div class="health-bar-container">
-                            <div id="gl_bar_kas" style="background:#4CAF50; width:0%;"></div>
-                            <div id="gl_bar_piutang" style="background:#F44336; width:0%;"></div>
-                        </div>
-                        <div style="text-align:center; font-size:11px; margin-top:5px; color:#555;">
-                            Rasio Uang Tunai Cair: <strong id="gl_lbl_kasRatio" style="color:#333;">0%</strong>
-                        </div>
+                        <div class="health-bar-container"><div id="gl_bar_kas" style="background:#4CAF50; width:0%;"></div><div id="gl_bar_piutang" style="background:#F44336; width:0%;"></div></div>
+                        <div style="text-align:center; font-size:11px; margin-top:5px; color:#555;">Rasio Uang Tunai Cair: <strong id="gl_lbl_kasRatio" style="color:#333;">0%</strong></div>
                     </div>
 
                     <div class="rekap-card">
-                        <div class="rekap-title">📊 Tren Volume (Kg) vs Omzet (Tahunan)</div>
-                        <div style="height: 220px; position: relative;">
-                            <canvas id="chartMixGlobal"></canvas>
-                        </div>
+                        <div class="rekap-title">🏆 Top 5 Konsumen Penjualan Terbesar</div>
+                        <table id="table-top-konsumen"><thead><tr><th>Nama Relasi</th><th style="text-align:right">Total Omzet</th></tr></thead><tbody></tbody></table>
+                    </div>
+
+                    <div class="rekap-card">
+                        <div class="rekap-title">📊 Tren Volume (Kg) vs Omzet (Rp) - Tahunan</div>
+                        <div style="height: 220px; position: relative;"><canvas id="chartMixGlobal"></canvas></div>
                     </div>
 
                     <div class="rekap-card hidden" id="cardDailyGlobal" style="border-left: 4px solid #e67e22;">
                         <div class="rekap-title">📈 Tren Harian Volume vs Omzet</div>
-                        <div style="height: 200px; position: relative;">
-                            <canvas id="chartDailyGlobal"></canvas>
-                        </div>
+                        <div style="height: 200px; position: relative;"><canvas id="chartDailyGlobal"></canvas></div>
                     </div>
 
                     <div class="rekap-card">
-                        <div class="rekap-title">🍩 Distribusi Penjualan Produk (Kg)</div>
-                        <div style="height: 200px; position: relative;">
-                            <canvas id="chartDonutGlobal"></canvas>
+                        <div class="rekap-title">🍩 Porsi Penjualan Pakan (Berdasarkan Kg)</div>
+                        <div style="height: 220px; position: relative;"><canvas id="chartDonutGlobal"></canvas></div>
+                    </div>
+
+                    <div class="rekap-card">
+                        <div class="rekap-title">📜 Rincian Arus Kas Harian (Uang Keluar & Masuk)</div>
+                        <div style="max-height: 300px; overflow-y: auto;">
+                            <table id="table-cf-daily"><thead><tr><th>Tgl</th><th>Keterangan</th><th style="text-align:right">Nominal (Rp)</th></tr></thead><tbody></tbody></table>
                         </div>
                     </div>
                 </div>
@@ -484,7 +472,7 @@
                     </div>
 
                     <div class="rekap-card" style="margin-top:15px; border-left: 4px solid #F44336;">
-                        <div class="rekap-title">🛒 Piutang Aktif (Klik Rincian)</div>
+                        <div class="rekap-title">🛒 Piutang Aktif (Klik untuk Detail)</div>
                         <div id="an_piutang_aktif" class="rank-list" style="border:none; padding-top:0;"></div>
                     </div>
 
@@ -492,18 +480,6 @@
                         <div class="rekap-title">🏆 Peringkat Produk Dibeli</div>
                         <div id="an_rank_produk" class="rank-list"></div>
                     </div>
-                </div>
-            </div>
-
-            <div id="view-pakan" class="analytics-view hidden">
-                <div class="form-group">
-                    <label>Jenis Pakan</label>
-                    <select id="an_pilih_pakan" onchange="tarikAnalisaPakan()">
-                        <option value="">Pilih Produk...</option>
-                    </select>
-                </div>
-                <div class="chart-container">
-                    <canvas id="chartPakan"></canvas>
                 </div>
             </div>
         </div>
@@ -549,6 +525,7 @@
       let currentBulan = "";
       let currentTahun = "";
       let globalDataBulan = {};
+      let cacheDataGlobal = null; // Cache untuk Analytics Laba Rugi
 
       if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
       window.addEventListener('online', updateStatusKoneksi);
@@ -574,6 +551,7 @@
               document.getElementById('f_tahun').value = t.getFullYear();
               document.getElementById('cf_tanggal').valueAsDate = new Date(); 
               updateStatusKoneksi(); gantiLokasi(); updateKategoriCashflow(); fetchMasterRelasi();
+              initAnalytics(); // Inisialisasi awal list pakan
           } else { document.getElementById('login-error').style.display = 'block'; }
       }
 
@@ -587,7 +565,8 @@
           tutupKeyboard();
 
           if (menu === 'rekap') { tarikDataRekapDB(false); }
-          if (menu === 'analytics') { initAnalytics(); }
+          // Hanya tarik data analytics jika belum ada di memori
+          if (menu === 'analytics' && !cacheDataGlobal) { tarikDataGlobal(false); }
       }
 
       function toggleModeInput() {
@@ -608,21 +587,17 @@
           document.getElementById('view-' + tab).classList.remove('hidden');
       }
 
-      // === INIT ANALYTICS ===
+      // ================= ANALYTICS GLOBAL (LABA RUGI) =================
+      Chart.register(ChartDataLabels);
+      let chMix, chDonut, chDaily;
+
       function initAnalytics() {
-          let select = document.getElementById('an_pilih_pakan');
-          if(select.options.length <= 1) {
-              fetch(API_URL + "?action=getPakan&lokasi=/pm").then(r => r.json()).then(res => {
-                  if(res.status === 'success') { res.data.forEach(p => { select.add(new Option(p.nama, p.nama)); }); }
-              }).catch(e => console.log(e));
-          }
-          tarikDataGlobal();
+          // Load produk ke dropdown dummy (bisa dipakai nanti kalau butuh)
+          fetch(API_URL + "?action=getPakan&lokasi=/pm").then(r => r.json()).then(res => {}).catch(e=>console.log(e));
       }
 
-      // === TARIK DATA GLOBAL ===
-      let chMix, chDonut, chDaily;
-      
-      function tarikDataGlobal() {
+      function tarikDataGlobal(force) {
+          if(!force && cacheDataGlobal) return;
           if(!navigator.onLine) { alert("Wajib online untuk menarik data Master Laba Rugi!"); return; }
           let p = {
               source: 'analytics_global',
@@ -637,20 +612,32 @@
           .then(res => res.json()).then(res => {
               document.getElementById('gl_loader').classList.add('hidden');
               if(res.status === 'success') {
+                  cacheDataGlobal = res.data; // Simpan di cache
                   let d = res.data; let nf = new Intl.NumberFormat('id-ID');
                   
+                  // Render Kartu Laba Rugi
                   document.getElementById('gl_val_omzet').innerText = "Rp " + nf.format(d.omzet);
                   document.getElementById('gl_val_hpp').innerText = "Rp " + nf.format(d.hpp);
                   document.getElementById('gl_val_opr').innerText = "Rp " + nf.format(d.opr);
                   document.getElementById('gl_val_profit').innerText = "Rp " + nf.format(d.profit);
                   document.getElementById('gl_val_margin').innerText = d.margin.toFixed(1) + "%";
 
+                  // Render Arus Kas
                   document.getElementById('gl_val_masuk').innerText = "Rp " + nf.format(d.masuk);
                   let ratio = d.kasRatio > 100 ? 100 : d.kasRatio;
                   document.getElementById('gl_bar_kas').style.width = ratio + "%";
                   document.getElementById('gl_bar_piutang').style.width = (100 - ratio) + "%";
                   document.getElementById('gl_lbl_kasRatio').innerText = d.kasRatio.toFixed(1) + "%";
 
+                  // Render Top 5
+                  let htmlTop = d.topKonsumen.map(k => `<tr><td>${k.n}</td><td style="text-align:right">Rp ${nf.format(k.v)}</td></tr>`).join('');
+                  document.querySelector('#table-top-konsumen tbody').innerHTML = htmlTop || "<tr><td colspan='2' style='text-align:center'>Belum ada transaksi</td></tr>";
+
+                  // Render Cashflow Harian
+                  let htmlCF = d.dailyCF.map(c => `<tr><td>${c.tgl}</td><td><small>${c.kat} (${c.met})</small><br>${c.relasi}</td><td style="text-align:right" class="${c.debet > 0 ? 'tr-masuk' : 'tr-keluar'}">${nf.format(c.debet || c.kredit)}</td></tr>`).join('');
+                  document.querySelector('#table-cf-daily tbody').innerHTML = htmlCF || "<tr><td colspan='3' style='text-align:center'>Belum ada rincian kas</td></tr>";
+
+                  // Chart Bulanan Mix
                   let ctxMix = document.getElementById('chartMixGlobal').getContext('2d');
                   if(chMix) chMix.destroy();
                   chMix = new Chart(ctxMix, {
@@ -662,9 +649,10 @@
                               { type: 'line', label: 'Omzet (Rp)', data: d.chartMix.omzet, borderColor: '#1a5c40', backgroundColor: '#1a5c40', tension: 0.4, yAxisID: 'yOmzet' }
                           ]
                       },
-                      options: { responsive: true, maintainAspectRatio: false, scales: { yQty: { type: 'linear', position: 'left', ticks:{ display:false } }, yOmzet: { type: 'linear', position: 'right', ticks:{ display:false } } }, plugins: { legend: { display: false } } }
+                      options: { responsive: true, maintainAspectRatio: false, scales: { yQty: { type: 'linear', position: 'left', ticks:{ display:false } }, yOmzet: { type: 'linear', position: 'right', ticks:{ display:false } } }, plugins: { legend: { display: false }, datalabels: { display: false } } }
                   });
 
+                  // Chart Harian (Muncul jika bulan dipilih)
                   if(d.isFiltered) {
                       document.getElementById('cardDailyGlobal').classList.remove('hidden');
                       let ctxDaily = document.getElementById('chartDailyGlobal').getContext('2d');
@@ -678,12 +666,13 @@
                                   { type: 'line', label: 'Omzet (Rp)', data: d.chartDaily.omzet, borderColor: '#e74c3c', backgroundColor: '#e74c3c', tension: 0.3, borderWidth: 2, pointRadius: 1, yAxisID: 'yOmzet' }
                               ]
                           },
-                          options: { responsive: true, maintainAspectRatio: false, scales: { yQty: { type: 'linear', position: 'left', ticks:{ display:false } }, yOmzet: { type: 'linear', position: 'right', ticks:{ display:false } } }, plugins: { legend: { display: false } } }
+                          options: { responsive: true, maintainAspectRatio: false, scales: { yQty: { type: 'linear', position: 'left', ticks:{ display:false } }, yOmzet: { type: 'linear', position: 'right', ticks:{ display:false } } }, plugins: { legend: { display: false }, datalabels: { display: false } } }
                       });
                   } else {
                       document.getElementById('cardDailyGlobal').classList.add('hidden');
                   }
 
+                  // Chart Donut (Porsi Produk)
                   let ctxDonut = document.getElementById('chartDonutGlobal').getContext('2d');
                   if(chDonut) chDonut.destroy();
                   chDonut = new Chart(ctxDonut, {
@@ -692,7 +681,19 @@
                           labels: d.chartDonut.label,
                           datasets: [{ data: d.chartDonut.data, backgroundColor: ['#1a5c40', '#3498db', '#e91e63', '#f1c40f', '#9b59b6', '#95a5a6'], borderWidth: 0 }]
                       },
-                      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: { size: 10 } } } } }
+                      options: { 
+                          responsive: true, maintainAspectRatio: false, 
+                          plugins: { 
+                              legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } },
+                              datalabels: {
+                                  color: '#fff', font: { weight: 'bold', size: 10 },
+                                  formatter: (value, ctx) => {
+                                      let sum = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                                      return (value * 100 / sum).toFixed(1) + "%";
+                                  }
+                              }
+                          } 
+                      }
                   });
 
                   document.getElementById('gl_result').classList.remove('hidden');
@@ -700,17 +701,7 @@
           }).catch(e => { alert("Error: " + e.message); document.getElementById('gl_loader').classList.add('hidden'); });
       }
 
-      function tarikAnalisaPakan() {
-          let pakan = document.getElementById('an_pilih_pakan').value;
-          if(!pakan) return; console.log("Fetch pakan data: " + pakan);
-      }
-
-      function toggleDetail(id) {
-          let el = document.getElementById(id);
-          el.classList.toggle('hidden');
-      }
-
-      // === TARIK DATA ANALYTICS KONSUMEN ===
+      // ================= ANALYTICS KONSUMEN =================
       let chartKonsumen;
       function renderChartOmzetRelasi(labels, data) {
           const ctx = document.getElementById('chartOmzetRelasi').getContext('2d');
@@ -718,8 +709,13 @@
           chartKonsumen = new Chart(ctx, {
               type: 'bar',
               data: { labels: labels, datasets: [{ label: 'Omzet (Rp)', data: data, backgroundColor: '#3498db', borderRadius: 4 }] },
-              options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { callback: function(val) { return 'Rp ' + Number(val/1000000).toFixed(0) + ' Jt'; } } } } }
+              options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels:{display:false} }, scales: { y: { beginAtZero: true, ticks: { callback: function(val) { return 'Rp ' + Number(val/1000000).toFixed(0) + ' Jt'; } } } } }
           });
+      }
+
+      function toggleDetail(id) {
+          let el = document.getElementById(id);
+          el.classList.toggle('hidden');
       }
 
       function tarikDataAnalytics() {
@@ -803,7 +799,7 @@
                   let htmlBayar = "";
                   if (d.riwayatBayar && d.riwayatBayar.length > 0) {
                       d.riwayatBayar.forEach(b => {
-                          htmlBayar += `<div class="rank-item" style="border-left-color:#4CAF50;"><div><span>${b.tgl}</span><span class="text-small-mute">${b.ket}</span></div><strong>+ Rp ${nf.format(b.nominal)}</strong></div>`;
+                          htmlBayar += `<div class="rank-item" style="border-left-color:#4CAF50; cursor:default;"><div><span>${b.tgl}</span><span class="text-small-mute">${b.ket}</span></div><strong>+ Rp ${nf.format(b.nominal)}</strong></div>`;
                       });
                   }
                   document.getElementById('an_riwayat_bayar').innerHTML = htmlBayar || "<i>Belum ada riwayat pembayaran</i>";
@@ -812,7 +808,7 @@
                   d.rankingProduk.forEach((str, index) => {
                       if(str.trim() === "") return;
                       let parts = str.split(':');
-                      if(parts.length === 2) htmlRank += `<div class="rank-item"><span><b>#${index+1}</b> ${parts[0]}</span> <strong>${parts[1]}</strong></div>`;
+                      if(parts.length === 2) htmlRank += `<div class="rank-item" style="cursor:default;"><span><b>#${index+1}</b> ${parts[0]}</span> <strong>${parts[1]}</strong></div>`;
                   });
                   document.getElementById('an_rank_produk').innerHTML = htmlRank || "<i>Belum ada data produk</i>";
                   
@@ -827,6 +823,7 @@
       }
 
 
+      // ================= FUNGSI INPUT GUDANG & CASHFLOW =================
       function getLokasiAktif() {
           let utama = document.querySelector('input[name="lokasi_utama"]:checked').value;
           let sub = document.querySelector('input[name="sub_lokasi"]:checked').value;
@@ -996,6 +993,7 @@
           terapkanFilter(); 
       }
 
+      // ================= FUNGSI REKAP MASTER DB =================
       function tarikDataRekapDB(forceRefresh = false) {
           let bulan = document.getElementById('f_bulan').value; let tahun = document.getElementById('f_tahun').value; let cacheKey = `rekap_cbl_${tahun}_${bulan}`;
           document.getElementById('rekap-summary-container').innerHTML = ""; document.getElementById('rekap-calendar').classList.add('hidden'); document.getElementById('btn-copy-rekap').classList.add('hidden');
