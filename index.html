@@ -592,8 +592,7 @@
       let chMix, chDonut, chDaily;
 
       function initAnalytics() {
-          // Load produk ke dropdown dummy (bisa dipakai nanti kalau butuh)
-          fetch(API_URL + "?action=getPakan&lokasi=/pm").then(r => r.json()).then(res => {}).catch(e=>console.log(e));
+          // Hanya memuat select option (dummy load untuk memanaskan mesin)
       }
 
       function tarikDataGlobal(force) {
@@ -620,24 +619,37 @@
                   document.getElementById('gl_val_hpp').innerText = "Rp " + nf.format(d.hpp);
                   document.getElementById('gl_val_opr').innerText = "Rp " + nf.format(d.opr);
                   document.getElementById('gl_val_profit').innerText = "Rp " + nf.format(d.profit);
-                  document.getElementById('gl_val_margin').innerText = d.margin.toFixed(1) + "%";
+                  
+                  // Hitung Margin Mutlak di Frontend agar tidak error
+                  let hitungMargin = d.omzet > 0 ? (d.profit / d.omzet * 100) : 0;
+                  document.getElementById('gl_val_margin').innerText = hitungMargin.toFixed(1) + "%";
 
                   // Render Arus Kas
                   document.getElementById('gl_val_masuk').innerText = "Rp " + nf.format(d.masuk);
-                  let ratio = d.kasRatio > 100 ? 100 : d.kasRatio;
-                  document.getElementById('gl_bar_kas').style.width = ratio + "%";
-                  document.getElementById('gl_bar_piutang').style.width = (100 - ratio) + "%";
-                  document.getElementById('gl_lbl_kasRatio').innerText = d.kasRatio.toFixed(1) + "%";
+                  let ratio = d.omzet > 0 ? (d.masuk / d.omzet * 100) : 0;
+                  document.getElementById('gl_bar_kas').style.width = Math.min(ratio, 100) + "%";
+                  document.getElementById('gl_bar_piutang').style.width = (100 - Math.min(ratio, 100)) + "%";
+                  document.getElementById('gl_lbl_kasRatio').innerText = ratio.toFixed(1) + "%";
 
-                  // Render Top 5
-                  let htmlTop = d.topKonsumen.map(k => `<tr><td>${k.n}</td><td style="text-align:right">Rp ${nf.format(k.v)}</td></tr>`).join('');
-                  document.querySelector('#table-top-konsumen tbody').innerHTML = htmlTop || "<tr><td colspan='2' style='text-align:center'>Belum ada transaksi</td></tr>";
+                  // Render Top 5 Konsumen
+                  let htmlTop = "";
+                  if (d.topKonsumen && d.topKonsumen.length > 0) {
+                      htmlTop = d.topKonsumen.map(k => `<tr><td>${k.n}</td><td style="text-align:right">Rp ${nf.format(k.v)}</td></tr>`).join('');
+                  } else {
+                      htmlTop = "<tr><td colspan='2' style='text-align:center'>Belum ada transaksi</td></tr>";
+                  }
+                  document.querySelector('#table-top-konsumen tbody').innerHTML = htmlTop;
 
                   // Render Cashflow Harian
-                  let htmlCF = d.dailyCF.map(c => `<tr><td>${c.tgl}</td><td><small>${c.kat} (${c.met})</small><br>${c.relasi}</td><td style="text-align:right" class="${c.debet > 0 ? 'tr-masuk' : 'tr-keluar'}">${nf.format(c.debet || c.kredit)}</td></tr>`).join('');
-                  document.querySelector('#table-cf-daily tbody').innerHTML = htmlCF || "<tr><td colspan='3' style='text-align:center'>Belum ada rincian kas</td></tr>";
+                  let htmlCF = "";
+                  if (d.dailyCF && d.dailyCF.length > 0) {
+                      htmlCF = d.dailyCF.map(c => `<tr><td>${c.tgl}</td><td><small>${c.kat} (${c.met})</small><br>${c.relasi}</td><td style="text-align:right" class="${c.debet > 0 ? 'tr-masuk' : 'tr-keluar'}">${nf.format(c.debet || c.kredit)}</td></tr>`).join('');
+                  } else {
+                      htmlCF = "<tr><td colspan='3' style='text-align:center'>Belum ada rincian kas</td></tr>";
+                  }
+                  document.querySelector('#table-cf-daily tbody').innerHTML = htmlCF;
 
-                  // Chart Bulanan Mix
+                  // Chart Bulanan Mix (Tahunan)
                   let ctxMix = document.getElementById('chartMixGlobal').getContext('2d');
                   if(chMix) chMix.destroy();
                   chMix = new Chart(ctxMix, {
@@ -689,6 +701,7 @@
                                   color: '#fff', font: { weight: 'bold', size: 10 },
                                   formatter: (value, ctx) => {
                                       let sum = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                                      if(sum === 0) return "0%";
                                       return (value * 100 / sum).toFixed(1) + "%";
                                   }
                               }
