@@ -111,13 +111,11 @@
       .stat-value.loss { color: #e91e63; }
       .chart-container { background: white; border: 1px solid #eee; padding: 15px; border-radius: 12px; margin-bottom: 20px; height: 250px; position: relative;}
       
-      .health-bar-container { display: flex; height: 12px; border-radius: 6px; overflow: hidden; margin-top: 15px; margin-bottom: 5px; background: #eee; }
-      .hb-masuk { background-color: #4CAF50; transition: width 0.5s ease; }
-      .hb-sehat { background-color: #FFC107; transition: width 0.5s ease; }
-      .hb-telat { background-color: #F44336; transition: width 0.5s ease; }
-      .hb-legend { display: flex; justify-content: space-between; font-size: 10px; color: #555; text-align: center; }
-      .hb-legend div { flex: 1; }
-      .hb-legend span { display: block; font-weight: bold; font-size: 12px; }
+      .health-bar-container { display: flex; height: 16px; border-radius: 8px; overflow: hidden; background: #eee; margin: 10px 0;}
+      .hb-masuk { background-color: #4CAF50; transition: width 0.5s ease; text-align: center; color: white; font-size: 10px; font-weight: bold; line-height: 16px; white-space: nowrap; overflow: hidden;}
+      .hb-sehat { background-color: #FFC107; transition: width 0.5s ease; text-align: center; color: white; font-size: 10px; font-weight: bold; line-height: 16px; white-space: nowrap; overflow: hidden;}
+      .hb-telat { background-color: #F44336; transition: width 0.5s ease; text-align: center; color: white; font-size: 10px; font-weight: bold; line-height: 16px; white-space: nowrap; overflow: hidden;}
+
       .rank-list { margin-top: 10px; border-top: 1px dashed #eee; padding-top: 10px; }
       .rank-item { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 8px; padding: 8px; background: #f9f9f9; border-radius: 4px; border-left: 3px solid #1a5c40; cursor: pointer;}
       .rank-item strong { color: #1a5c40; }
@@ -129,7 +127,7 @@
       td { padding: 8px; border-bottom: 1px solid #f1f1f1; color: #444; }
       .tr-masuk { color: #2e7d32; font-weight: bold; }
       .tr-keluar { color: #d32f2f; font-weight: bold; }
-      .tr-total { background: #fdf5e6; font-weight: bold; }
+      .tr-total { background: #fdf5e6; font-weight: bold; border-top: 2px solid #ccc; }
     </style>
   </head>
   <body>
@@ -365,7 +363,10 @@
                             <div class="sum-box"><div class="sum-title">HPP (Modal)</div><div id="gl_val_hpp" style="font-size:12px; font-weight:bold; color:#ffcc80;">Rp 0</div></div>
                             <div class="sum-box"><div class="sum-title">Cost (OPR)</div><div id="gl_val_opr" style="font-size:12px; font-weight:bold; color:#ffab91;">Rp 0</div></div>
                         </div>
-                        <div style="text-align:center; margin-top:10px; font-size:11px; background:rgba(0,0,0,0.2); padding:5px; border-radius:5px;">Net Profit Margin: <strong id="gl_val_margin" style="color:#00e676; font-size:14px;">0%</strong></div>
+                        <div style="text-align:center; margin-top:10px; padding-top:10px; border-top:1px solid rgba(255,255,255,0.2); font-size:11px;">
+                            Profit Per Kg (Yield): <strong id="gl_val_yield" style="color:#ffeb3b; font-size:14px;">Rp 0</strong>
+                        </div>
+                        <div style="text-align:center; margin-top:5px; font-size:11px; background:rgba(0,0,0,0.2); padding:5px; border-radius:5px;">Net Profit Margin: <strong id="gl_val_margin" style="color:#00e676; font-size:14px;">0%</strong></div>
                     </div>
 
                     <div class="rekap-card">
@@ -375,9 +376,9 @@
                             <span style="color:#F44336;">Jatuh Tempo: <span id="gl_val_telat">Rp 0</span></span>
                         </div>
                         <div class="health-bar-container">
-                            <div id="gl_bar_kas" style="background:#4CAF50; width:0%; transition:0.5s;"></div>
-                            <div id="gl_bar_sehat" style="background:#FFC107; width:0%; transition:0.5s;"></div>
-                            <div id="gl_bar_piutang" style="background:#F44336; width:0%; transition:0.5s;"></div>
+                            <div id="gl_bar_kas" class="hb-masuk" style="width:0%;"></div>
+                            <div id="gl_bar_sehat" class="hb-sehat" style="width:0%;"></div>
+                            <div id="gl_bar_piutang" class="hb-telat" style="width:0%;"></div>
                         </div>
                         <div style="text-align:center; font-size:9px; margin-top:5px; color:#888;">🟩 Uang Masuk | 🟨 Piutang Berjalan | 🟥 Jatuh Tempo</div>
                     </div>
@@ -405,6 +406,11 @@
                     <div class="rekap-card">
                         <div class="rekap-title">Porsi Penjualan Pakan (Kg)</div>
                         <div style="height: 220px; position: relative;"><canvas id="chartDonutGlobal"></canvas></div>
+                    </div>
+                    
+                    <div class="rekap-card">
+                        <div class="rekap-title">Distribusi Biaya Operasional (OPR)</div>
+                        <div style="height: 220px; position: relative;"><canvas id="chartOprGlobal"></canvas></div>
                     </div>
 
                     <div class="rekap-card">
@@ -606,12 +612,12 @@
           document.getElementById('view-' + tab).classList.remove('hidden');
       }
 
-      // ================= ANALYTICS GLOBAL (LABA RUGI) =================
+      // ================= ANALYTICS GLOBAL (LABA RUGI & CHART) =================
       Chart.register(ChartDataLabels);
-      let chMix, chDonut, chDaily, chGudang;
+      let chMix, chDonut, chDaily, chGudang, chOpr;
 
       function initAnalytics() {
-          // Dummy load
+          // Dummy load untuk memanaskan memori HP
       }
 
       function tarikDataGlobal(force) {
@@ -642,14 +648,26 @@
                   let hitungMargin = safeNum(d.omzet) > 0 ? (safeNum(d.profit) / safeNum(d.omzet) * 100) : 0;
                   document.getElementById('gl_val_margin').innerText = hitungMargin.toFixed(1) + "%";
 
+                  let yieldPerKg = safeNum(d.qty) > 0 ? (safeNum(d.profit) / safeNum(d.qty)) : 0;
+                  document.getElementById('gl_val_yield').innerText = "Rp " + nf.format(yieldPerKg.toFixed(0));
+
                   document.getElementById('gl_val_masuk').innerText = "Rp " + nf.format(safeNum(d.masuk));
                   document.getElementById('gl_val_telat').innerText = "Rp " + nf.format(safeNum(d.ptgTelat));
                   
                   let totalBase = safeNum(d.masuk) + safeNum(d.ptgSehat) + safeNum(d.ptgTelat);
                   if(totalBase === 0) totalBase = 1;
-                  document.getElementById('gl_bar_kas').style.width = (safeNum(d.masuk) / totalBase * 100) + "%";
-                  document.getElementById('gl_bar_sehat').style.width = (safeNum(d.ptgSehat) / totalBase * 100) + "%";
-                  document.getElementById('gl_bar_piutang').style.width = (safeNum(d.ptgTelat) / totalBase * 100) + "%";
+                  
+                  let pMasuk = (safeNum(d.masuk) / totalBase * 100);
+                  let pSehat = (safeNum(d.ptgSehat) / totalBase * 100);
+                  let pTelat = (safeNum(d.ptgTelat) / totalBase * 100);
+
+                  let elMasuk = document.getElementById('gl_bar_kas');
+                  let elSehat = document.getElementById('gl_bar_sehat');
+                  let elTelat = document.getElementById('gl_bar_piutang');
+
+                  elMasuk.style.width = pMasuk + "%"; elMasuk.innerText = pMasuk > 10 ? pMasuk.toFixed(0) + "%" : "";
+                  elSehat.style.width = pSehat + "%"; elSehat.innerText = pSehat > 10 ? pSehat.toFixed(0) + "%" : "";
+                  elTelat.style.width = pTelat + "%"; elTelat.innerText = pTelat > 10 ? pTelat.toFixed(0) + "%" : "";
 
                   let htmlTop = "";
                   if (d.topKonsumen && d.topKonsumen.length > 0) {
@@ -671,19 +689,44 @@
                   document.querySelector('#table-cf-daily tbody').innerHTML = htmlCF;
                   document.querySelector('#foot-cf-daily').innerHTML = `<tr class="tr-total"><td>SUM</td><td>IN: ${nf.format(sumIn)}</td><td style="text-align:right; color:#d32f2f;">OUT: ${nf.format(sumOut)}</td></tr>`;
 
+                  // CHART GUDANG
                   if(chGudang) chGudang.destroy();
                   chGudang = new Chart(document.getElementById('chartGudang').getContext('2d'), {
                       type: 'bar',
                       data: {
                           labels: ['PM Gudang', 'RPH Gudang', 'SPN Gudang'],
                           datasets: [
-                              { label: 'Penjualan', data: [d.gudangData.PM.jual, d.gudangData.RPH.jual, d.gudangData.SPN.jual], backgroundColor: '#1a5c40' },
-                              { label: 'Pemakaian', data: [d.gudangData.PM.pakai, d.gudangData.RPH.pakai, d.gudangData.SPN.pakai], backgroundColor: '#3498db' },
+                              { label: 'Masuk', data: [d.gudangData.PM.masuk, d.gudangData.RPH.masuk, d.gudangData.SPN.masuk], backgroundColor: '#f1c40f' },
+                              { label: 'Mutasi', data: [d.gudangData.PM.mutasi, d.gudangData.RPH.mutasi, d.gudangData.SPN.mutasi], backgroundColor: '#e67e22' },
+                              { label: 'Jual', data: [d.gudangData.PM.jual, d.gudangData.RPH.jual, d.gudangData.SPN.jual], backgroundColor: '#1a5c40' },
+                              { label: 'Pakai', data: [d.gudangData.PM.pakai, d.gudangData.RPH.pakai, d.gudangData.SPN.pakai], backgroundColor: '#3498db' },
                               { label: 'Giling', data: [d.gudangData.PM.giling, d.gudangData.RPH.giling, d.gudangData.SPN.giling], backgroundColor: '#9b59b6' }
                           ]
                       },
-                      options: { responsive: true, maintainAspectRatio: false, plugins: { datalabels: { display: false } } }
+                      options: { 
+                          responsive: true, maintainAspectRatio: false,
+                          layout: { padding: { top: 20 } },
+                          scales: { y: { beginAtZero: true, ticks: { display: true, font: {size: 9} } } },
+                          plugins: { 
+                              legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } },
+                              datalabels: { 
+                                  display: function(context) { return context.dataset.data[context.dataIndex] > 0; }, 
+                                  anchor: 'end', align: 'top', font: { size: 9, weight: 'bold' }, color: '#555',
+                                  formatter: (val) => nf.format(val)
+                              } 
+                          } 
+                      }
                   });
+
+                  let mixOptions = {
+                      responsive: true, maintainAspectRatio: false,
+                      interaction: { mode: 'index', intersect: false },
+                      scales: { 
+                          yQty: { type: 'linear', position: 'left', ticks: { display: true, font: {size: 9}, callback: (val) => val/1000 + 't' } }, 
+                          yOmzet: { type: 'linear', position: 'right', grid: {drawOnChartArea: false}, ticks: { display: true, font: {size: 9}, callback: (val) => val/1000000 + 'Jt' } } 
+                      }, 
+                      plugins: { legend: { display: false }, datalabels: { display: false } }
+                  };
 
                   let ctxMix = document.getElementById('chartMixGlobal').getContext('2d');
                   if(chMix) chMix.destroy();
@@ -693,10 +736,10 @@
                           labels: d.chartMix.label,
                           datasets: [
                               { type: 'bar', label: 'Volume (Kg)', data: d.chartMix.qty, backgroundColor: 'rgba(52, 152, 219, 0.7)', yAxisID: 'yQty', borderRadius: 4 },
-                              { type: 'line', label: 'Omzet (Rp)', data: d.chartMix.omzet, borderColor: '#1a5c40', backgroundColor: '#1a5c40', tension: 0.4, yAxisID: 'yOmzet' }
+                              { type: 'line', label: 'Omzet (Rp)', data: d.chartMix.omzet, borderColor: '#1a5c40', backgroundColor: '#1a5c40', tension: 0.4, pointRadius: 2, yAxisID: 'yOmzet' }
                           ]
                       },
-                      options: { responsive: true, maintainAspectRatio: false, scales: { yQty: { type: 'linear', position: 'left', ticks:{ display:false } }, yOmzet: { type: 'linear', position: 'right', ticks:{ display:false } } }, plugins: { legend: { display: false }, datalabels: { display: false } } }
+                      options: mixOptions
                   });
 
                   if(d.isFiltered) {
@@ -709,10 +752,10 @@
                               labels: d.chartDaily.label,
                               datasets: [
                                   { type: 'bar', label: 'Volume (Kg)', data: d.chartDaily.qty, backgroundColor: 'rgba(230, 126, 34, 0.7)', yAxisID: 'yQty', borderRadius: 2 },
-                                  { type: 'line', label: 'Omzet (Rp)', data: d.chartDaily.omzet, borderColor: '#e74c3c', backgroundColor: '#e74c3c', tension: 0.3, borderWidth: 2, pointRadius: 1, yAxisID: 'yOmzet' }
+                                  { type: 'line', label: 'Omzet (Rp)', data: d.chartDaily.omzet, borderColor: '#e74c3c', backgroundColor: '#e74c3c', tension: 0.4, borderWidth: 2, pointRadius: 1, yAxisID: 'yOmzet' }
                               ]
                           },
-                          options: { responsive: true, maintainAspectRatio: false, scales: { yQty: { type: 'linear', position: 'left', ticks:{ display:false } }, yOmzet: { type: 'linear', position: 'right', ticks:{ display:false } } }, plugins: { legend: { display: false }, datalabels: { display: false } } }
+                          options: mixOptions
                       });
                   } else {
                       document.getElementById('cardDailyGlobal').classList.add('hidden');
@@ -736,6 +779,30 @@
                                       let sum = ctx.dataset.data.reduce((a, b) => a + b, 0);
                                       if(sum === 0) return "0%";
                                       return (value * 100 / sum).toFixed(1) + "%";
+                                  }
+                              }
+                          } 
+                      }
+                  });
+
+                  let ctxOpr = document.getElementById('chartOprGlobal').getContext('2d');
+                  if(chOpr) chOpr.destroy();
+                  chOpr = new Chart(ctxOpr, {
+                      type: 'doughnut',
+                      data: {
+                          labels: d.chartOpr.label,
+                          datasets: [{ data: d.chartOpr.data, backgroundColor: ['#e67e22', '#e74c3c', '#9b59b6', '#34495e', '#16a085'] }]
+                      },
+                      options: { 
+                          responsive: true, maintainAspectRatio: false, 
+                          plugins: { 
+                              legend: { position: 'right', labels: { boxWidth: 10, font: { size: 9 } } },
+                              datalabels: {
+                                  color: '#fff', font: { weight: 'bold', size: 10 },
+                                  formatter: (value, ctx) => {
+                                      let sum = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                                      if(sum === 0) return "0%";
+                                      return (value * 100 / sum).toFixed(0) + "%";
                                   }
                               }
                           } 
@@ -798,9 +865,9 @@
                   let pctSehat = (d.keuangan.piutangSehat / baseLTV) * 100;
                   let pctTelat = (d.keuangan.piutangTelat / baseLTV) * 100;
                   
-                  document.getElementById('bar_masuk').style.width = pctMasuk + "%";
-                  document.getElementById('bar_sehat').style.width = pctSehat + "%";
-                  document.getElementById('bar_telat').style.width = pctTelat + "%";
+                  let eMasuk = document.getElementById('bar_masuk'); eMasuk.style.width = pctMasuk + "%"; eMasuk.innerText = pctMasuk > 10 ? pctMasuk.toFixed(0) + "%" : "";
+                  let eSehat = document.getElementById('bar_sehat'); eSehat.style.width = pctSehat + "%"; eSehat.innerText = pctSehat > 10 ? pctSehat.toFixed(0) + "%" : "";
+                  let eTelat = document.getElementById('bar_telat'); eTelat.style.width = pctTelat + "%"; eTelat.innerText = pctTelat > 10 ? pctTelat.toFixed(0) + "%" : "";
                   
                   document.getElementById('lbl_masuk').innerText = Math.round(pctMasuk) + "%";
                   document.getElementById('lbl_sehat').innerText = Math.round(pctSehat) + "%";
