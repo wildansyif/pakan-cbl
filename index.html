@@ -26,10 +26,10 @@
       .radio-group label { background: #eee; padding: 10px; border-radius: 8px; cursor: pointer; flex: 1 1 45%; text-align: center; white-space: nowrap; font-size: 12px; margin: 0; box-sizing: border-box; }
       .radio-group input[type="radio"]:checked + label { background: #1a5c40; color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
       
-      .mode-toggle { display: flex; background: #eee; padding: 5px; border-radius: 12px; gap: 5px; margin-bottom: 20px;}
-      .mode-toggle input { display: none; }
-      .mode-toggle label { flex: 1; text-align: center; padding: 12px; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 13px; color: #555; transition: 0.3s; }
-      .mode-toggle input:checked + label { background: #1a5c40; color: white !important; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+      .mode-toggle, .method-toggle { display: flex; background: #eee; padding: 5px; border-radius: 12px; gap: 5px; margin-bottom: 20px;}
+      .mode-toggle input, .method-toggle input { display: none; }
+      .mode-toggle label, .method-toggle label { flex: 1; text-align: center; padding: 12px; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 13px; color: #555; transition: 0.3s; margin:0;}
+      .mode-toggle input:checked + label, .method-toggle input:checked + label { background: #1a5c40; color: white !important; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
 
       .menu-item { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #eee; }
       .item-info { flex: 1; }
@@ -129,6 +129,7 @@
       td { padding: 8px; border-bottom: 1px solid #f1f1f1; color: #444; }
       .tr-masuk { color: #2e7d32; font-weight: bold; }
       .tr-keluar { color: #d32f2f; font-weight: bold; }
+      .tr-total { background: #fdf5e6; font-weight: bold; }
     </style>
   </head>
   <body>
@@ -242,7 +243,13 @@
               </div>
               <div class="form-row">
                   <div><label>Tgl Transaksi</label><input type="date" id="cf_tanggal"></div>
-                  <div><label>Metode</label><select id="cf_metode"><option value="Tranfer">Transfer</option><option value="Cash">Cash</option></select></div>
+                  <div>
+                      <label>Metode</label>
+                      <div class="method-toggle">
+                          <input type="radio" id="met_cash" name="cf_metode" value="Cash" checked><label for="met_cash">CASH</label>
+                          <input type="radio" id="met_tf" name="cf_metode" value="Transfer"><label for="met_tf">TRANSFER</label>
+                      </div>
+                  </div>
               </div>
               <div class="form-group"><label>Kategori</label><select id="cf_perkiraan"></select></div>
               <div class="form-group">
@@ -362,39 +369,52 @@
                     </div>
 
                     <div class="rekap-card">
-                        <div class="rekap-title">💧 Kesehatan Arus Kas</div>
-                        <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:bold; margin-bottom:5px;">
+                        <div class="rekap-title">Kesehatan Arus Kas Piutang</div>
+                        <div style="display:flex; justify-content:space-between; font-size:10px; font-weight:bold; margin-bottom:5px;">
                             <span style="color:#4CAF50;">Cash In: <span id="gl_val_masuk">Rp 0</span></span>
-                            <span style="color:#F44336;">Piutang Aktif</span>
+                            <span style="color:#F44336;">Jatuh Tempo: <span id="gl_val_telat">Rp 0</span></span>
                         </div>
-                        <div class="health-bar-container"><div id="gl_bar_kas" style="background:#4CAF50; width:0%;"></div><div id="gl_bar_piutang" style="background:#F44336; width:0%;"></div></div>
-                        <div style="text-align:center; font-size:11px; margin-top:5px; color:#555;">Rasio Uang Tunai Cair: <strong id="gl_lbl_kasRatio" style="color:#333;">0%</strong></div>
+                        <div class="health-bar-container">
+                            <div id="gl_bar_kas" style="background:#4CAF50; width:0%; transition:0.5s;"></div>
+                            <div id="gl_bar_sehat" style="background:#FFC107; width:0%; transition:0.5s;"></div>
+                            <div id="gl_bar_piutang" style="background:#F44336; width:0%; transition:0.5s;"></div>
+                        </div>
+                        <div style="text-align:center; font-size:9px; margin-top:5px; color:#888;">🟩 Uang Masuk | 🟨 Piutang Berjalan | 🟥 Jatuh Tempo</div>
                     </div>
 
                     <div class="rekap-card">
-                        <div class="rekap-title">🏆 Top 5 Konsumen Penjualan Terbesar</div>
-                        <table id="table-top-konsumen"><thead><tr><th>Nama Relasi</th><th style="text-align:right">Total Omzet</th></tr></thead><tbody></tbody></table>
+                        <div class="rekap-title">Perbandingan Volume Gudang (Kg)</div>
+                        <div style="height: 200px; position: relative;"><canvas id="chartGudang"></canvas></div>
                     </div>
 
                     <div class="rekap-card">
-                        <div class="rekap-title">📊 Tren Volume (Kg) vs Omzet (Rp) - Tahunan</div>
+                        <div class="rekap-title">Top 5 Konsumen Omzet Tertinggi</div>
+                        <table id="table-top-konsumen"><thead><tr><th>Nama Relasi</th><th>Total (Kg)</th><th style="text-align:right">Omzet</th></tr></thead><tbody></tbody></table>
+                    </div>
+
+                    <div class="rekap-card">
+                        <div class="rekap-title">Tren Volume (Kg) vs Omzet (Rp)</div>
                         <div style="height: 220px; position: relative;"><canvas id="chartMixGlobal"></canvas></div>
                     </div>
 
                     <div class="rekap-card hidden" id="cardDailyGlobal" style="border-left: 4px solid #e67e22;">
-                        <div class="rekap-title">📈 Tren Harian Volume vs Omzet</div>
+                        <div class="rekap-title">Tren Harian Volume vs Omzet</div>
                         <div style="height: 200px; position: relative;"><canvas id="chartDailyGlobal"></canvas></div>
                     </div>
 
                     <div class="rekap-card">
-                        <div class="rekap-title">🍩 Porsi Penjualan Pakan (Berdasarkan Kg)</div>
+                        <div class="rekap-title">Porsi Penjualan Pakan (Kg)</div>
                         <div style="height: 220px; position: relative;"><canvas id="chartDonutGlobal"></canvas></div>
                     </div>
 
                     <div class="rekap-card">
-                        <div class="rekap-title">📜 Rincian Arus Kas Harian (Uang Keluar & Masuk)</div>
+                        <div class="rekap-title">Rincian Arus Kas Harian</div>
                         <div style="max-height: 300px; overflow-y: auto;">
-                            <table id="table-cf-daily"><thead><tr><th>Tgl</th><th>Keterangan</th><th style="text-align:right">Nominal (Rp)</th></tr></thead><tbody></tbody></table>
+                            <table id="table-cf-daily">
+                                <thead><tr><th>Tgl</th><th>Keterangan</th><th style="text-align:right">Nominal (Rp)</th></tr></thead>
+                                <tbody></tbody>
+                                <tfoot id="foot-cf-daily"></tfoot>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -525,7 +545,7 @@
       let currentBulan = "";
       let currentTahun = "";
       let globalDataBulan = {};
-      let cacheDataGlobal = null; // Cache untuk Analytics Laba Rugi
+      let cacheDataGlobal = null; 
 
       if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
       window.addEventListener('online', updateStatusKoneksi);
@@ -551,7 +571,7 @@
               document.getElementById('f_tahun').value = t.getFullYear();
               document.getElementById('cf_tanggal').valueAsDate = new Date(); 
               updateStatusKoneksi(); gantiLokasi(); updateKategoriCashflow(); fetchMasterRelasi();
-              initAnalytics(); // Inisialisasi awal list pakan
+              initAnalytics(); 
           } else { document.getElementById('login-error').style.display = 'block'; }
       }
 
@@ -565,7 +585,6 @@
           tutupKeyboard();
 
           if (menu === 'rekap') { tarikDataRekapDB(false); }
-          // Hanya tarik data analytics jika belum ada di memori
           if (menu === 'analytics' && !cacheDataGlobal) { tarikDataGlobal(false); }
       }
 
@@ -589,10 +608,10 @@
 
       // ================= ANALYTICS GLOBAL (LABA RUGI) =================
       Chart.register(ChartDataLabels);
-      let chMix, chDonut, chDaily;
+      let chMix, chDonut, chDaily, chGudang;
 
       function initAnalytics() {
-          // Hanya memuat select option (dummy load untuk memanaskan mesin)
+          // Dummy load
       }
 
       function tarikDataGlobal(force) {
@@ -611,45 +630,61 @@
           .then(res => res.json()).then(res => {
               document.getElementById('gl_loader').classList.add('hidden');
               if(res.status === 'success') {
-                  cacheDataGlobal = res.data; // Simpan di cache
+                  cacheDataGlobal = res.data; 
                   let d = res.data; let nf = new Intl.NumberFormat('id-ID');
+                  const safeNum = (n) => isNaN(parseFloat(n)) ? 0 : parseFloat(n);
                   
-                  // Render Kartu Laba Rugi
-                  document.getElementById('gl_val_omzet').innerText = "Rp " + nf.format(d.omzet);
-                  document.getElementById('gl_val_hpp').innerText = "Rp " + nf.format(d.hpp);
-                  document.getElementById('gl_val_opr').innerText = "Rp " + nf.format(d.opr);
-                  document.getElementById('gl_val_profit').innerText = "Rp " + nf.format(d.profit);
+                  document.getElementById('gl_val_omzet').innerText = "Rp " + nf.format(safeNum(d.omzet));
+                  document.getElementById('gl_val_hpp').innerText = "Rp " + nf.format(safeNum(d.hpp));
+                  document.getElementById('gl_val_opr').innerText = "Rp " + nf.format(safeNum(d.opr));
+                  document.getElementById('gl_val_profit').innerText = "Rp " + nf.format(safeNum(d.profit));
                   
-                  // Hitung Margin Mutlak di Frontend agar tidak error
-                  let hitungMargin = d.omzet > 0 ? (d.profit / d.omzet * 100) : 0;
+                  let hitungMargin = safeNum(d.omzet) > 0 ? (safeNum(d.profit) / safeNum(d.omzet) * 100) : 0;
                   document.getElementById('gl_val_margin').innerText = hitungMargin.toFixed(1) + "%";
 
-                  // Render Arus Kas
-                  document.getElementById('gl_val_masuk').innerText = "Rp " + nf.format(d.masuk);
-                  let ratio = d.omzet > 0 ? (d.masuk / d.omzet * 100) : 0;
-                  document.getElementById('gl_bar_kas').style.width = Math.min(ratio, 100) + "%";
-                  document.getElementById('gl_bar_piutang').style.width = (100 - Math.min(ratio, 100)) + "%";
-                  document.getElementById('gl_lbl_kasRatio').innerText = ratio.toFixed(1) + "%";
+                  document.getElementById('gl_val_masuk').innerText = "Rp " + nf.format(safeNum(d.masuk));
+                  document.getElementById('gl_val_telat').innerText = "Rp " + nf.format(safeNum(d.ptgTelat));
+                  
+                  let totalBase = safeNum(d.masuk) + safeNum(d.ptgSehat) + safeNum(d.ptgTelat);
+                  if(totalBase === 0) totalBase = 1;
+                  document.getElementById('gl_bar_kas').style.width = (safeNum(d.masuk) / totalBase * 100) + "%";
+                  document.getElementById('gl_bar_sehat').style.width = (safeNum(d.ptgSehat) / totalBase * 100) + "%";
+                  document.getElementById('gl_bar_piutang').style.width = (safeNum(d.ptgTelat) / totalBase * 100) + "%";
 
-                  // Render Top 5 Konsumen
                   let htmlTop = "";
                   if (d.topKonsumen && d.topKonsumen.length > 0) {
-                      htmlTop = d.topKonsumen.map(k => `<tr><td>${k.n}</td><td style="text-align:right">Rp ${nf.format(k.v)}</td></tr>`).join('');
+                      htmlTop = d.topKonsumen.map(k => `<tr><td>${k.n}</td><td>${nf.format(k.q)}</td><td style="text-align:right">Rp ${nf.format(k.v)}</td></tr>`).join('');
                   } else {
-                      htmlTop = "<tr><td colspan='2' style='text-align:center'>Belum ada transaksi</td></tr>";
+                      htmlTop = "<tr><td colspan='3' style='text-align:center'>Belum ada transaksi</td></tr>";
                   }
                   document.querySelector('#table-top-konsumen tbody').innerHTML = htmlTop;
 
-                  // Render Cashflow Harian
-                  let htmlCF = "";
+                  let htmlCF = "", sumIn = 0, sumOut = 0;
                   if (d.dailyCF && d.dailyCF.length > 0) {
-                      htmlCF = d.dailyCF.map(c => `<tr><td>${c.tgl}</td><td><small>${c.kat} (${c.met})</small><br>${c.relasi}</td><td style="text-align:right" class="${c.debet > 0 ? 'tr-masuk' : 'tr-keluar'}">${nf.format(c.debet || c.kredit)}</td></tr>`).join('');
+                      htmlCF = d.dailyCF.map(c => {
+                          sumIn += safeNum(c.debet); sumOut += safeNum(c.kredit);
+                          return `<tr><td>${c.tgl}</td><td><small>${c.kat} (${c.met})</small><br>${c.relasi}</td><td style="text-align:right" class="${c.debet > 0 ? 'tr-masuk' : 'tr-keluar'}">${nf.format(safeNum(c.debet || c.kredit))}</td></tr>`;
+                      }).join('');
                   } else {
                       htmlCF = "<tr><td colspan='3' style='text-align:center'>Belum ada rincian kas</td></tr>";
                   }
                   document.querySelector('#table-cf-daily tbody').innerHTML = htmlCF;
+                  document.querySelector('#foot-cf-daily').innerHTML = `<tr class="tr-total"><td>SUM</td><td>IN: ${nf.format(sumIn)}</td><td style="text-align:right; color:#d32f2f;">OUT: ${nf.format(sumOut)}</td></tr>`;
 
-                  // Chart Bulanan Mix (Tahunan)
+                  if(chGudang) chGudang.destroy();
+                  chGudang = new Chart(document.getElementById('chartGudang').getContext('2d'), {
+                      type: 'bar',
+                      data: {
+                          labels: ['PM Gudang', 'RPH Gudang', 'SPN Gudang'],
+                          datasets: [
+                              { label: 'Penjualan', data: [d.gudangData.PM.jual, d.gudangData.RPH.jual, d.gudangData.SPN.jual], backgroundColor: '#1a5c40' },
+                              { label: 'Pemakaian', data: [d.gudangData.PM.pakai, d.gudangData.RPH.pakai, d.gudangData.SPN.pakai], backgroundColor: '#3498db' },
+                              { label: 'Giling', data: [d.gudangData.PM.giling, d.gudangData.RPH.giling, d.gudangData.SPN.giling], backgroundColor: '#9b59b6' }
+                          ]
+                      },
+                      options: { responsive: true, maintainAspectRatio: false, plugins: { datalabels: { display: false } } }
+                  });
+
                   let ctxMix = document.getElementById('chartMixGlobal').getContext('2d');
                   if(chMix) chMix.destroy();
                   chMix = new Chart(ctxMix, {
@@ -664,7 +699,6 @@
                       options: { responsive: true, maintainAspectRatio: false, scales: { yQty: { type: 'linear', position: 'left', ticks:{ display:false } }, yOmzet: { type: 'linear', position: 'right', ticks:{ display:false } } }, plugins: { legend: { display: false }, datalabels: { display: false } } }
                   });
 
-                  // Chart Harian (Muncul jika bulan dipilih)
                   if(d.isFiltered) {
                       document.getElementById('cardDailyGlobal').classList.remove('hidden');
                       let ctxDaily = document.getElementById('chartDailyGlobal').getContext('2d');
@@ -684,7 +718,6 @@
                       document.getElementById('cardDailyGlobal').classList.add('hidden');
                   }
 
-                  // Chart Donut (Porsi Produk)
                   let ctxDonut = document.getElementById('chartDonutGlobal').getContext('2d');
                   if(chDonut) chDonut.destroy();
                   chDonut = new Chart(ctxDonut, {
@@ -696,7 +729,7 @@
                       options: { 
                           responsive: true, maintainAspectRatio: false, 
                           plugins: { 
-                              legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } },
+                              legend: { position: 'right', labels: { boxWidth: 10, font: { size: 9 } } },
                               datalabels: {
                                   color: '#fff', font: { weight: 'bold', size: 10 },
                                   formatter: (value, ctx) => {
@@ -1173,7 +1206,18 @@
           if (!relasi) { alert("Nama Relasi / Tujuan harus diisi!"); return; }
           if (nominal <= 0 && diskon <= 0) { alert("Nominal bayar atau diskon harus diisi!"); return; }
 
-          let payload = { tanggal: document.getElementById('cf_tanggal').value, jenis: document.querySelector('input[name="cf_jenis"]:checked').value, metode: document.getElementById('cf_metode').value, perkiraan: document.getElementById('cf_perkiraan').value, relasi: relasi, nominal: nominal, diskon: diskon, deskripsi: document.getElementById('cf_deskripsi').value, fileData: { base64: fileBase64_Global, mime: fileMime_Global } };
+          let payload = { 
+              tanggal: document.getElementById('cf_tanggal').value, 
+              jenis: document.querySelector('input[name="cf_jenis"]:checked').value, 
+              metode: document.querySelector('input[name="cf_metode"]:checked').value, 
+              perkiraan: document.getElementById('cf_perkiraan').value, 
+              relasi: relasi, 
+              nominal: nominal, 
+              diskon: diskon, 
+              deskripsi: document.getElementById('cf_deskripsi').value, 
+              fileData: { base64: fileBase64_Global, mime: fileMime_Global } 
+          };
+          
           let btn = document.getElementById('btn-kirim-cf'); let statusLabel = document.getElementById('cf_status');
           btn.innerText = "⏳ Sedang Mengunggah Data..."; btn.disabled = true; statusLabel.innerText = "Mohon tunggu...";
 
