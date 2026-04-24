@@ -373,7 +373,8 @@
                         <div class="rekap-title">Kesehatan Arus Kas Piutang</div>
                         <div style="display:flex; justify-content:space-between; font-size:10px; font-weight:bold; margin-bottom:5px;">
                             <span style="color:#4CAF50;">Cash In: <span id="gl_val_masuk">Rp 0</span></span>
-                            <span style="color:#F44336;">Jatuh Tempo: <span id="gl_val_telat">Rp 0</span></span>
+                            <span style="color:#FFC107;">Berjalan: <span id="gl_val_sehat">Rp 0</span></span>
+                            <span style="color:#F44336;">Telat: <span id="gl_val_telat">Rp 0</span></span>
                         </div>
                         <div class="health-bar-container">
                             <div id="gl_bar_kas" class="hb-masuk" style="width:0%;"></div>
@@ -415,16 +416,14 @@
 
                     <div class="rekap-card">
                         <div class="rekap-title">Rincian Arus Kas Harian</div>
+                        <div id="gl_cf_summary" style="display:flex; justify-content:space-between; background:#fdf5e6; padding:10px; border-radius:8px; font-size:11px; font-weight:bold; margin-bottom:10px;"></div>
                         <div style="max-height: 300px; overflow-y: auto;">
                             <table id="table-cf-daily">
                                 <thead><tr><th>Tgl</th><th>Keterangan</th><th style="text-align:right">Nominal (Rp)</th></tr></thead>
                                 <tbody></tbody>
-                                <tfoot id="foot-cf-daily"></tfoot>
                             </table>
                         </div>
                     </div>
-                </div>
-            </div>
 
             <div id="view-konsumen" class="analytics-view hidden">
                 <div class="form-group">
@@ -652,6 +651,7 @@
                   document.getElementById('gl_val_yield').innerText = "Rp " + nf.format(yieldPerKg.toFixed(0));
 
                   document.getElementById('gl_val_masuk').innerText = "Rp " + nf.format(safeNum(d.masuk));
+                  document.getElementById('gl_val_sehat').innerText = "Rp " + nf.format(safeNum(d.ptgSehat));
                   document.getElementById('gl_val_telat').innerText = "Rp " + nf.format(safeNum(d.ptgTelat));
                   
                   let totalBase = safeNum(d.masuk) + safeNum(d.ptgSehat) + safeNum(d.ptgTelat);
@@ -677,7 +677,7 @@
                   }
                   document.querySelector('#table-top-konsumen tbody').innerHTML = htmlTop;
 
-                  let htmlCF = "", sumIn = 0, sumOut = 0;
+                 let htmlCF = "", sumIn = 0, sumOut = 0;
                   if (d.dailyCF && d.dailyCF.length > 0) {
                       htmlCF = d.dailyCF.map(c => {
                           sumIn += safeNum(c.debet); sumOut += safeNum(c.kredit);
@@ -687,7 +687,8 @@
                       htmlCF = "<tr><td colspan='3' style='text-align:center'>Belum ada rincian kas</td></tr>";
                   }
                   document.querySelector('#table-cf-daily tbody').innerHTML = htmlCF;
-                  document.querySelector('#foot-cf-daily').innerHTML = `<tr class="tr-total"><td>SUM</td><td>IN: ${nf.format(sumIn)}</td><td style="text-align:right; color:#d32f2f;">OUT: ${nf.format(sumOut)}</td></tr>`;
+                  let netCF = sumIn - sumOut;
+                  document.getElementById('gl_cf_summary').innerHTML = `<span style="color:#2e7d32">IN: Rp ${nf.format(sumIn)}</span> <span style="color:#d32f2f">OUT: Rp ${nf.format(sumOut)}</span> <span style="color:#1a5c40">SISA: Rp ${nf.format(netCF)}</span>`;
 
                   // CHART GUDANG
                   if(chGudang) chGudang.destroy();
@@ -1221,9 +1222,10 @@
 
           if (dayData.isCashflow) {
               html += `<div class="rekap-card" style="border-top: 4px solid #4CAF50;"><div class="rekap-title">🟢 UANG MASUK</div>`;
-              for (let kat in dayData.Masuk) { html += `<div style="font-weight:bold; font-size:13px; color:#1a5c40; margin-top:10px;">[${kat}]</div>`; dayData.Masuk[kat].forEach(trx => { html += `<div class="rekap-item" style="margin-left: 10px;"><span>- ${trx.relasi}</span><span style="font-weight:bold;">Rp ${new Intl.NumberFormat('id-ID').format(trx.nominal)}</span></div>`; }); } html += `</div>`;
+              for (let kat in dayData.Masuk) { html += `<div style="font-weight:bold; font-size:13px; color:#1a5c40; margin-top:10px;">[${kat}]</div>`; dayData.Masuk[kat].forEach(trx => { html += `<div class="rekap-item" style="margin-left: 10px;"><span>- ${trx.relasi}</span><span style="font-weight:bold;">Rp ${new Intl.NumberFormat('id-ID').format(trx.debet)}</span></div>`; }); } html += `</div>`;
+              
               html += `<div class="rekap-card" style="border-top: 4px solid #e91e63;"><div class="rekap-title">🔴 UANG KELUAR</div>`;
-              for (let kat in dayData.Keluar) { html += `<div style="font-weight:bold; font-size:13px; color:#e91e63; margin-top:10px;">[${kat}]</div>`; dayData.Keluar[kat].forEach(trx => { html += `<div class="rekap-item" style="margin-left: 10px;"><span>- ${trx.relasi}</span><span style="font-weight:bold;">Rp ${new Intl.NumberFormat('id-ID').format(trx.nominal)}</span></div>`; }); } html += `</div>`;
+              for (let kat in dayData.Keluar) { html += `<div style="font-weight:bold; font-size:13px; color:#e91e63; margin-top:10px;">[${kat}]</div>`; dayData.Keluar[kat].forEach(trx => { html += `<div class="rekap-item" style="margin-left: 10px;"><span>- ${trx.relasi}</span><span style="font-weight:bold;">Rp ${new Intl.NumberFormat('id-ID').format(trx.kredit)}</span></div>`; }); } html += `</div>`;
           } else {
               for (let kat in dayData.items) {
                   let colorCode = kat==="Masuk" ? "#FFC107" : (kat==="Pemakaian" ? "#2196F3" : (kat==="Giling" ? "#9C27B0" : "#4CAF50"));
