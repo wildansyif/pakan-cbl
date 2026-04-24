@@ -57,7 +57,6 @@
       .rekap-title { font-weight: bold; font-size: 14px; color: #1a5c40; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px;}
       .rekap-item { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px; color: #555;}
       
-      /* KEYBOARD CSS */
       #custom-keyboard { position: fixed; bottom: -400px; left: 0; right: 0; background: #e0e0e0; padding: 15px; padding-bottom: calc(15px + env(safe-area-inset-bottom)); transition: bottom 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); z-index: 2000; box-shadow: 0 -4px 15px rgba(0,0,0,0.1); border-top-left-radius: 20px; border-top-right-radius: 20px; display: flex; flex-direction: column; gap: 10px; max-width: 500px; margin: auto;}
       #custom-keyboard.show { bottom: 0; }
       .key-row { display: flex; gap: 10px; }
@@ -74,7 +73,6 @@
       .autocomplete-item strong { color: #1a5c40; }
       .alamat-hint { font-size: 10px; color: #888; display: block; margin-top: 2px; }
 
-      /* DASHBOARD MASTER & ANALYTICS CSS */
       .summary-card { background: linear-gradient(135deg, #1a5c40, #2e7d32); color: white; padding: 15px; border-radius: 10px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
       .sum-title { font-size: 11px; opacity: 0.8; margin-bottom: 3px; }
       .sum-val { font-size: 18px; font-weight: bold; margin-bottom: 10px; color: #ffeb3b; }
@@ -121,7 +119,6 @@
       .rank-item strong { color: #1a5c40; }
       .text-small-mute { font-size: 10px; color: #888; font-weight: normal; display: block; margin-top:2px; }
 
-      /* Tabel Styling */
       table { width: 100%; border-collapse: collapse; font-size: 11px; }
       th { background: #f8f9fa; color: #1a5c40; text-align: left; padding: 8px; border-bottom: 2px solid #eee; }
       td { padding: 8px; border-bottom: 1px solid #f1f1f1; color: #444; }
@@ -421,9 +418,12 @@
                             <table id="table-cf-daily">
                                 <thead><tr><th>Tgl</th><th>Keterangan</th><th style="text-align:right">Nominal (Rp)</th></tr></thead>
                                 <tbody></tbody>
+                                <tfoot id="foot-cf-daily"></tfoot>
                             </table>
                         </div>
                     </div>
+                </div>
+            </div>
 
             <div id="view-konsumen" class="analytics-view hidden">
                 <div class="form-group">
@@ -615,9 +615,7 @@
       Chart.register(ChartDataLabels);
       let chMix, chDonut, chDaily, chGudang, chOpr;
 
-      function initAnalytics() {
-          // Dummy load untuk memanaskan memori HP
-      }
+      function initAnalytics() {}
 
       function tarikDataGlobal(force) {
           if(!force && cacheDataGlobal) return;
@@ -677,7 +675,7 @@
                   }
                   document.querySelector('#table-top-konsumen tbody').innerHTML = htmlTop;
 
-                 let htmlCF = "", sumIn = 0, sumOut = 0;
+                  let htmlCF = "", sumIn = 0, sumOut = 0;
                   if (d.dailyCF && d.dailyCF.length > 0) {
                       htmlCF = d.dailyCF.map(c => {
                           sumIn += safeNum(c.debet); sumOut += safeNum(c.kredit);
@@ -737,7 +735,7 @@
                           labels: d.chartMix.label,
                           datasets: [
                               { type: 'bar', label: 'Volume (Kg)', data: d.chartMix.qty, backgroundColor: 'rgba(52, 152, 219, 0.7)', yAxisID: 'yQty', borderRadius: 4 },
-                              { type: 'line', label: 'Omzet (Rp)', data: d.chartMix.omzet, borderColor: '#1a5c40', backgroundColor: '#1a5c40', tension: 0.4, pointRadius: 2, yAxisID: 'yOmzet' }
+                              { type: 'line', label: 'Omzet (Rp)', data: d.chartMix.omzet, borderColor: '#1a5c40', backgroundColor: '#1a5c40', tension: 0.1, pointRadius: 2, yAxisID: 'yOmzet' }
                           ]
                       },
                       options: mixOptions
@@ -753,7 +751,7 @@
                               labels: d.chartDaily.label,
                               datasets: [
                                   { type: 'bar', label: 'Volume (Kg)', data: d.chartDaily.qty, backgroundColor: 'rgba(230, 126, 34, 0.7)', yAxisID: 'yQty', borderRadius: 2 },
-                                  { type: 'line', label: 'Omzet (Rp)', data: d.chartDaily.omzet, borderColor: '#e74c3c', backgroundColor: '#e74c3c', tension: 0.4, borderWidth: 2, pointRadius: 1, yAxisID: 'yOmzet' }
+                                  { type: 'line', label: 'Omzet (Rp)', data: d.chartDaily.omzet, borderColor: '#e74c3c', backgroundColor: '#e74c3c', tension: 0.1, borderWidth: 2, pointRadius: 1, yAxisID: 'yOmzet' }
                               ]
                           },
                           options: mixOptions
@@ -878,7 +876,6 @@
                   document.getElementById('lbl_nm_sehat').innerText = "Rp " + nf.format(d.keuangan.piutangSehat);
                   document.getElementById('lbl_nm_telat').innerText = "Rp " + nf.format(d.keuangan.piutangTelat);
 
-                  // RENDER PIUTANG AKTIF (ACCORDION)
                   let htmlPiutang = "";
                   if (d.piutangAktif && d.piutangAktif.length > 0) {
                       d.piutangAktif.forEach((p, idx) => {
@@ -909,7 +906,6 @@
                   }
                   document.getElementById('an_piutang_aktif').innerHTML = htmlPiutang || "<i>Tidak ada piutang aktif</i>";
 
-                  // RENDER RIWAYAT PEMBAYARAN
                   let htmlBayar = "";
                   if (d.riwayatBayar && d.riwayatBayar.length > 0) {
                       d.riwayatBayar.forEach(b => {
@@ -1221,25 +1217,24 @@
           let html = ''; let textWA = `*REKAP TANGGAL ${dateStr.split('-').reverse().join('/')}*\n\n`;
 
           if (dayData.isCashflow) {
-              html += `<div class="rekap-card" style="border-top: 4px solid #4CAF50;"><div class="rekap-title">🟢 UANG MASUK</div>`;
+              html += `<div class="rekap-card" style="border-top: 4px solid #4CAF50;"><div class="rekap-title">UANG MASUK</div>`;
               for (let kat in dayData.Masuk) { html += `<div style="font-weight:bold; font-size:13px; color:#1a5c40; margin-top:10px;">[${kat}]</div>`; dayData.Masuk[kat].forEach(trx => { html += `<div class="rekap-item" style="margin-left: 10px;"><span>- ${trx.relasi}</span><span style="font-weight:bold;">Rp ${new Intl.NumberFormat('id-ID').format(trx.debet)}</span></div>`; }); } html += `</div>`;
-              
-              html += `<div class="rekap-card" style="border-top: 4px solid #e91e63;"><div class="rekap-title">🔴 UANG KELUAR</div>`;
+              html += `<div class="rekap-card" style="border-top: 4px solid #e91e63;"><div class="rekap-title">UANG KELUAR</div>`;
               for (let kat in dayData.Keluar) { html += `<div style="font-weight:bold; font-size:13px; color:#e91e63; margin-top:10px;">[${kat}]</div>`; dayData.Keluar[kat].forEach(trx => { html += `<div class="rekap-item" style="margin-left: 10px;"><span>- ${trx.relasi}</span><span style="font-weight:bold;">Rp ${new Intl.NumberFormat('id-ID').format(trx.kredit)}</span></div>`; }); } html += `</div>`;
           } else {
               for (let kat in dayData.items) {
                   let colorCode = kat==="Masuk" ? "#FFC107" : (kat==="Pemakaian" ? "#2196F3" : (kat==="Giling" ? "#9C27B0" : "#4CAF50"));
-                  html += `<div class="rekap-card" style="border-top: 4px solid ${colorCode};"><div class="rekap-title" style="font-size:15px; color:#333;">📌 KATEGORI: ${kat.toUpperCase()}</div>`;
+                  html += `<div class="rekap-card" style="border-top: 4px solid ${colorCode};"><div class="rekap-title" style="font-size:15px; color:#333;">KATEGORI: ${kat.toUpperCase()}</div>`;
                   textWA += `📌 *${kat.toUpperCase()}*\n`;
                   let grandTotalKategori = 0; 
                   for (let relasi in dayData.items[kat]) {
-                      html += `<div style="font-weight:bold; font-size:13px; margin-top:10px; color:#444;">👤 ${relasi}</div>`; textWA += `👤 ${relasi}\n`;
+                      html += `<div style="font-weight:bold; font-size:13px; margin-top:10px; color:#444;">${relasi}</div>`; textWA += `👤 ${relasi}\n`;
                       let subTotal = 0;
                       dayData.items[kat][relasi].forEach(item => { html += `<div class="rekap-item"><span style="padding-left:15px;">- ${item.pakan}</span><span>${item.qty.toLocaleString('id-ID')} Kg</span></div>`; textWA += `- ${item.pakan}: ${item.qty.toLocaleString('id-ID')} Kg\n`; subTotal += item.qty; });
                       html += `<div class="rekap-item" style="font-weight:bold; font-size:12px; margin-top:5px; border-top:1px dashed #eee; padding-top:5px;"><span style="padding-left:15px;">Sub Total</span><span>${subTotal.toLocaleString('id-ID')} Kg</span></div>`; textWA += `_Sub Total: ${subTotal.toLocaleString('id-ID')} Kg_\n\n`;
                       grandTotalKategori += subTotal;
                   }
-                  html += `<div style="margin-top: 15px; padding-top: 10px; border-top: 2px solid ${colorCode}; font-weight: bold; font-size: 14px; text-align: center; color: ${colorCode};">📝 GRAND TOTAL ${kat.toUpperCase()}: ${grandTotalKategori.toLocaleString('id-ID')} Kg</div>`;
+                  html += `<div style="margin-top: 15px; padding-top: 10px; border-top: 2px solid ${colorCode}; font-weight: bold; font-size: 14px; text-align: center; color: ${colorCode};">GRAND TOTAL ${kat.toUpperCase()}: ${grandTotalKategori.toLocaleString('id-ID')} Kg</div>`;
                   textWA += `*📝 GRAND TOTAL ${kat.toUpperCase()}: ${grandTotalKategori.toLocaleString('id-ID')} Kg*\n\n`;
                   html += `</div>`;
               }
