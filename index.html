@@ -620,11 +620,7 @@
       function tarikDataGlobal(force) {
           if(!force && cacheDataGlobal) return;
           if(!navigator.onLine) { alert("Wajib online untuk menarik data Master Laba Rugi!"); return; }
-          let p = {
-              source: 'analytics_global',
-              bulan: document.getElementById('gl_bulan').value,
-              tahun: document.getElementById('gl_tahun').value
-          };
+          let p = { source: 'analytics_global', bulan: document.getElementById('gl_bulan').value, tahun: document.getElementById('gl_tahun').value };
           
           document.getElementById('gl_result').classList.add('hidden');
           document.getElementById('gl_loader').classList.remove('hidden');
@@ -663,16 +659,18 @@
                   let elSehat = document.getElementById('gl_bar_sehat');
                   let elTelat = document.getElementById('gl_bar_piutang');
 
-                  elMasuk.style.width = pMasuk + "%"; elMasuk.innerText = pMasuk > 10 ? pMasuk.toFixed(0) + "%" : "";
-                  elSehat.style.width = pSehat + "%"; elSehat.innerText = pSehat > 10 ? pSehat.toFixed(0) + "%" : "";
-                  elTelat.style.width = pTelat + "%"; elTelat.innerText = pTelat > 10 ? pTelat.toFixed(0) + "%" : "";
+                  elMasuk.style.display = "flex"; elMasuk.style.alignItems = "center"; elMasuk.style.justifyContent = "center";
+                  elSehat.style.display = "flex"; elSehat.style.alignItems = "center"; elSehat.style.justifyContent = "center";
+                  elTelat.style.display = "flex"; elTelat.style.alignItems = "center"; elTelat.style.justifyContent = "center";
+
+                  elMasuk.style.width = pMasuk + "%"; elMasuk.innerHTML = pMasuk > 5 ? `<span style="color:#fff; font-size:10px; font-weight:bold;">${pMasuk.toFixed(1)}%</span>` : "";
+                  elSehat.style.width = pSehat + "%"; elSehat.innerHTML = pSehat > 5 ? `<span style="color:#fff; font-size:10px; font-weight:bold;">${pSehat.toFixed(1)}%</span>` : "";
+                  elTelat.style.width = pTelat + "%"; elTelat.innerHTML = pTelat > 5 ? `<span style="color:#fff; font-size:10px; font-weight:bold;">${pTelat.toFixed(1)}%</span>` : "";
 
                   let htmlTop = "";
                   if (d.topKonsumen && d.topKonsumen.length > 0) {
                       htmlTop = d.topKonsumen.map(k => `<tr><td>${k.n}</td><td>${nf.format(k.q)}</td><td style="text-align:right">Rp ${nf.format(k.v)}</td></tr>`).join('');
-                  } else {
-                      htmlTop = "<tr><td colspan='3' style='text-align:center'>Belum ada transaksi</td></tr>";
-                  }
+                  } else { htmlTop = "<tr><td colspan='3' style='text-align:center'>Belum ada transaksi</td></tr>"; }
                   document.querySelector('#table-top-konsumen tbody').innerHTML = htmlTop;
 
                   let htmlCF = "", sumIn = 0, sumOut = 0;
@@ -681,10 +679,9 @@
                           sumIn += safeNum(c.debet); sumOut += safeNum(c.kredit);
                           return `<tr><td>${c.tgl}</td><td><small>${c.kat} (${c.met})</small><br>${c.relasi}</td><td style="text-align:right" class="${c.debet > 0 ? 'tr-masuk' : 'tr-keluar'}">${nf.format(safeNum(c.debet || c.kredit))}</td></tr>`;
                       }).join('');
-                  } else {
-                      htmlCF = "<tr><td colspan='3' style='text-align:center'>Belum ada rincian kas</td></tr>";
-                  }
+                  } else { htmlCF = "<tr><td colspan='3' style='text-align:center'>Belum ada rincian kas</td></tr>"; }
                   document.querySelector('#table-cf-daily tbody').innerHTML = htmlCF;
+                  
                   let netCF = sumIn - sumOut;
                   document.getElementById('gl_cf_summary').innerHTML = `<span style="color:#2e7d32">IN: Rp ${nf.format(sumIn)}</span> <span style="color:#d32f2f">OUT: Rp ${nf.format(sumOut)}</span> <span style="color:#1a5c40">SISA: Rp ${nf.format(netCF)}</span>`;
 
@@ -697,14 +694,14 @@
                           datasets: [
                               { label: 'Masuk', data: [d.gudangData.PM.masuk, d.gudangData.RPH.masuk, d.gudangData.SPN.masuk], backgroundColor: '#f1c40f' },
                               { label: 'Mutasi', data: [d.gudangData.PM.mutasi, d.gudangData.RPH.mutasi, d.gudangData.SPN.mutasi], backgroundColor: '#e67e22' },
-                              { label: 'Jual', data: [d.gudangData.PM.jual, d.gudangData.RPH.jual, d.gudangData.SPN.jual], backgroundColor: '#1a5c40' },
-                              { label: 'Pakai', data: [d.gudangData.PM.pakai, d.gudangData.RPH.pakai, d.gudangData.SPN.pakai], backgroundColor: '#3498db' },
+                              { label: 'Penjualan', data: [d.gudangData.PM.jual, d.gudangData.RPH.jual, d.gudangData.SPN.jual], backgroundColor: '#1a5c40' },
+                              { label: 'Pemakaian', data: [d.gudangData.PM.pakai, d.gudangData.RPH.pakai, d.gudangData.SPN.pakai], backgroundColor: '#3498db' },
                               { label: 'Giling', data: [d.gudangData.PM.giling, d.gudangData.RPH.giling, d.gudangData.SPN.giling], backgroundColor: '#9b59b6' }
                           ]
                       },
+                      plugins: [ChartDataLabels],
                       options: { 
-                          responsive: true, maintainAspectRatio: false,
-                          layout: { padding: { top: 20 } },
+                          responsive: true, maintainAspectRatio: false, layout: { padding: { top: 20 } },
                           scales: { y: { beginAtZero: true, ticks: { display: true, font: {size: 9} } } },
                           plugins: { 
                               legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } },
@@ -717,14 +714,18 @@
                       }
                   });
 
+                  // INTERAKSI TOOLTIP GANDA & KABEL RAPI (Tension: 0.1, Monotone)
                   let mixOptions = {
                       responsive: true, maintainAspectRatio: false,
                       interaction: { mode: 'index', intersect: false },
                       scales: { 
                           yQty: { type: 'linear', position: 'left', ticks: { display: true, font: {size: 9}, callback: (val) => val/1000 + 't' } }, 
-                          yOmzet: { type: 'linear', position: 'right', grid: {drawOnChartArea: false}, ticks: { display: true, font: {size: 9}, callback: (val) => val/1000000 + 'Jt' } } 
+                          yOmzet: { type: 'linear', position: 'right', grid: {drawOnChartArea: false}, ticks: { display: true, font: {size: 9}, callback: (val) => 'Rp ' + val/1000000 + ' Jt' } } 
                       }, 
-                      plugins: { legend: { display: false }, datalabels: { display: false } }
+                      plugins: { 
+                          legend: { display: false }, datalabels: { display: false },
+                          tooltip: { callbacks: { label: function(c) { let l = c.dataset.label || ''; if (l) l += ': '; if (c.dataset.yAxisID === 'yOmzet') l += 'Rp ' + nf.format(c.raw); else l += nf.format(c.raw) + ' Kg'; return l; } } }
+                      }
                   };
 
                   let ctxMix = document.getElementById('chartMixGlobal').getContext('2d');
@@ -735,7 +736,7 @@
                           labels: d.chartMix.label,
                           datasets: [
                               { type: 'bar', label: 'Volume (Kg)', data: d.chartMix.qty, backgroundColor: 'rgba(52, 152, 219, 0.7)', yAxisID: 'yQty', borderRadius: 4 },
-                              { type: 'line', label: 'Omzet (Rp)', data: d.chartMix.omzet, borderColor: '#1a5c40', backgroundColor: '#1a5c40', tension: 0.1, pointRadius: 2, yAxisID: 'yOmzet' }
+                              { type: 'line', label: 'Omzet (Rp)', data: d.chartMix.omzet, borderColor: '#1a5c40', backgroundColor: '#1a5c40', tension: 0.4, cubicInterpolationMode: 'monotone', pointRadius: 2, yAxisID: 'yOmzet' }
                           ]
                       },
                       options: mixOptions
@@ -751,7 +752,7 @@
                               labels: d.chartDaily.label,
                               datasets: [
                                   { type: 'bar', label: 'Volume (Kg)', data: d.chartDaily.qty, backgroundColor: 'rgba(230, 126, 34, 0.7)', yAxisID: 'yQty', borderRadius: 2 },
-                                  { type: 'line', label: 'Omzet (Rp)', data: d.chartDaily.omzet, borderColor: '#e74c3c', backgroundColor: '#e74c3c', tension: 0.1, borderWidth: 2, pointRadius: 1, yAxisID: 'yOmzet' }
+                                  { type: 'line', label: 'Omzet (Rp)', data: d.chartDaily.omzet, borderColor: '#e74c3c', backgroundColor: '#e74c3c', tension: 0.4, cubicInterpolationMode: 'monotone', borderWidth: 2, pointRadius: 1, yAxisID: 'yOmzet' }
                               ]
                           },
                           options: mixOptions
@@ -768,6 +769,7 @@
                           labels: d.chartDonut.label,
                           datasets: [{ data: d.chartDonut.data, backgroundColor: ['#1a5c40', '#3498db', '#e91e63', '#f1c40f', '#9b59b6', '#95a5a6'], borderWidth: 0 }]
                       },
+                      plugins: [ChartDataLabels],
                       options: { 
                           responsive: true, maintainAspectRatio: false, 
                           plugins: { 
@@ -792,6 +794,7 @@
                           labels: d.chartOpr.label,
                           datasets: [{ data: d.chartOpr.data, backgroundColor: ['#e67e22', '#e74c3c', '#9b59b6', '#34495e', '#16a085'] }]
                       },
+                      plugins: [ChartDataLabels],
                       options: { 
                           responsive: true, maintainAspectRatio: false, 
                           plugins: { 
