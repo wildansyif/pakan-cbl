@@ -646,6 +646,7 @@
 
                   let yieldPerKg = safeNum(d.qty) > 0 ? (safeNum(d.profit) / safeNum(d.qty)) : 0;
                   document.getElementById('gl_val_yield').innerText = "Rp " + nf.format(yieldPerKg.toFixed(0));
+                  document.getElementById('gl_val_qty').innerText = nf.format(safeNum(d.qty)) + " Kg";
 
                   document.getElementById('gl_val_masuk').innerText = "Rp " + nf.format(safeNum(d.masuk));
                   document.getElementById('gl_val_sehat').innerText = "Rp " + nf.format(safeNum(d.ptgSehat));
