@@ -57,7 +57,6 @@
       .rekap-title { font-weight: bold; font-size: 14px; color: #1a5c40; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px;}
       .rekap-item { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px; color: #555;}
       
-      /* KEYBOARD CSS */
       #custom-keyboard { position: fixed; bottom: -400px; left: 0; right: 0; background: #e0e0e0; padding: 15px; padding-bottom: calc(15px + env(safe-area-inset-bottom)); transition: bottom 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); z-index: 2000; box-shadow: 0 -4px 15px rgba(0,0,0,0.1); border-top-left-radius: 20px; border-top-right-radius: 20px; display: flex; flex-direction: column; gap: 10px; max-width: 500px; margin: auto;}
       #custom-keyboard.show { bottom: 0; }
       .key-row { display: flex; gap: 10px; }
@@ -74,7 +73,6 @@
       .autocomplete-item strong { color: #1a5c40; }
       .alamat-hint { font-size: 10px; color: #888; display: block; margin-top: 2px; }
 
-      /* DASHBOARD MASTER & ANALYTICS CSS */
       .summary-card { background: linear-gradient(135deg, #1a5c40, #2e7d32); color: white; padding: 15px; border-radius: 10px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
       .sum-title { font-size: 11px; opacity: 0.8; margin-bottom: 3px; }
       .sum-val { font-size: 18px; font-weight: bold; margin-bottom: 10px; color: #ffeb3b; }
@@ -358,15 +356,17 @@
                         <div class="sum-title">Net Profit Bersih</div>
                         <div id="gl_val_profit" class="sum-val" style="color:#a5d6a7; font-size:24px;">Rp 0</div>
                         <div class="sum-row" style="gap:5px;">
-                            <div class="sum-box"><div class="sum-title">Omzet</div><div id="gl_val_omzet" style="font-size:12px; font-weight:bold; color:#fff;">Rp 0</div></div>
-                            <div class="sum-box"><div class="sum-title">HPP (Modal)</div><div id="gl_val_hpp" style="font-size:12px; font-weight:bold; color:#ffcc80;">Rp 0</div></div>
-                            <div class="sum-box"><div class="sum-title">Cost (OPR)</div><div id="gl_val_opr" style="font-size:12px; font-weight:bold; color:#ffab91;">Rp 0</div></div>
+                            <div class="sum-box"><div class="sum-title">Omzet</div><div id="gl_val_omzet" style="font-size:11px; font-weight:bold; color:#fff;">Rp 0</div></div>
+                            <div class="sum-box"><div class="sum-title">HPP (Modal)</div><div id="gl_val_hpp" style="font-size:11px; font-weight:bold; color:#ffcc80;">Rp 0</div></div>
+                            <div class="sum-box"><div class="sum-title">Cost (OPR)</div><div id="gl_val_opr" style="font-size:11px; font-weight:bold; color:#ffab91;">Rp 0</div></div>
                         </div>
-                        <div style="text-align:center; margin-top:10px; padding-top:10px; border-top:1px solid rgba(255,255,255,0.2); font-size:11px;">
-                            Volume Penjualan: <strong id="gl_val_qty" style="color:#fff; font-size:14px; margin-right:10px;">0 Kg</strong> | 
-                            Yield/Kg: <strong id="gl_val_yield" style="color:#ffeb3b; font-size:14px;">Rp 0</strong>
+
+                        <div style="display:flex; justify-content:space-between; margin-top:10px; padding-top:10px; border-top:1px solid rgba(255,255,255,0.2); font-size:11px;">
+                            <div style="text-align:left;">Volume Penjualan:<br><strong id="gl_val_qty" style="color:#fff; font-size:14px;">0 Kg</strong></div>
+                            <div style="text-align:right;">Profit Per Kg (Yield):<br><strong id="gl_val_yield" style="color:#ffeb3b; font-size:14px;">Rp 0</strong></div>
                         </div>
-                        <div style="text-align:center; margin-top:5px; font-size:11px; background:rgba(0,0,0,0.2); padding:5px; border-radius:5px;">Net Profit Margin: <strong id="gl_val_margin" style="color:#00e676; font-size:14px;">0%</strong></div>
+                        
+                        <div style="text-align:center; margin-top:10px; font-size:11px; background:rgba(0,0,0,0.2); padding:5px; border-radius:5px;">Net Profit Margin: <strong id="gl_val_margin" style="color:#00e676; font-size:14px;">0%</strong></div>
                     </div>
 
                     <div class="rekap-card">
@@ -385,6 +385,11 @@
                     </div>
 
                     <div class="rekap-card">
+                        <div class="rekap-title">Perbandingan Volume Gudang (Kg)</div>
+                        <div style="height: 200px; position: relative;"><canvas id="chartGudang"></canvas></div>
+                    </div>
+
+                    <div class="rekap-card">
                         <div class="rekap-title">Top 5 Konsumen Omzet Tertinggi</div>
                         <table id="table-top-konsumen"><thead><tr><th>Nama Relasi</th><th>Total (Kg)</th><th style="text-align:right">Omzet</th></tr></thead><tbody></tbody></table>
                     </div>
@@ -400,12 +405,23 @@
                     </div>
 
                     <div class="rekap-card">
+                        <div class="rekap-title">Porsi Penjualan Pakan (Kg)</div>
+                        <div style="height: 220px; position: relative;"><canvas id="chartDonutGlobal"></canvas></div>
+                    </div>
+                    
+                    <div class="rekap-card">
+                        <div class="rekap-title">Distribusi Biaya Operasional (OPR)</div>
+                        <div style="height: 220px; position: relative;"><canvas id="chartOprGlobal"></canvas></div>
+                    </div>
+
+                    <div class="rekap-card">
                         <div class="rekap-title">Rincian Arus Kas Harian</div>
                         <div id="gl_cf_summary" style="display:flex; justify-content:space-between; background:#fdf5e6; padding:10px; border-radius:8px; font-size:11px; font-weight:bold; margin-bottom:10px;"></div>
                         <div style="max-height: 300px; overflow-y: auto;">
                             <table id="table-cf-daily">
                                 <thead><tr><th>Tgl</th><th>Keterangan</th><th style="text-align:right">Nominal (Rp)</th></tr></thead>
                                 <tbody></tbody>
+                                <tfoot id="foot-cf-daily"></tfoot>
                             </table>
                         </div>
                     </div>
@@ -563,6 +579,7 @@
               document.getElementById('f_tahun').value = t.getFullYear();
               document.getElementById('cf_tanggal').valueAsDate = new Date(); 
               updateStatusKoneksi(); gantiLokasi(); updateKategoriCashflow(); fetchMasterRelasi();
+              initAnalytics(); 
           } else { document.getElementById('login-error').style.display = 'block'; }
       }
 
@@ -599,16 +616,14 @@
 
       // ================= ANALYTICS GLOBAL (LABA RUGI & CHART) =================
       Chart.register(ChartDataLabels);
-      let chMix, chDonut, chDaily;
+      let chMix, chDonut, chDaily, chGudang, chOpr;
+
+      function initAnalytics() {}
 
       function tarikDataGlobal(force) {
           if(!force && cacheDataGlobal) return;
           if(!navigator.onLine) { alert("Wajib online untuk menarik data Master Laba Rugi!"); return; }
-          let p = {
-              source: 'analytics_global',
-              bulan: document.getElementById('gl_bulan').value,
-              tahun: document.getElementById('gl_tahun').value
-          };
+          let p = { source: 'analytics_global', bulan: document.getElementById('gl_bulan').value, tahun: document.getElementById('gl_tahun').value };
           
           document.getElementById('gl_result').classList.add('hidden');
           document.getElementById('gl_loader').classList.remove('hidden');
@@ -659,9 +674,7 @@
                   let htmlTop = "";
                   if (d.topKonsumen && d.topKonsumen.length > 0) {
                       htmlTop = d.topKonsumen.map(k => `<tr><td>${k.n}</td><td>${nf.format(k.q)}</td><td style="text-align:right">Rp ${nf.format(k.v)}</td></tr>`).join('');
-                  } else {
-                      htmlTop = "<tr><td colspan='3' style='text-align:center'>Belum ada transaksi</td></tr>";
-                  }
+                  } else { htmlTop = "<tr><td colspan='3' style='text-align:center'>Belum ada transaksi</td></tr>"; }
                   document.querySelector('#table-top-konsumen tbody').innerHTML = htmlTop;
 
                   let htmlCF = "", sumIn = 0, sumOut = 0;
@@ -670,13 +683,42 @@
                           sumIn += safeNum(c.debet); sumOut += safeNum(c.kredit);
                           return `<tr><td>${c.tgl}</td><td><small>${c.kat} (${c.met})</small><br>${c.relasi}</td><td style="text-align:right" class="${c.debet > 0 ? 'tr-masuk' : 'tr-keluar'}">${nf.format(safeNum(c.debet || c.kredit))}</td></tr>`;
                       }).join('');
-                  } else {
-                      htmlCF = "<tr><td colspan='3' style='text-align:center'>Belum ada rincian kas</td></tr>";
-                  }
+                  } else { htmlCF = "<tr><td colspan='3' style='text-align:center'>Belum ada rincian kas</td></tr>"; }
                   document.querySelector('#table-cf-daily tbody').innerHTML = htmlCF;
+                  
                   let netCF = sumIn - sumOut;
                   document.getElementById('gl_cf_summary').innerHTML = `<span style="color:#2e7d32">IN: Rp ${nf.format(sumIn)}</span> <span style="color:#d32f2f">OUT: Rp ${nf.format(sumOut)}</span> <span style="color:#1a5c40">SISA: Rp ${nf.format(netCF)}</span>`;
 
+                  // CHART GUDANG
+                  if(chGudang) chGudang.destroy();
+                  chGudang = new Chart(document.getElementById('chartGudang').getContext('2d'), {
+                      type: 'bar',
+                      data: {
+                          labels: ['PM Gudang', 'RPH Gudang', 'SPN Gudang'],
+                          datasets: [
+                              { label: 'Masuk', data: [d.gudangData.PM.masuk, d.gudangData.RPH.masuk, d.gudangData.SPN.masuk], backgroundColor: '#f1c40f' },
+                              { label: 'Mutasi', data: [d.gudangData.PM.mutasi, d.gudangData.RPH.mutasi, d.gudangData.SPN.mutasi], backgroundColor: '#e67e22' },
+                              { label: 'Penjualan', data: [d.gudangData.PM.jual, d.gudangData.RPH.jual, d.gudangData.SPN.jual], backgroundColor: '#1a5c40' },
+                              { label: 'Pemakaian', data: [d.gudangData.PM.pakai, d.gudangData.RPH.pakai, d.gudangData.SPN.pakai], backgroundColor: '#3498db' },
+                              { label: 'Giling', data: [d.gudangData.PM.giling, d.gudangData.RPH.giling, d.gudangData.SPN.giling], backgroundColor: '#9b59b6' }
+                          ]
+                      },
+                      plugins: [ChartDataLabels],
+                      options: { 
+                          responsive: true, maintainAspectRatio: false, layout: { padding: { top: 20 } },
+                          scales: { y: { beginAtZero: true, ticks: { display: true, font: {size: 9} } } },
+                          plugins: { 
+                              legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } },
+                              datalabels: { 
+                                  display: function(context) { return context.dataset.data[context.dataIndex] > 0; }, 
+                                  anchor: 'end', align: 'top', font: { size: 9, weight: 'bold' }, color: '#555',
+                                  formatter: (val) => nf.format(val)
+                              } 
+                          } 
+                      }
+                  });
+
+                  // INTERAKSI TOOLTIP GANDA & KABEL RAPI (Tension: 0.1, Monotone)
                   let mixOptions = {
                       responsive: true, maintainAspectRatio: false,
                       interaction: { mode: 'index', intersect: false },
@@ -698,7 +740,7 @@
                           labels: d.chartMix.label,
                           datasets: [
                               { type: 'bar', label: 'Volume (Kg)', data: d.chartMix.qty, backgroundColor: 'rgba(52, 152, 219, 0.7)', yAxisID: 'yQty', borderRadius: 4 },
-                              { type: 'line', label: 'Omzet (Rp)', data: d.chartMix.omzet, borderColor: '#1a5c40', backgroundColor: '#1a5c40', tension: 0.1, pointRadius: 2, yAxisID: 'yOmzet' }
+                              { type: 'line', label: 'Omzet (Rp)', data: d.chartMix.omzet, borderColor: '#1a5c40', backgroundColor: '#1a5c40', tension: 0.4, cubicInterpolationMode: 'monotone', pointRadius: 2, yAxisID: 'yOmzet' }
                           ]
                       },
                       options: mixOptions
@@ -714,7 +756,7 @@
                               labels: d.chartDaily.label,
                               datasets: [
                                   { type: 'bar', label: 'Volume (Kg)', data: d.chartDaily.qty, backgroundColor: 'rgba(230, 126, 34, 0.7)', yAxisID: 'yQty', borderRadius: 2 },
-                                  { type: 'line', label: 'Omzet (Rp)', data: d.chartDaily.omzet, borderColor: '#e74c3c', backgroundColor: '#e74c3c', tension: 0.1, borderWidth: 2, pointRadius: 1, yAxisID: 'yOmzet' }
+                                  { type: 'line', label: 'Omzet (Rp)', data: d.chartDaily.omzet, borderColor: '#e74c3c', backgroundColor: '#e74c3c', tension: 0.4, cubicInterpolationMode: 'monotone', borderWidth: 2, pointRadius: 1, yAxisID: 'yOmzet' }
                               ]
                           },
                           options: mixOptions
@@ -742,6 +784,31 @@
                                       let sum = ctx.dataset.data.reduce((a, b) => a + b, 0);
                                       if(sum === 0) return "0%";
                                       return (value * 100 / sum).toFixed(1) + "%";
+                                  }
+                              }
+                          } 
+                      }
+                  });
+
+                  let ctxOpr = document.getElementById('chartOprGlobal').getContext('2d');
+                  if(chOpr) chOpr.destroy();
+                  chOpr = new Chart(ctxOpr, {
+                      type: 'doughnut',
+                      data: {
+                          labels: d.chartOpr.label,
+                          datasets: [{ data: d.chartOpr.data, backgroundColor: ['#e67e22', '#e74c3c', '#9b59b6', '#34495e', '#16a085'] }]
+                      },
+                      plugins: [ChartDataLabels],
+                      options: { 
+                          responsive: true, maintainAspectRatio: false, 
+                          plugins: { 
+                              legend: { position: 'right', labels: { boxWidth: 10, font: { size: 9 } } },
+                              datalabels: {
+                                  color: '#fff', font: { weight: 'bold', size: 10 },
+                                  formatter: (value, ctx) => {
+                                      let sum = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                                      if(sum === 0) return "0%";
+                                      return (value * 100 / sum).toFixed(0) + "%";
                                   }
                               }
                           } 
@@ -1123,27 +1190,14 @@
 
       function renderMonthlySummary(summary, kategoriArr, bulan, tahun) {
           let bNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-          let html = `<div class="summary-card" style="background: linear-gradient(135deg, #1a5c40, #2e7d32); color: white; padding: 18px; border-radius: 15px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-              <div style="font-weight:bold; margin-bottom:15px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 5px; font-size:13px;">📊 Rekap Data ${bNames[bulan-1]} ${tahun}</div>`;
+          let html = `<div class="summary-card"><div style="font-weight:bold; margin-bottom:15px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 5px;">📊 Rekap Global ${bNames[bulan-1]} ${tahun}</div>`;
           
-          let nf = new Intl.NumberFormat('id-ID');
           if (kategoriArr.includes('Cashflow')) {
-              let masuk = nf.format(summary.totalMasuk); let keluar = nf.format(summary.totalKeluar); let saldoStr = nf.format(Math.abs(summary.totalMasuk - summary.totalKeluar)); let sign = (summary.totalMasuk - summary.totalKeluar) >= 0 ? "+" : "-";
-              html += `<div class="sum-title" style="font-size:11px; opacity:0.9;">Saldo Kas Bersih</div>
-                       <div class="sum-val" style="font-size:24px; font-weight:bold; color:#ffeb3b; margin-bottom:10px;">${sign} Rp ${saldoStr}</div>
-                       <div class="sum-row" style="display:flex; justify-content:space-between; border-top:1px solid rgba(255,255,255,0.2); padding-top:10px;">
-                           <div class="sum-box"><div class="sum-title" style="font-size:10px; opacity:0.8;">Uang Masuk</div><div style="font-size:13px; font-weight:bold;">Rp ${masuk}</div></div>
-                           <div class="sum-box" style="text-align:right;"><div class="sum-title" style="font-size:10px; opacity:0.8;">Uang Keluar</div><div style="font-size:13px; font-weight:bold;">Rp ${keluar}</div></div>
-                       </div>`;
+              let masuk = new Intl.NumberFormat('id-ID').format(summary.totalMasuk); let keluar = new Intl.NumberFormat('id-ID').format(summary.totalKeluar); let saldoStr = new Intl.NumberFormat('id-ID').format(Math.abs(summary.totalMasuk - summary.totalKeluar)); let sign = (summary.totalMasuk - summary.totalKeluar) >= 0 ? "+" : "-";
+              html += `<div class="sum-title">Saldo Kas Bersih</div><div class="sum-val">${sign} Rp ${saldoStr}</div><div class="sum-row"><div class="sum-box"><div class="sum-title">Uang Masuk</div><div style="font-size:13px; font-weight:bold;">Rp ${masuk}</div></div><div class="sum-box"><div class="sum-title">Uang Keluar</div><div style="font-size:13px; font-weight:bold;">Rp ${keluar}</div></div></div>`;
           } else {
-              let jual = nf.format(summary.penjualan || 0); let mutasi = nf.format(summary.mutasi || 0); let masuk = nf.format(summary.masuk || 0); let giling = nf.format(summary.giling || 0);
-              html += `<div class="sum-title" style="font-size:11px; opacity:0.9;">Total Penjualan</div>
-                       <div class="sum-val" style="font-size:24px; font-weight:bold; color:#ffeb3b; margin-bottom:10px;">${jual} Kg</div>
-                       <div class="sum-row" style="display:flex; justify-content:space-between; border-top:1px solid rgba(255,255,255,0.2); padding-top:10px;">
-                           <div class="sum-box"><div class="sum-title" style="font-size:10px; opacity:0.8;">Mutasi</div><div style="font-size:12px; font-weight:bold; color:#a5d6a7;">${mutasi} Kg</div></div>
-                           <div class="sum-box" style="text-align:center;"><div class="sum-title" style="font-size:10px; opacity:0.8;">Masuk</div><div style="font-size:12px; font-weight:bold; color:#ffcc80;">${masuk} Kg</div></div>
-                           <div class="sum-box" style="text-align:right;"><div class="sum-title" style="font-size:10px; opacity:0.8;">Giling</div><div style="font-size:12px; font-weight:bold; color:#ce93d8;">${giling} Kg</div></div>
-                       </div>`;
+              let jual = new Intl.NumberFormat('id-ID').format(summary.penjualan || 0); let mutasi = new Intl.NumberFormat('id-ID').format(summary.mutasi || 0); let masuk = new Intl.NumberFormat('id-ID').format(summary.masuk || 0); let giling = new Intl.NumberFormat('id-ID').format(summary.giling || 0);
+              html += `<div class="sum-title">Total Penjualan</div><div class="sum-val">${jual} Kg</div><div class="sum-row" style="gap: 5px;"><div class="sum-box"><div class="sum-title">Total Mutasi</div><div style="font-size:13px; font-weight:bold; color:#a5d6a7;">${mutasi} Kg</div></div><div class="sum-box"><div class="sum-title">Brg Masuk</div><div style="font-size:13px; font-weight:bold; color:#ffcc80;">${masuk} Kg</div></div><div class="sum-box"><div class="sum-title">Giling</div><div style="font-size:13px; font-weight:bold; color:#ce93d8;">${giling} Kg</div></div></div>`;
           }
           html += `</div>`; document.getElementById('rekap-summary-container').innerHTML = html;
       }
@@ -1168,28 +1222,26 @@
           
           let dayData = globalDataBulan[dateStr]; let container = document.getElementById('rekap-hasil');
           let html = ''; let textWA = `*REKAP TANGGAL ${dateStr.split('-').reverse().join('/')}*\n\n`;
-          let nf = new Intl.NumberFormat('id-ID');
 
           if (dayData.isCashflow) {
-              html += `<div class="rekap-card" style="border-top: 4px solid #4CAF50;"><div class="rekap-title">🟢 UANG MASUK</div>`;
-              for (let kat in dayData.Masuk) { html += `<div style="font-weight:bold; font-size:13px; color:#1a5c40; margin-top:10px;">[${kat}]</div>`; dayData.Masuk[kat].forEach(trx => { html += `<div class="rekap-item" style="margin-left: 10px;"><span>- ${trx.relasi}</span><span style="font-weight:bold;">Rp ${nf.format(trx.debet)}</span></div>`; }); } html += `</div>`;
-              
-              html += `<div class="rekap-card" style="border-top: 4px solid #e91e63;"><div class="rekap-title">🔴 UANG KELUAR</div>`;
-              for (let kat in dayData.Keluar) { html += `<div style="font-weight:bold; font-size:13px; color:#e91e63; margin-top:10px;">[${kat}]</div>`; dayData.Keluar[kat].forEach(trx => { html += `<div class="rekap-item" style="margin-left: 10px;"><span>- ${trx.relasi}</span><span style="font-weight:bold;">Rp ${nf.format(trx.kredit)}</span></div>`; }); } html += `</div>`;
+              html += `<div class="rekap-card" style="border-top: 4px solid #4CAF50;"><div class="rekap-title">UANG MASUK</div>`;
+              for (let kat in dayData.Masuk) { html += `<div style="font-weight:bold; font-size:13px; color:#1a5c40; margin-top:10px;">[${kat}]</div>`; dayData.Masuk[kat].forEach(trx => { html += `<div class="rekap-item" style="margin-left: 10px;"><span>- ${trx.relasi}</span><span style="font-weight:bold;">Rp ${new Intl.NumberFormat('id-ID').format(trx.debet)}</span></div>`; }); } html += `</div>`;
+              html += `<div class="rekap-card" style="border-top: 4px solid #e91e63;"><div class="rekap-title">UANG KELUAR</div>`;
+              for (let kat in dayData.Keluar) { html += `<div style="font-weight:bold; font-size:13px; color:#e91e63; margin-top:10px;">[${kat}]</div>`; dayData.Keluar[kat].forEach(trx => { html += `<div class="rekap-item" style="margin-left: 10px;"><span>- ${trx.relasi}</span><span style="font-weight:bold;">Rp ${new Intl.NumberFormat('id-ID').format(trx.kredit)}</span></div>`; }); } html += `</div>`;
           } else {
               for (let kat in dayData.items) {
                   let colorCode = kat==="Masuk" ? "#FFC107" : (kat==="Pemakaian" ? "#2196F3" : (kat==="Giling" ? "#9C27B0" : "#4CAF50"));
-                  html += `<div class="rekap-card" style="border-top: 4px solid ${colorCode};"><div class="rekap-title" style="font-size:15px; color:#333;">📌 KATEGORI: ${kat.toUpperCase()}</div>`;
+                  html += `<div class="rekap-card" style="border-top: 4px solid ${colorCode};"><div class="rekap-title" style="font-size:15px; color:#333;">KATEGORI: ${kat.toUpperCase()}</div>`;
                   textWA += `📌 *${kat.toUpperCase()}*\n`;
                   let grandTotalKategori = 0; 
                   for (let relasi in dayData.items[kat]) {
-                      html += `<div style="font-weight:bold; font-size:13px; margin-top:10px; color:#444;">👤 ${relasi}</div>`; textWA += `👤 ${relasi}\n`;
+                      html += `<div style="font-weight:bold; font-size:13px; margin-top:10px; color:#444;">${relasi}</div>`; textWA += `👤 ${relasi}\n`;
                       let subTotal = 0;
                       dayData.items[kat][relasi].forEach(item => { html += `<div class="rekap-item"><span style="padding-left:15px;">- ${item.pakan}</span><span>${item.qty.toLocaleString('id-ID')} Kg</span></div>`; textWA += `- ${item.pakan}: ${item.qty.toLocaleString('id-ID')} Kg\n`; subTotal += item.qty; });
                       html += `<div class="rekap-item" style="font-weight:bold; font-size:12px; margin-top:5px; border-top:1px dashed #eee; padding-top:5px;"><span style="padding-left:15px;">Sub Total</span><span>${subTotal.toLocaleString('id-ID')} Kg</span></div>`; textWA += `_Sub Total: ${subTotal.toLocaleString('id-ID')} Kg_\n\n`;
                       grandTotalKategori += subTotal;
                   }
-                  html += `<div style="margin-top: 15px; padding-top: 10px; border-top: 2px solid ${colorCode}; font-weight: bold; font-size: 14px; text-align: center; color: ${colorCode};">📝 GRAND TOTAL ${kat.toUpperCase()}: ${grandTotalKategori.toLocaleString('id-ID')} Kg</div>`;
+                  html += `<div style="margin-top: 15px; padding-top: 10px; border-top: 2px solid ${colorCode}; font-weight: bold; font-size: 14px; text-align: center; color: ${colorCode};">GRAND TOTAL ${kat.toUpperCase()}: ${grandTotalKategori.toLocaleString('id-ID')} Kg</div>`;
                   textWA += `*📝 GRAND TOTAL ${kat.toUpperCase()}: ${grandTotalKategori.toLocaleString('id-ID')} Kg*\n\n`;
                   html += `</div>`;
               }
