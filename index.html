@@ -953,22 +953,51 @@
               let d = dataPiutangLokal[nama];
               let safeClass = nama.replace(/[\s\W]/g, '');
               
-              let htmlItems = d.items.map((it, idx) => {
-                  let safeSatuan = it.satuan || (it.pakan.toLowerCase().includes('ongkir') ? 'Rit' : 'Kg');
+              let dateKeys = Object.keys(d.dates);
+              let htmlItems = dateKeys.map((dateStr, idx) => {
+                  let dateObj = d.dates[dateStr];
                   
-                  // LOGIKA JIKA BARIS TERSEBUT SUDAH ADA DP
-                  if (it.dp > 0) {
-                      return `<div style="display:flex; align-items:center; padding:8px 0; border-bottom:1px solid #eee; background:#f9f9f9; opacity:0.6;">
-                          <div style="width:20px; height:20px; margin-right:10px; display:flex; justify-content:center; align-items:center; font-size:14px;">🔒</div>
-                          <div style="flex:1; line-height:1.3;"><b>${it.tgl}</b><br><small><del>${it.pakan} (${it.qty} ${safeSatuan})</del><br><span style="color:#d32f2f; font-weight:bold;">Telah di-DP: Rp ${nf.format(it.dp)}</span></small></div>
-                          <div style="font-weight:bold; color:#888; font-size:11px;">Rp ${nf.format(it.nominal)}</div>
+                  // Elemen rincian pakan yang tersembunyi
+                  let rincianHtml = dateObj.items.map(it => {
+                      let safeSatuan = it.satuan || (it.pakan.toLowerCase().includes('ongkir') ? 'Rit' : 'Kg');
+                      return `<div style="display:flex; justify-content:space-between; font-size:10px; color:#555; padding-left:30px; margin-top:3px;">
+                          <span>- ${it.pakan} (${it.qty} ${safeSatuan})</span>
+                          <span>Rp ${nf.format(it.nominal)}</span>
+                      </div>`;
+                  }).join('');
+
+                  // Jika sudah ada DP -> KUNCI (Gembok)
+                  if (dateObj.dp > 0) {
+                      return `<div style="padding:10px 0; border-bottom:1px solid #eee; background:#f9f9f9; opacity:0.8;">
+                          <div style="display:flex; align-items:center;">
+                              <div style="width:20px; text-align:center; margin-right:10px; font-size:14px;">🔒</div>
+                              <div style="flex:1; line-height:1.3; cursor:pointer;" onclick="document.getElementById('rincian_${safeClass}_${idx}').classList.toggle('hidden')">
+                                  <b style="color:#333;">${dateObj.tgl}</b> <span style="font-size:10px; color:#2196F3; font-weight:bold;">(Lihat rincian ▾)</span><br>
+                                  <small style="color:#d32f2f; font-weight:bold;">Sisa Saldo: Rp ${nf.format(dateObj.saldo)}</small>
+                              </div>
+                              <div style="text-align:right;">
+                                  <div style="font-weight:bold; color:#888; font-size:11px; text-decoration:line-through;">Rp ${nf.format(dateObj.tagihan)}</div>
+                                  <div style="font-size:9px; color:#d32f2f;">Ter-DP: Rp ${nf.format(dateObj.dp)}</div>
+                              </div>
+                          </div>
+                          <div id="rincian_${safeClass}_${idx}" class="hidden" style="margin-top:5px; border-top:1px dashed #ddd; padding-top:5px;">
+                              ${rincianHtml}
+                          </div>
                       </div>`;
                   } else {
-                      // LOGIKA NORMAL JIKA BELUM ADA DP (Bisa dicentang)
-                      return `<div style="display:flex; align-items:center; padding:8px 0; border-bottom:1px solid #eee;">
-                          <input type="checkbox" id="chk_${safeClass}_${idx}" class="chk-inv-${safeClass}" value='${JSON.stringify(it)}' style="width:20px; height:20px; margin-right:10px;" checked onchange="hitungPreviewSubtotal('${safeClass}')">
-                          <div style="flex:1; line-height:1.2;"><b>${it.tgl}</b><br><small>${it.pakan} (${it.qty} ${safeSatuan})</small></div>
-                          <div style="font-weight:bold; color:#1a5c40; font-size:11px;">Rp ${nf.format(it.nominal)}</div>
+                      // Jika belum di-DP -> Muncul Centangan
+                      let valStr = JSON.stringify(dateObj.items).replace(/'/g, "&#39;"); // Hindari error tanda kutip
+                      return `<div style="padding:10px 0; border-bottom:1px solid #eee;">
+                          <div style="display:flex; align-items:center;">
+                              <input type="checkbox" id="chk_${safeClass}_${idx}" class="chk-inv-${safeClass}" value='${valStr}' data-nominal="${dateObj.tagihan}" style="width:20px; height:20px; margin-right:10px;" checked onchange="hitungPreviewSubtotal('${safeClass}')">
+                              <div style="flex:1; line-height:1.2; cursor:pointer;" onclick="document.getElementById('rincian_${safeClass}_${idx}').classList.toggle('hidden')">
+                                  <b style="color:#1a5c40;">${dateObj.tgl}</b> <span style="font-size:10px; color:#2196F3; font-weight:bold;">(Lihat rincian ▾)</span>
+                              </div>
+                              <div style="font-weight:bold; color:#1a5c40; font-size:12px;">Rp ${nf.format(dateObj.tagihan)}</div>
+                          </div>
+                          <div id="rincian_${safeClass}_${idx}" class="hidden" style="margin-top:5px; border-top:1px dashed #ddd; padding-top:5px;">
+                              ${rincianHtml}
+                          </div>
                       </div>`;
                   }
               }).join('');
@@ -997,7 +1026,7 @@
       function hitungPreviewSubtotal(safeClass) {
           let checkboxes = document.querySelectorAll(`.chk-inv-${safeClass}:checked`);
           let subtotal = 0;
-          checkboxes.forEach(cb => { let data = JSON.parse(cb.value); subtotal += data.nominal; });
+          checkboxes.forEach(cb => { subtotal += parseFloat(cb.getAttribute('data-nominal')); });
           document.getElementById(`tot_pilihan_${safeClass}`).innerText = "Rp " + new Intl.NumberFormat('id-ID').format(subtotal);
       }
 
@@ -1005,9 +1034,12 @@
           namaKonsumenAktif = nama;
           let safeClass = nama.replace(/[\s\W]/g, '');
           let checkboxes = document.querySelectorAll(`.chk-inv-${safeClass}:checked`);
-          if (checkboxes.length === 0) return alert("Pilih minimal 1 transaksi untuk di-invoice!");
+          if (checkboxes.length === 0) return alert("Pilih minimal 1 tanggal pengambilan untuk di-invoice!");
           
-          itemInvoiceTerpilih = Array.from(checkboxes).map(cb => JSON.parse(cb.value));
+          // Gabungkan seluruh item dari tanggal yang dicentang
+          let rawItems = Array.from(checkboxes).map(cb => JSON.parse(cb.value));
+          itemInvoiceTerpilih = rawItems.flat(); 
+          
           document.getElementById('inv_input_diskon').value = 0;
           document.getElementById('inv_input_ket').value = "";
           
