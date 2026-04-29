@@ -128,10 +128,8 @@
       /* MODAL INVOICE & TEMPLATE A5 */
       #modal-invoice { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.85); z-index:9999; padding:15px; display:flex; flex-direction:column; align-items:center; overflow-y:auto; }
       .invoice-wrapper { width: 100%; max-width: 100vw; overflow-x: auto; background: transparent; display: flex; justify-content: flex-start; margin-bottom: 15px; padding-bottom: 10px; -webkit-overflow-scrolling: touch; }
+      /* Exact A5 Size at 96 DPI: 794px x 559px */
       #area-cetak-invoice { width: 794px; min-width: 794px; height: 559px; min-height: 559px; padding: 30px 40px; box-sizing: border-box; background: white; color: black; font-family: 'Arial', sans-serif; display: flex; flex-direction: column; }
-      .inv-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; border: 2px solid #000; font-size: 11px; }
-      .inv-table th, .inv-table td { border: 1px solid #000; padding: 5px; }
-      .inv-table th { background: #e0e0e0; color: #000; font-weight: bold; text-align: center; }
     </style>
   </head>
   <body>
@@ -554,7 +552,7 @@
                             </div>
                             <div style="width: 45%; font-size:10px;">
                                 <table style="width:100%; border:none; line-height:1.5;">
-                                    <tr><td style="width:90px; border:none; padding:0;">No. Invoice</td><td style="border:none; padding:0;">: <i id="inv_pdf_no"></i></td></tr>
+                                    <tr><td style="width:90px; border:none; padding:0;">No. Invoice</td><td style="border:none; padding:0;">: <strong id="inv_pdf_no"></strong></td></tr>
                                     <tr><td style="border:none; padding:0;">Tanggal Invoice</td><td style="border:none; padding:0;">: <span id="inv_pdf_tgl"></span></td></tr>
                                     <tr><td style="border:none; padding:0;">Kepada Yth</td><td style="border:none; padding:0;">: <span id="inv_pdf_nama"></span></td></tr>
                                     <tr><td style="vertical-align:top; border:none; padding:0;">Alamat</td><td style="vertical-align:top; border:none; padding:0;">: <span id="inv_pdf_alamat"></span></td></tr>
@@ -562,32 +560,35 @@
                             </div>
                         </div>
                         
-                        <table class="inv-table">
+                        <table class="inv-table" style="width:100%; border-collapse:collapse; margin-bottom:10px; border:1px solid #000; color:#000;">
                             <thead>
-                                <tr>
-                                    <th style="width:5%;">No.</th>
-                                    <th style="width:15%;">Tanggal DO</th>
-                                    <th style="width:35%; text-align:left;">Deskripsi</th>
-                                    <th style="width:10%;">Qty</th>
-                                    <th style="width:8%;">Satuan</th>
-                                    <th style="width:12%;">Harga</th>
-                                    <th style="width:15%;">Total</th>
+                                <tr style="background:#444; color:white;">
+                                    <th style="border: 1px solid #000; text-align:center; width:5%; padding:4px;">No.</th>
+                                    <th style="border: 1px solid #000; text-align:center; width:15%; padding:4px;">Tanggal DO</th>
+                                    <th style="border: 1px solid #000; text-align:center; width:35%; padding:4px;">Deskripsi</th>
+                                    <th style="border: 1px solid #000; text-align:center; width:10%; padding:4px;">Qty</th>
+                                    <th style="border: 1px solid #000; text-align:center; width:8%; padding:4px;">Satuan</th>
+                                    <th style="border: 1px solid #000; text-align:center; width:12%; padding:4px;">Harga</th>
+                                    <th style="border: 1px solid #000; text-align:center; width:15%; padding:4px;">Total</th>
                                 </tr>
                             </thead>
                             <tbody id="inv_pdf_items"></tbody>
                         </table>
                         
-                        <div style="display:flex; justify-content:space-between; margin-top: auto;">
-                            <div style="width: 45%; background:#e0e0e0; padding:8px; font-size:8px; border:1px solid #000; height:fit-content;">
+                        <div style="display:flex; justify-content:space-between; margin-top: auto; padding-top: 5px;">
+                            <div style="width: 50%; background:#e0e0e0; padding:10px; font-size:9px; border:1px solid #000; height:fit-content; color:#000;">
                                 <b>Catatan:</b><br>
                                 Diskon berlaku hanya pada tanggal penerbitan invoice dan tidak berlaku untuk transaksi pada tanggal berikutnya.<br><br>
                                 Pembayaran ditransfer ke <b>rek. BCA 1374444550</b><br>
                                 a/n. CITA BENGGALA LESTARI PT
+                                <div style="margin-top:8px; border-top:1px dashed #999; padding-top:5px; font-size:11px;">
+                                    <b>Keterangan:</b> <span id="inv_pdf_ket">-</span>
+                                </div>
                             </div>
-                            <div style="width: 45%; font-size:11px;">
+                            <div style="width: 40%; font-size:12px; color:#000;">
                                 <div style="display:flex; justify-content:space-between; padding:3px 0;"><span>Subtotal:</span> <span id="inv_pdf_subtotal">Rp 0</span></div>
                                 <div style="display:flex; justify-content:space-between; padding:3px 0;"><span>Diskon:</span> <span id="inv_pdf_diskon">Rp 0</span></div>
-                                <div style="display:flex; justify-content:space-between; padding:5px 0; border-top:2px solid #000; border-bottom:2px solid #000; font-size:14px; font-weight:bold; margin-top:3px; margin-bottom:5px;"><span>Total:</span> <span id="inv_pdf_grandtotal">Rp 0</span></div>
+                                <div style="display:flex; justify-content:space-between; padding:5px 0; border-top:2px solid #000; border-bottom:2px solid #000; font-size:15px; font-weight:bold; margin-top:3px; margin-bottom:5px;"><span>Total:</span> <span id="inv_pdf_grandtotal">Rp 0</span></div>
                                 <div style="font-size:9px; text-align:right; font-style:italic;" id="inv_pdf_terbilang">Terbilang: -</div>
                             </div>
                         </div>
@@ -646,7 +647,6 @@
       let globalDataBulan = {};
       let cacheDataGlobal = null; 
 
-      // Variabel Piutang
       let dataPiutangLokal = {};
       let itemInvoiceTerpilih = [];
       let namaKonsumenAktif = "";
@@ -710,7 +710,6 @@
           document.getElementById('view-' + tab).classList.remove('hidden');
       }
 
-      // ================= ANALYTICS GLOBAL =================
       Chart.register(ChartDataLabels);
       let chMix, chDonut, chDaily, chGudang, chOpr;
 
@@ -793,8 +792,8 @@
                           datasets: [
                               { label: 'Masuk', data: [d.gudangData.PM.masuk, d.gudangData.RPH.masuk, d.gudangData.SPN.masuk], backgroundColor: '#f1c40f' },
                               { label: 'Mutasi', data: [d.gudangData.PM.mutasi, d.gudangData.RPH.mutasi, d.gudangData.SPN.mutasi], backgroundColor: '#e67e22' },
-                              { label: 'Penjualan', data: [d.gudangData.PM.jual, d.gudangData.RPH.jual, d.gudangData.SPN.jual], backgroundColor: '#1a5c40' },
-                              { label: 'Pemakaian', data: [d.gudangData.PM.pakai, d.gudangData.RPH.pakai, d.gudangData.SPN.pakai], backgroundColor: '#3498db' },
+                              { label: 'Jual', data: [d.gudangData.PM.jual, d.gudangData.RPH.jual, d.gudangData.SPN.jual], backgroundColor: '#1a5c40' },
+                              { label: 'Pakai', data: [d.gudangData.PM.pakai, d.gudangData.RPH.pakai, d.gudangData.SPN.pakai], backgroundColor: '#3498db' },
                               { label: 'Giling', data: [d.gudangData.PM.giling, d.gudangData.RPH.giling, d.gudangData.SPN.giling], backgroundColor: '#9b59b6' }
                           ]
                       },
@@ -839,7 +838,6 @@
           }).catch(e => { alert("Error: " + e.message); document.getElementById('gl_loader').classList.add('hidden'); });
       }
 
-      // ================= ANALYTICS KONSUMEN =================
       let chartKonsumen;
       function renderChartOmzetRelasi(labels, data) {
           const ctx = document.getElementById('chartOmzetRelasi').getContext('2d');
@@ -941,7 +939,6 @@
 
       function renderListPiutang() {
           let nf = new Intl.NumberFormat('id-ID'); let html = "";
-          // Sorting nominal piutang dari terbanyak ke sedikit
           let sortedKeys = Object.keys(dataPiutangLokal).sort((a, b) => dataPiutangLokal[b].total - dataPiutangLokal[a].total);
 
           for (let i = 0; i < sortedKeys.length; i++) {
@@ -949,13 +946,14 @@
               let d = dataPiutangLokal[nama];
               let safeClass = nama.replace(/[\s\W]/g, '');
               
-              let htmlItems = d.items.map((it, idx) => `
-                  <div style="display:flex; align-items:center; padding:8px 0; border-bottom:1px solid #eee;">
+              let htmlItems = d.items.map((it, idx) => {
+                  let safeSatuan = it.satuan || (it.pakan.toLowerCase().includes('ongkir') ? 'Rit' : 'Kg');
+                  return `<div style="display:flex; align-items:center; padding:8px 0; border-bottom:1px solid #eee;">
                       <input type="checkbox" id="chk_${safeClass}_${idx}" class="chk-inv-${safeClass}" value='${JSON.stringify(it)}' style="width:20px; height:20px; margin-right:10px;" checked onchange="hitungPreviewSubtotal('${safeClass}')">
-                      <div style="flex:1; line-height:1.2;"><b>${it.tgl}</b><br><small>${it.pakan} (${it.qty} ${it.satuan})</small></div>
+                      <div style="flex:1; line-height:1.2;"><b>${it.tgl}</b><br><small>${it.pakan} (${it.qty} ${safeSatuan})</small></div>
                       <div style="font-weight:bold; color:#1a5c40; font-size:11px;">Rp ${nf.format(it.nominal)}</div>
-                  </div>
-              `).join('');
+                  </div>`;
+              }).join('');
 
               html += `
                   <div class="rekap-card card-piutang-item" data-nama="${nama.toLowerCase()}" style="border-left: 4px solid #FF9800; margin-bottom: 12px;">
@@ -1038,22 +1036,27 @@
           document.getElementById('inv_pdf_nama').innerText = namaKonsumenAktif;
           document.getElementById('inv_pdf_alamat').innerText = alamatStr || "-";
 
-          let pad = "5px"; let fSize = "11px";
-          if(itemInvoiceTerpilih.length > 8) { pad = "3px"; fSize = "10px"; }
-          if(itemInvoiceTerpilih.length > 12) { pad = "2px"; fSize = "9px"; }
+          // Auto-Size agar FIT di Kertas A5
+          let pad = "5px"; let fSize = "11px"; let lHeight = "1.5";
+          let len = itemInvoiceTerpilih.length;
+          if(len > 6) { pad = "4px"; fSize = "10px"; lHeight = "1.3"; }
+          if(len > 10) { pad = "3px"; fSize = "9px"; lHeight = "1.2"; }
+          if(len > 15) { pad = "2px"; fSize = "8.5px"; lHeight = "1.1"; }
+          if(len > 18) { pad = "1px"; fSize = "8px"; lHeight = "1"; }
 
           let subtotal = 0;
           let htmlItems = itemInvoiceTerpilih.map((it, i) => {
               subtotal += it.nominal;
               let hargaSatuanStr = it.hargaSatuan > 0 ? nf.format(it.hargaSatuan) : nf.format(it.nominal / (it.qty || 1));
-              return `<tr style="font-size:${fSize};">
-                  <td style="padding:${pad}; text-align:center;">${i+1}</td>
-                  <td style="padding:${pad}; text-align:center;">${it.tgl}</td>
-                  <td style="padding:${pad};">${it.pakan}</td>
-                  <td style="padding:${pad}; text-align:right;">${nf.format(it.qty)}</td>
-                  <td style="padding:${pad}; text-align:center;">${it.satuan || 'Kg'}</td>
-                  <td style="padding:${pad}; text-align:right;">${hargaSatuanStr}</td>
-                  <td style="padding:${pad}; text-align:right;">${nf.format(it.nominal)}</td>
+              let safeSatuan = it.satuan || (it.pakan.toLowerCase().includes('ongkir') ? 'Rit' : 'Kg');
+              return `<tr style="font-size:${fSize}; line-height:${lHeight}; color:#000;">
+                  <td style="padding:${pad}; border:1px solid #000; text-align:center;">${i+1}</td>
+                  <td style="padding:${pad}; border:1px solid #000; text-align:center;">${it.tgl}</td>
+                  <td style="padding:${pad}; border:1px solid #000;">${it.pakan}</td>
+                  <td style="padding:${pad}; border:1px solid #000; text-align:right;">${nf.format(it.qty)}</td>
+                  <td style="padding:${pad}; border:1px solid #000; text-align:center;">${safeSatuan}</td>
+                  <td style="padding:${pad}; border:1px solid #000; text-align:right;">${hargaSatuanStr}</td>
+                  <td style="padding:${pad}; border:1px solid #000; text-align:right;">${nf.format(it.nominal)}</td>
               </tr>`;
           }).join('');
 
@@ -1063,6 +1066,7 @@
           document.getElementById('inv_pdf_subtotal').innerText = nf.format(subtotal);
           document.getElementById('inv_pdf_diskon').innerText = diskon > 0 ? nf.format(diskon) : "0";
           document.getElementById('inv_pdf_grandtotal').innerText = nf.format(grandTotal);
+          document.getElementById('inv_pdf_ket').innerText = ket;
           
           let teksTerbilang = terbilangRupiah(grandTotal) + " Rupiah";
           document.getElementById('inv_pdf_terbilang').innerText = `Terbilang: ${teksTerbilang}`;
@@ -1158,7 +1162,6 @@
           btn.innerText = "📤 SHARE PDF KE WA"; btn.disabled = false;
       }
 
-      // ================= FUNGSI INPUT GUDANG & CASHFLOW =================
       function getLokasiAktif() { let u = document.querySelector('input[name="lokasi_utama"]:checked').value; let s = document.querySelector('input[name="sub_lokasi"]:checked').value; if (u === 'PM' && s === 'gudang') return '/pm'; if (u === 'PM' && s === 'kandang') return '/kandang'; if (u === 'SPN') return '/spn'; if (u === 'RPH') return '/rph'; return '/pm'; }
       function updateSubLokasi() { let u = document.querySelector('input[name="lokasi_utama"]:checked').value; let groupSub = document.getElementById('group-sub-lokasi'); if (u === 'PM') { groupSub.classList.remove('hidden'); } else { groupSub.classList.add('hidden'); document.getElementById('sub_gudang').checked = true; } gantiLokasi(); }
       function gantiLokasi() { let lokasi = getLokasiAktif(); let inputRelasi = document.getElementById('wrapper-relasi'); let selKandang = document.getElementById('relasi_kandang'); let labelRelasi = document.getElementById('label-relasi'); if(lokasi === '/kandang') { labelRelasi.innerText = "Kelompok Sapi"; inputRelasi.classList.add('hidden'); selKandang.classList.remove('hidden'); } else { labelRelasi.innerText = "Nama Relasi / Tujuan"; inputRelasi.classList.remove('hidden'); selKandang.classList.add('hidden'); } let cachedData = localStorage.getItem('pakan_data_' + lokasi); if (cachedData) renderPakan(JSON.parse(cachedData)); else document.getElementById('product-list').innerHTML = '<div class="loader">Membutuhkan koneksi internet...</div>'; if (navigator.onLine) { fetch(`${API_URL}?action=getPakan&lokasi=${lokasi}`).then(res => res.json()).then(res => { if(res.status === 'success') { localStorage.setItem('pakan_data_' + lokasi, JSON.stringify(res)); renderPakan(res); } }).catch(e => console.log("Gagal fetch data")); } }
@@ -1179,7 +1182,6 @@
       function hitungCalc(index) { let el = document.getElementById('qty-' + index); let val = el.value.replace(/[^0-9+\-*/.,]/g, ''); if(el.value !== val) el.value = val; let mathStr = val.replace(/,/g, '.'); let total = 0; try { while(mathStr.endsWith('+') || mathStr.endsWith('-') || mathStr.endsWith('*') || mathStr.endsWith('/')) mathStr = mathStr.slice(0, -1); if(mathStr) total = new Function('return (' + mathStr + ')')(); } catch(e) { total = 0; } el.setAttribute('data-total', total || 0); let kemasan = parseFloat(el.getAttribute('data-kemasan')) || 0; let satuan = el.getAttribute('data-satuan') || "Kg"; let namaItem = currentItems[index].nama.toLowerCase(); let namaKemasan = (satuan.toLowerCase() === 'ltr' || namaItem.includes('bio smart')) ? "Jirigen" : "Karung"; let lblKarung = document.getElementById('lbl-karung-' + index); let hasilEl = document.getElementById('hasil-' + index); if (kemasan > 0) { let jmlKarung = total / kemasan; el.setAttribute('data-karung', jmlKarung); if (lblKarung) { if (total > 0) { let formatKarung = Number.isInteger(jmlKarung) ? jmlKarung : jmlKarung.toFixed(2); lblKarung.innerText = `(${formatKarung} ${namaKemasan})`; } else { lblKarung.innerText = ""; } } } else { let jmlKarung = val.split(/[+\-*/]/).filter(x => parseFloat(x) > 0).length; el.setAttribute('data-karung', jmlKarung); if (hasilEl) { let textHasil = "= " + Number(total || 0).toLocaleString('id-ID'); if (total > 0 && jmlKarung > 0) { textHasil += ` (${jmlKarung} Krg)`; } hasilEl.innerText = textHasil; } } }
       function kirimData() { tutupKeyboard(); let inputVal = document.getElementById('ekor').value.trim(); let isAngka = !isNaN(inputVal) && inputVal !== ""; let lokasiTerpilih = getLokasiAktif(); let isKandang = (lokasiTerpilih === '/kandang'); let valRelasi = isKandang ? document.getElementById('relasi_kandang').value : document.getElementById('relasi').value.trim(); let statusPilihan = document.getElementById('status').value; let isMutasiKandang = valRelasi.toLowerCase().includes('kandang'); if (!navigator.onLine && statusPilihan === 'Masuk' && !isMutasiKandang) { alert("⚠️ Barang Masuk wajib ONLINE!"); return; } if (statusPilihan === 'Masuk' && !fileBase64_SJ && !isMutasiKandang) { alert("⚠️ Foto SJ wajib diisi!"); return; } let payload = { petugas: activeUser, lokasi: lokasiTerpilih, tanggal: document.getElementById('tanggal').value, status: statusPilihan, relasi: valRelasi, ekor: isAngka ? parseFloat(inputVal) : 0, alamat: !isAngka ? inputVal : "", ongkir: document.getElementById('ongkir').value, catatan: document.getElementById('catatan').value, items: {}, fileSJ: (statusPilihan === 'Masuk' && fileBase64_SJ) ? { base64: fileBase64_SJ, mime: fileMime_SJ } : null }; if (!payload.relasi) { alert("Relasi kosong!"); return; } let totalItem = 0; currentItems.forEach(function(item, index) { let el = document.getElementById('qty-' + index); let qty = parseFloat(el.getAttribute('data-total')) || 0; if (qty > 0) { payload.items[item.nama] = qty; totalItem++; } }); if (totalItem === 0) { alert("Isi pakan!"); return; } let btn = document.getElementById('btn-kirim'); if(statusPilihan === 'Masuk' && fileBase64_SJ) { btn.innerText = "⏳ Sedang Mengunggah SJ..."; btn.disabled = true; } else { btn.innerText = "⏳ Memproses..."; btn.disabled = true; } let alertMsg = ""; let dObj = payload.tanggal ? new Date(payload.tanggal) : new Date(); let yy = dObj.getFullYear().toString().substring(2); let tglFormatShort = ("0"+dObj.getDate()).slice(-2)+"/"+("0"+(dObj.getMonth()+1)).slice(-2)+"/"+yy; let skipWA = (payload.lokasi === '/kandang' || payload.lokasi === '/spn') && (payload.relasi.toUpperCase().includes('RD') || payload.relasi.toUpperCase().includes('RL') || payload.relasi.toUpperCase().includes('RANSUM')); if (!isKandang) { alertMsg += `LAPORAN GUDANG BERHASIL TERKIRIM.\n${tglFormatShort}\n${payload.relasi}\n${payload.status}\n--------------------\n`; let ringkasanItem = ""; let grandTotal = 0; for(let key in payload.items) { let qtyKg = payload.items[key]; grandTotal += qtyKg; let itemIndex = currentItems.findIndex(i => i.nama === key); let elTarget = document.getElementById('qty-' + itemIndex); let jmlKarung = parseFloat(elTarget.getAttribute('data-karung')) || 0; let itemObj = currentItems[itemIndex]; let satuan = itemObj.satuan || "Kg"; let namaKemasan = (satuan.toLowerCase() === 'ltr' || key.toLowerCase().includes('bio smart')) ? "Jirigen" : "Karung"; let aliasName = ALIAS_MAP[key] || key; alertMsg += `${aliasName}: ${qtyKg}\n`; if (jmlKarung > 0) { let formatKr = Number.isInteger(jmlKarung) ? jmlKarung : jmlKarung.toFixed(2); ringkasanItem += `• ${key}: ${Number(qtyKg).toLocaleString('id-ID')} Kg | ${formatKr} ${namaKemasan}\n`; } else { ringkasanItem += `• ${key}: ${Number(qtyKg).toLocaleString('id-ID')} Kg\n`; } } if (payload.catatan) alertMsg += `Catatan: ${payload.catatan}\n`; let tglFormatWA = ("0"+dObj.getDate()).slice(-2)+"/"+("0"+(dObj.getMonth()+1)).slice(-2)+"/"+dObj.getFullYear(); let infoAlamat = payload.alamat ? payload.alamat : (payload.ekor > 0 ? payload.ekor + " Ekor" : "-"); let teksWA = `LAPORAN ORDERAN ${payload.relasi.toUpperCase()}, ${tglFormatWA}\nAlamat: ${infoAlamat}\n`; if (payload.ongkir) teksWA += `Ongkir: ${payload.ongkir}\n`; teksWA += `Status: ${payload.status}\n\n${ringkasanItem}\nTotal: ${Number(grandTotal).toLocaleString('id-ID')} Kg`; if (payload.catatan) teksWA += `\nCatatan: ${payload.catatan}`; teksWA += `\n\nPetugas: ${payload.petugas}`; if(statusPilihan !== 'Masuk') { alert(alertMsg); if (!skipWA) { let a = document.createElement('a'); a.href = `https://wa.me/${NOMOR_WA_ADMIN}?text=${encodeURIComponent(teksWA)}`; a.target = '_blank'; document.body.appendChild(a); a.click(); } } } else { alertMsg += `LAPORAN KANDANG BERHASIL TERKIRIM.\n${payload.relasi}\nEkor: ${payload.ekor}\n-----------\n`; let grandTotal = 0; for(let key in payload.items) { let qty = payload.items[key]; grandTotal += qty; let aliasName = ALIAS_MAP[key] || key; let avgTxt = (payload.ekor > 0) ? `${parseFloat((qty/payload.ekor).toFixed(2))}kg/Ekor` : "(Avg /ekor)"; alertMsg += `${aliasName} ${qty} | ${avgTxt}\n`; } let totalAvg = payload.ekor > 0 ? parseFloat((grandTotal/payload.ekor).toFixed(2)) : 0; alertMsg += `\nTotal: ${grandTotal} kg | ${totalAvg}kg /Ekor`; if(statusPilihan !== 'Masuk') alert(alertMsg); } if (navigator.onLine) { fetch(API_URL, { method: 'POST', body: JSON.stringify({ source: 'pwa_cbl', payload: payload }) }) .then(res => res.json()).then(res => { if(statusPilihan === 'Masuk') alert("✅ " + alertMsg); }) .catch(e => { if(statusPilihan === 'Masuk') alert("❌ Gagal Mengirim Laporan"); }) .finally(() => { btn.innerText = "Kirim Laporan Pakan"; btn.disabled = false; hapusSJ(); }); } else { let antrian = JSON.parse(localStorage.getItem('antrian_pakan')) || []; antrian.push(payload); localStorage.setItem('antrian_pakan', JSON.stringify(antrian)); updateStatusKoneksi(); btn.innerText = "Kirim Laporan Pakan"; btn.disabled = false; hapusSJ(); } if(!isKandang) document.getElementById('relasi').value = ""; document.getElementById('ekor').value = ""; document.getElementById('ongkir').value = ""; document.getElementById('catatan').value = ""; currentItems.forEach((item, index) => { let el = document.getElementById('qty-'+index); el.value = ""; el.setAttribute('data-total', "0"); el.setAttribute('data-karung', "0"); if (document.getElementById('hasil-'+index)) document.getElementById('hasil-'+index).innerText = "= 0"; if (document.getElementById('lbl-karung-'+index)) document.getElementById('lbl-karung-'+index).innerText = ""; }); }
       function sinkronisasiAntrianLokal() { let antrian = JSON.parse(localStorage.getItem('antrian_pakan')) || []; if (antrian.length === 0) { document.getElementById('koneksi-badge').innerText = "🟢 ONLINE: Sinkronisasi Selesai"; return; } let janjiKirim = antrian.map(payload => { return fetch(API_URL, { method: 'POST', body: JSON.stringify({ source: 'pwa_cbl', payload: payload }) }); }); Promise.all(janjiKirim).then(() => { localStorage.removeItem('antrian_pakan'); updateStatusKoneksi(); }).catch(e => console.log("Gagal sinkron.")); }
-
       function handleKatChange(checkbox) { let allCb = document.getElementById('kat_all'); let cfCb = document.getElementById('kat_cf'); let otherCbs = document.querySelectorAll('.kat-cb:not(#kat_all):not(#kat_cf)'); if (checkbox.id === 'kat_all' && checkbox.checked) { cfCb.checked = false; otherCbs.forEach(cb => cb.checked = false); } else if (checkbox.id === 'kat_cf' && checkbox.checked) { allCb.checked = false; otherCbs.forEach(cb => cb.checked = false); } else if (checkbox.checked) { allCb.checked = false; cfCb.checked = false; } if (document.querySelectorAll('.kat-cb:checked').length === 0) allCb.checked = true; terapkanFilter(); }
       function tarikDataRekapDB(forceRefresh = false) { let bulan = document.getElementById('f_bulan').value; let tahun = document.getElementById('f_tahun').value; let cacheKey = `rekap_cbl_${tahun}_${bulan}`; document.getElementById('rekap-summary-container').innerHTML = ""; document.getElementById('rekap-calendar').classList.add('hidden'); document.getElementById('btn-copy-rekap').classList.add('hidden'); if (!forceRefresh) { let savedData = localStorage.getItem(cacheKey); if (savedData) { let parsed = JSON.parse(savedData); rawMasterGlobal = parsed.rawMaster; rawCashflowGlobal = parsed.rawCashflow; currentBulan = bulan; currentTahun = tahun; document.getElementById('info-cache').innerText = `Data Offline: Terakhir ditarik ${parsed.waktuTarik}`; document.getElementById('info-cache').style.color = "#4CAF50"; terapkanFilter(); return; } } if (!navigator.onLine) { alert("Data bulan ini belum ada di HP. Butuh internet untuk sinkronisasi pertama!"); return; } document.getElementById('rekap-hasil').innerHTML = '<div class="loader">Menyisir Database dari Server Google...</div>'; document.getElementById('info-cache').innerText = "Menyinkronkan..."; document.getElementById('info-cache').style.color = "#888"; fetch(API_URL, { method: 'POST', body: JSON.stringify({ source: 'pwa_rekap', bulan: bulan, tahun: tahun }) }) .then(res => res.json()).then(res => { if (res.status === 'success') { rawMasterGlobal = res.rawMaster; rawCashflowGlobal = res.rawCashflow; currentBulan = bulan; currentTahun = tahun; let waktuSekarang = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }); localStorage.setItem(cacheKey, JSON.stringify({ rawMaster: res.rawMaster, rawCashflow: res.rawCashflow, waktuTarik: waktuSekarang })); document.getElementById('info-cache').innerText = `Data Server: Terakhir ditarik ${waktuSekarang}`; document.getElementById('info-cache').style.color = "#2196F3"; terapkanFilter(); } else { document.getElementById('rekap-hasil').innerHTML = `<div style="color:red; text-align:center;">Gagal: ${res.message}</div>`; } }).catch(e => { document.getElementById('rekap-hasil').innerHTML = '<div style="color:red; text-align:center;">Terjadi kesalahan jaringan.</div>'; }); }
       function terapkanFilter() { if (rawMasterGlobal.length === 0 && rawCashflowGlobal.length === 0) return; let kategoriArr = Array.from(document.querySelectorAll('input[name="f_kategori"]:checked')).map(cb => cb.value); let gudang = document.querySelector('input[name="f_gudang"]:checked').value; globalDataBulan = {}; let summary = { penjualan: 0, mutasi: 0, masuk: 0, giling: 0, totalMasuk: 0, totalKeluar: 0 }; if (kategoriArr.includes('Cashflow')) { rawCashflowGlobal.forEach(row => { if (!globalDataBulan[row.tgl]) globalDataBulan[row.tgl] = { isCashflow: true, dots: { green: true }, Masuk: {}, Keluar: {} }; if (row.debet > 0) { if (!globalDataBulan[row.tgl].Masuk[row.katCF]) globalDataBulan[row.tgl].Masuk[row.katCF] = []; globalDataBulan[row.tgl].Masuk[row.katCF].push(row); summary.totalMasuk += row.debet; } if (row.kredit > 0) { if (!globalDataBulan[row.tgl].Keluar[row.katCF]) globalDataBulan[row.tgl].Keluar[row.katCF] = []; globalDataBulan[row.tgl].Keluar[row.katCF].push(row); summary.totalKeluar += row.kredit; } }); } else { rawMasterGlobal.forEach(row => { if (gudang !== "ALL" && row.gudang !== gudang) return; let pass = false; if (kategoriArr.includes("ALL")) pass = true; else { if (kategoriArr.includes("Penjualan & Mutasi") && (row.kat === "Penjualan" || row.kat === "Mutasi")) pass = true; if (kategoriArr.includes("Masuk") && row.catGroup === "Masuk") pass = true; if (kategoriArr.includes("Pemakaian") && row.kat === "Pemakaian") pass = true; if (kategoriArr.includes("Giling") && row.kat === "Giling") pass = true; } if (!pass) return; if (row.kat === "Penjualan") summary.penjualan += row.qty; if (row.kat === "Mutasi") summary.mutasi += row.qty; if (row.catGroup === "Masuk") summary.masuk += row.qty; if (row.kat === "Giling") summary.giling += row.qty; if (!globalDataBulan[row.tgl]) globalDataBulan[row.tgl] = { isCashflow: false, dots: {}, items: {} }; if (row.kat === "Penjualan" || row.kat === "Mutasi") globalDataBulan[row.tgl].dots.green = true; if (row.catGroup === "Masuk") globalDataBulan[row.tgl].dots.yellow = true; if (row.kat === "Pemakaian") globalDataBulan[row.tgl].dots.blue = true; if (row.kat === "Giling") globalDataBulan[row.tgl].dots.purple = true; if (!globalDataBulan[row.tgl].items[row.catGroup]) globalDataBulan[row.tgl].items[row.catGroup] = {}; if (!globalDataBulan[row.tgl].items[row.catGroup][row.relasi]) globalDataBulan[row.tgl].items[row.catGroup][row.relasi] = []; let exist = globalDataBulan[row.tgl].items[row.catGroup][row.relasi].find(x => x.pakan === row.pakan); if (exist) exist.qty += row.qty; else globalDataBulan[row.tgl].items[row.catGroup][row.relasi].push({ pakan: row.pakan, qty: row.qty }); }); } renderMonthlySummary(summary, kategoriArr, currentBulan, currentTahun); renderCalendar(currentBulan, currentTahun, kategoriArr); document.getElementById('rekap-hasil').innerHTML = '<div style="text-align:center; padding:20px; color:#888; font-size:12px; font-weight:bold;">👆 Pilih tanggal pada kalender untuk melihat detail.</div>'; document.getElementById('btn-copy-rekap').classList.add('hidden'); }
