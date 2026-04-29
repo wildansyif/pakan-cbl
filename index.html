@@ -126,14 +126,13 @@
       .tr-masuk { color: #2e7d32; font-weight: bold; }
       .tr-keluar { color: #d32f2f; font-weight: bold; }
       .tr-total { background: #fdf5e6; font-weight: bold; border-top: 2px solid #ccc; }
-      /* MODAL INVOICE */
-      #modal-invoice { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.85); z-index:9999; padding:15px; overflow-y:auto; display:flex; flex-direction:column; align-items:center; }
-      .invoice-wrapper { width: 100%; overflow-x: auto; background: #e0e0e0; padding: 10px; display: flex; justify-content: flex-start; margin-bottom: 15px; border-radius: 8px;}
-      /* Exact A5 Size at 96 DPI: 794px x 559px */
-      #area-cetak-invoice { width: 794px; height: 559px; min-width: 794px; min-height: 559px; padding: 40px; box-sizing: border-box; background: white; color: black; font-family: 'Arial', sans-serif; position: relative; }
-      .inv-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; border: 1px solid #000; }
-      .inv-table th, .inv-table td { border: 1px solid #000; padding: 4px 8px; }
-      .inv-table th { background: #444; color: white; font-weight: bold; }
+     /* MODAL INVOICE & TEMPLATE A5 */
+      #modal-invoice { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.85); z-index:9999; padding:15px; display:flex; flex-direction:column; align-items:center; overflow-y:auto; }
+      .invoice-wrapper { width: 100%; max-width: 100vw; overflow-x: auto; background: transparent; display: flex; justify-content: flex-start; margin-bottom: 15px; padding-bottom: 10px; -webkit-overflow-scrolling: touch; }
+      #area-cetak-invoice { width: 794px; min-width: 794px; height: 559px; min-height: 559px; padding: 30px 40px; box-sizing: border-box; background: white; color: black; font-family: 'Arial', sans-serif; display: flex; flex-direction: column; }
+      .inv-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; border: 2px solid #000; font-size: 11px; }
+      .inv-table th, .inv-table td { border: 1px solid #000; padding: 5px; }
+      .inv-table th { background: #e0e0e0; color: #000; font-weight: bold; text-align: center; }
     </style>
   </head>
   <body>
@@ -547,51 +546,53 @@
 
                 <div class="invoice-wrapper">
                     <div id="area-cetak-invoice">
-                        <div style="display:flex; justify-content:space-between; margin-bottom: 25px;">
-                            <div style="width: 50%;">
-                                <div style="background:#0d47a1; color:white; padding:12px; font-weight:bold; font-size:22px; margin-bottom:8px; display:inline-block; border-radius:4px;">PT Cita Benggala Lestari</div>
-                                <div style="font-size:12px; line-height:1.4;">Cikahuripan RT.04/RW.10, Kec. Lembang, Kabupaten<br>Bandung Barat, Kabupaten Bandung, Jawa Barat 40391</div>
+                        <div style="text-align: center; font-size: 20px; font-weight: bold; letter-spacing: 2px; margin-bottom: 15px; border-bottom: 2px solid #000; padding-bottom: 5px;">INVOICE</div>
+                        
+                        <div style="display:flex; justify-content:space-between; margin-bottom: 15px;">
+                            <div style="width: 45%;">
+                                <div style="background:#0d47a1; color:white; padding:8px 12px; font-weight:bold; font-size:16px; margin-bottom:5px; border-radius:2px; display:inline-block;">PT Cita Benggala Lestari</div>
+                                <div style="font-size:9px; line-height:1.4;">Cikahuripan RT.04/RW.10, Kec. Lembang, Kabupaten<br>Bandung Barat, Kabupaten Bandung, Jawa Barat 40391</div>
                             </div>
-                            <div style="width: 45%; font-size:13px;">
-                                <div style="text-align: right; font-size: 28px; font-weight: bold; letter-spacing: 2px; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 2px solid #0d47a1;">INVOICE</div>
-                                <table style="width:100%; border:none; font-size:12px; line-height:1.6;">
-                                    <tr><td style="width:100px;">No. Invoice</td><td>: <strong id="inv_pdf_no"></strong></td></tr>
-                                    <tr><td>Tanggal Invoice</td><td>: <span id="inv_pdf_tgl"></span></td></tr>
-                                    <tr><td>Kepada Yth</td><td>: <span id="inv_pdf_nama"></span></td></tr>
-                                    <tr><td style="vertical-align:top;">Alamat</td><td style="vertical-align:top;">: <span id="inv_pdf_alamat"></span></td></tr>
+                            <div style="width: 45%; font-size:10px;">
+                                <table style="width:100%; border:none; line-height:1.5;">
+                                    <tr><td style="width:90px; border:none; padding:0;">No. Invoice</td><td style="border:none; padding:0;">: <i id="inv_pdf_no"></i></td></tr>
+                                    <tr><td style="border:none; padding:0;">Tanggal Invoice</td><td style="border:none; padding:0;">: <span id="inv_pdf_tgl"></span></td></tr>
+                                    <tr><td style="border:none; padding:0;">Kepada Yth</td><td style="border:none; padding:0;">: <span id="inv_pdf_nama"></span></td></tr>
+                                    <tr><td style="vertical-align:top; border:none; padding:0;">Alamat</td><td style="vertical-align:top; border:none; padding:0;">: <span id="inv_pdf_alamat"></span></td></tr>
                                 </table>
                             </div>
                         </div>
                         
                         <table class="inv-table">
                             <thead>
-                                <tr style="background:#444; color:white;">
-                                    <th style="padding:6px; border: 1px solid #000; text-align:center; width:5%;">No.</th>
-                                    <th style="padding:6px; border: 1px solid #000; text-align:center; width:15%;">Tanggal DO</th>
-                                    <th style="padding:6px; border: 1px solid #000; text-align:left; width:45%;">Deskripsi</th>
-                                    <th style="padding:6px; border: 1px solid #000; text-align:center; width:10%;">Qty</th>
-                                    <th style="padding:6px; border: 1px solid #000; text-align:right; width:25%;">Total</th>
+                                <tr>
+                                    <th style="width:5%;">No.</th>
+                                    <th style="width:15%;">Tanggal DO</th>
+                                    <th style="width:35%; text-align:left;">Deskripsi</th>
+                                    <th style="width:10%;">Qty (Kg)</th>
+                                    <th style="width:8%;">Satuan</th>
+                                    <th style="width:12%;">Harga</th>
+                                    <th style="width:15%;">Total</th>
                                 </tr>
                             </thead>
                             <tbody id="inv_pdf_items"></tbody>
                         </table>
                         
-                        <div style="display:flex; justify-content:space-between; position: absolute; bottom: 40px; left: 40px; right: 40px;">
-                            <div style="width: 55%; background:#f9f9f9; padding:10px; font-size:10px; border:1px solid #000; border-radius:4px; height:fit-content;">
+                        <div style="display:flex; justify-content:space-between; margin-top: auto;">
+                            <div style="width: 45%; background:#e0e0e0; padding:8px; font-size:8px; border:1px solid #000; height:fit-content;">
                                 <b>Catatan:</b><br>
                                 Diskon berlaku hanya pada tanggal penerbitan invoice dan tidak berlaku untuk transaksi pada tanggal berikutnya.<br><br>
                                 Pembayaran ditransfer ke <b>rek. BCA 1374444550</b><br>
                                 a/n. CITA BENGGALA LESTARI PT
                             </div>
-                            <div style="width: 38%; font-size:13px;">
-                                <div style="display:flex; justify-content:space-between; padding:4px 0;"><span>Subtotal:</span> <span id="inv_pdf_subtotal">Rp 0</span></div>
-                                <div style="display:flex; justify-content:space-between; padding:4px 0;"><span>Diskon:</span> <span id="inv_pdf_diskon">Rp 0</span></div>
-                                <div style="display:flex; justify-content:space-between; padding:8px 0; border-top:2px solid #000; border-bottom:2px solid #000; font-size:16px; font-weight:bold; margin-top:5px; margin-bottom:10px;"><span>Total:</span> <span id="inv_pdf_grandtotal">Rp 0</span></div>
-                                <div style="font-size:11px; text-align:right;"><i>Keterangan: <span id="inv_pdf_ket">-</span></i></div>
+                            <div style="width: 45%; font-size:11px;">
+                                <div style="display:flex; justify-content:space-between; padding:3px 0;"><span>Subtotal:</span> <span id="inv_pdf_subtotal">Rp 0</span></div>
+                                <div style="display:flex; justify-content:space-between; padding:3px 0;"><span>Diskon:</span> <span id="inv_pdf_diskon">Rp 0</span></div>
+                                <div style="display:flex; justify-content:space-between; padding:5px 0; border-top:2px solid #000; border-bottom:2px solid #000; font-size:14px; font-weight:bold; margin-top:3px; margin-bottom:5px;"><span>Total:</span> <span id="inv_pdf_grandtotal">Rp 0</span></div>
+                                <div style="font-size:9px; text-align:right; font-style:italic;" id="inv_pdf_terbilang">Terbilang: -</div>
                             </div>
                         </div>
                     </div>
-                </div>
 
                 <div style="width:100%; max-width:500px; display:flex; gap:10px;">
                     <button id="btn_cetak_inv" class="btn-submit" onclick="prosesCetakDanShare()">📤 SHARE PDF KE WA</button>
@@ -1463,56 +1464,77 @@
           document.getElementById('modal-invoice').classList.remove('hidden');
       }
 
+      // FUNGSI PENGUBAH ANGKA MENJADI TEKS "TERBILANG"
+      function terbilangRupiah(angka) {
+          var bilangan = ['','Satu','Dua','Tiga','Empat','Lima','Enam','Tujuh','Delapan','Sembilan','Sepuluh','Sebelas'];
+          if(angka < 12) return bilangan[angka];
+          if(angka < 20) return terbilangRupiah(angka - 10) + ' Belas';
+          if(angka < 100) return terbilangRupiah(Math.floor(angka / 10)) + ' Puluh ' + bilangan[angka % 10];
+          if(angka < 200) return 'Seratus ' + terbilangRupiah(angka - 100);
+          if(angka < 1000) return terbilangRupiah(Math.floor(angka / 100)) + ' Ratus ' + terbilangRupiah(angka % 100);
+          if(angka < 2000) return 'Seribu ' + terbilangRupiah(angka - 1000);
+          if(angka < 1000000) return terbilangRupiah(Math.floor(angka / 1000)) + ' Ribu ' + terbilangRupiah(angka % 1000);
+          if(angka < 1000000000) return terbilangRupiah(Math.floor(angka / 1000000)) + ' Juta ' + terbilangRupiah(angka % 1000000);
+          return 'Nominal terlalu besar';
+      }
+
       function updatePreviewInvoice() {
           let nf = new Intl.NumberFormat('id-ID');
           let tgl = new Date();
           let dd = ("0"+tgl.getDate()).slice(-2), mm = ("0"+(tgl.getMonth()+1)).slice(-2), yy = tgl.getFullYear().toString().slice(-2);
-          let tglText = `${dd}/${mm}/${yy}`; 
+          let tglText = `${dd}/${mm}/${tgl.getFullYear()}`; 
           
           let namaBersih = namaKonsumenAktif.replace(/^(Bpk\.\s*|Ibu\.\s*)/i, '').trim();
-          let inisialNama = namaBersih.charAt(0).toUpperCase() + namaBersih.substring(1).replace(/[AEIOUaeiou\s\.\-]/g, '').substring(0, 2).toUpperCase();
-          if(inisialNama.length < 3) inisialNama = (inisialNama + "XX").substring(0,3);
+          let firstLetter = namaBersih.charAt(0).toUpperCase();
+          let consonantsNama = namaBersih.substring(1).replace(/[AEIOUaeiou\s\.\-]/g, '').toUpperCase();
+          let kodeNama = firstLetter + (consonantsNama.length >= 2 ? consonantsNama.substring(0, 2) : (consonantsNama + "XX").substring(0, 2));
 
           let alamatStr = (dataPiutangLokal[namaKonsumenAktif] && dataPiutangLokal[namaKonsumenAktif].alamat) ? dataPiutangLokal[namaKonsumenAktif].alamat : "";
-          let inisialAlamat = alamatStr.replace(/[AEIOUaeiou\s\.\,\-]/g, '').substring(0, 3).toUpperCase();
-          if (inisialAlamat.length < 3) inisialAlamat = (inisialAlamat + "XXX").substring(0, 3);
+          let consAlamat = alamatStr.replace(/[AEIOUaeiou\s\.\,\-]/g, '').toUpperCase();
+          let kodeAlamat = (consAlamat.length >= 3 ? consAlamat.substring(0, 3) : (consAlamat + "XXX").substring(0, 3));
           
-          let displayNoInv = `INV-${tglText}-${inisialNama}-${inisialAlamat}`;
-          let safeFileNameNo = `INV-${dd}${mm}${yy}-${inisialNama}-${inisialAlamat}`;
+          let displayNoInv = `INV-${dd}/${mm}/${yy}-${kodeNama}-${kodeAlamat}`;
+          let safeFileNameNo = `INV-${dd}${mm}${yy}-${kodeNama}-${kodeAlamat}`;
 
           let diskon = parseFloat(document.getElementById('inv_input_diskon').value) || 0;
-          let ket = document.getElementById('inv_input_ket').value || "-";
 
           document.getElementById('inv_pdf_no').innerText = displayNoInv;
           document.getElementById('inv_pdf_tgl').innerText = tglText;
           document.getElementById('inv_pdf_nama').innerText = namaKonsumenAktif;
           document.getElementById('inv_pdf_alamat').innerText = alamatStr || "-";
 
-          let pad = "6px"; let fSize = "12px";
-          if(itemInvoiceTerpilih.length > 7) { pad = "4px"; fSize = "11px"; }
-          if(itemInvoiceTerpilih.length > 10) { pad = "2px"; fSize = "10px"; }
+          let pad = "5px"; let fSize = "11px";
+          if(itemInvoiceTerpilih.length > 8) { pad = "3px"; fSize = "10px"; }
+          if(itemInvoiceTerpilih.length > 12) { pad = "2px"; fSize = "9px"; }
 
           let subtotal = 0;
           let htmlItems = itemInvoiceTerpilih.map((it, i) => {
               subtotal += it.nominal;
+              let hargaSatuanStr = it.hargaSatuan > 0 ? nf.format(it.hargaSatuan) : nf.format(it.nominal / (it.qty || 1));
               return `<tr style="font-size:${fSize};">
-                  <td style="padding:${pad}; border:1px solid #000; text-align:center;">${i+1}</td>
-                  <td style="padding:${pad}; border:1px solid #000; text-align:center;">${it.tgl}</td>
-                  <td style="padding:${pad}; border:1px solid #000;">${it.pakan}</td>
-                  <td style="padding:${pad}; border:1px solid #000; text-align:center;">${nf.format(it.qty)}</td>
-                  <td style="padding:${pad}; border:1px solid #000; text-align:right;">Rp ${nf.format(it.nominal)}</td>
+                  <td style="padding:${pad}; text-align:center;">${i+1}</td>
+                  <td style="padding:${pad}; text-align:center;">${it.tgl}</td>
+                  <td style="padding:${pad};">${it.pakan}</td>
+                  <td style="padding:${pad}; text-align:right;">${nf.format(it.qty)}</td>
+                  <td style="padding:${pad}; text-align:center;">${it.satuan || 'Kg'}</td>
+                  <td style="padding:${pad}; text-align:right;">${hargaSatuanStr}</td>
+                  <td style="padding:${pad}; text-align:right;">${nf.format(it.nominal)}</td>
               </tr>`;
           }).join('');
 
+          let grandTotal = subtotal - diskon;
+
           document.getElementById('inv_pdf_items').innerHTML = htmlItems;
-          document.getElementById('inv_pdf_subtotal').innerText = "Rp " + nf.format(subtotal);
-          document.getElementById('inv_pdf_diskon').innerText = diskon > 0 ? "- Rp " + nf.format(diskon) : "Rp 0";
-          document.getElementById('inv_pdf_grandtotal').innerText = "Rp " + nf.format(subtotal - diskon);
-          document.getElementById('inv_pdf_ket').innerText = ket;
+          document.getElementById('inv_pdf_subtotal').innerText = nf.format(subtotal);
+          document.getElementById('inv_pdf_diskon').innerText = diskon > 0 ? nf.format(diskon) : "0";
+          document.getElementById('inv_pdf_grandtotal').innerText = nf.format(grandTotal);
+          
+          let teksTerbilang = terbilangRupiah(grandTotal) + " Rupiah";
+          document.getElementById('inv_pdf_terbilang').innerText = `Terbilang: ${teksTerbilang}`;
           
           document.getElementById('modal-invoice').setAttribute('data-no', displayNoInv);
           document.getElementById('modal-invoice').setAttribute('data-filename', safeFileNameNo);
-          document.getElementById('modal-invoice').setAttribute('data-total', subtotal - diskon);
+          document.getElementById('modal-invoice').setAttribute('data-total', grandTotal);
       }
 
       async function prosesCetakDanShare() {
