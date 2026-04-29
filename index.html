@@ -1363,6 +1363,146 @@
           .catch(e => { alert("Sistem Error: " + e.message); statusLabel.innerText = "❌ Gagal."; })
           .finally(() => { btn.innerText = "Kirim Data Cashflow"; btn.disabled = false; });
       }
+      // ================= FUNGSI AKUN PIUTANG & INVOICE =================
+      function tarikDataPiutang() {
+          if (!navigator.onLine) return alert("Wajib online untuk sinkronisasi piutang!");
+          document.getElementById('piutang-list').innerHTML = "";
+          document.getElementById('piutang-loader').classList.remove('hidden');
+          
+          fetch(API_URL, { method: 'POST', body: JSON.stringify({ source: 'tarik_piutang' }) })
+          .then(r => r.json()).then(res => {
+              document.getElementById('piutang-loader').classList.add('hidden');
+              if (res.status === 'success') {
+                  dataPiutangLokal = res.data;
+                  renderListPiutang();
+              }
+          });
+      }
+
+      function renderListPiutang() {
+          let nf = new Intl.NumberFormat('id-ID'); let html = "";
+          for (let nama in dataPiutangLokal) {
+              let d = dataPiutangLokal[nama];
+              let safeClass = nama.replace(/[\s\W]/g, '');
+              
+              let htmlItems = d.items.map((it, idx) => `
+                  <div style="display:flex; align-items:center; padding:8px 0; border-bottom:1px solid #eee;">
+                      <input type="checkbox" id="chk_${safeClass}_${idx}" class="chk-inv-${safeClass}" value='${JSON.stringify(it)}' style="width:20px; height:20px; margin-right:10px;" checked>
+                      <div style="flex:1;"><b>${it.tgl}</b><br><small>${it.pakan} (${it.qty} Kg)</small></div>
+                      <div style="font-weight:bold; color:#1a5c40;">Rp ${nf.format(it.nominal)}</div>
+                  </div>
+              `).join('');
+
+              html += `
+                  <div class="rekap-card" style="border-left: 4px solid #FF9800;">
+                      <div style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="document.getElementById('det_piutang_${safeClass}').classList.toggle('hidden')">
+                          <div><strong style="font-size:14px;">${nama}</strong><br><small style="color:#F44336;">Belum Lunas</small></div>
+                          <div style="font-size:16px; font-weight:bold;">Rp ${nf.format(d.total)}</div>
+                      </div>
+                      <div id="det_piutang_${safeClass}" class="hidden" style="margin-top:15px; border-top:1px dashed #ccc; padding-top:10px;">
+                          ${htmlItems}
+                          <button class="btn-submit" onclick="siapkanInvoice('${nama}')" style="margin-top:15px; font-size:13px; padding:10px;">📝 Buat Invoice Terpilih</button>
+                      </div>
+                  </div>`;
+          }
+          document.getElementById('piutang-list').innerHTML = html || "<div style='text-align:center; padding:20px;'>Tidak ada piutang aktif.</div>";
+      }
+
+      function siapkanInvoice(nama) {
+          namaKonsumenAktif = nama;
+          let safeClass = nama.replace(/[\s\W]/g, '');
+          let checkboxes = document.querySelectorAll(`.chk-inv-${safeClass}:checked`);
+          if (checkboxes.length === 0) return alert("Pilih minimal 1 transaksi untuk di-invoice!");
+          
+          itemInvoiceTerpilih = Array.from(checkboxes).map(cb => JSON.parse(cb.value));
+          document.getElementById('inv_input_diskon').value = 0;
+          document.getElementById('inv_input_ket').value = "";
+          
+          updatePreviewInvoice();
+          document.getElementById('modal-invoice').classList.remove('hidden');
+      }
+
+      function updatePreviewInvoice() {
+          let nf = new Intl.NumberFormat('id-ID');
+          let tglStr = ("0"+new Date().getDate()).slice(-2) + ("0"+(new Date().getMonth()+1)).slice(-2) + new Date().getFullYear().toString().slice(-2);
+          
+          let kInfo = globalRelasi.find(r => r.nama === namaKonsumenAktif);
+          let alamatStr = (kInfo && kInfo.alamat) ? kInfo.alamat.substring(0,3).toUpperCase() : "XXX";
+          let inisialStr = namaKonsumenAktif.substring(0,3).toUpperCase();
+          
+          let noInvoice = `INV-${tglStr}-${inisialStr}-${alamatStr}`;
+          let diskon = parseFloat(document.getElementById('inv_input_diskon').value) || 0;
+          let ket = document.getElementById('inv_input_ket').value || "-";
+
+          document.getElementById('inv_pdf_no').innerText = noInvoice;
+          document.getElementById('inv_pdf_tgl').innerText = new Date().toLocaleDateString('id-ID');
+          document.getElementById('inv_pdf_nama').innerText = namaKonsumenAktif;
+          document.getElementById('inv_pdf_alamat').innerText = (kInfo && kInfo.alamat) ? kInfo.alamat : "-";
+
+          let subtotal = 0;
+          let htmlItems = itemInvoiceTerpilih.map(it => {
+              subtotal += it.nominal;
+              return `<tr><td style="padding:10px; border-bottom:1px solid #eee;">${it.tgl}</td><td style="padding:10px; border-bottom:1px solid #eee;">${it.pakan}</td><td style="padding:10px; border-bottom:1px solid #eee; text-align:right;">${it.qty} Kg</td><td style="padding:10px; border-bottom:1px solid #eee; text-align:right;">Rp ${nf.format(it.nominal)}</td></tr>`;
+          }).join('');
+
+          document.getElementById('inv_pdf_items').innerHTML = htmlItems;
+          document.getElementById('inv_pdf_subtotal').innerText = "Rp " + nf.format(subtotal);
+          document.getElementById('inv_pdf_diskon').innerText = "- Rp " + nf.format(diskon);
+          document.getElementById('inv_pdf_grandtotal').innerText = "Rp " + nf.format(subtotal - diskon);
+          document.getElementById('inv_pdf_ket').innerText = ket;
+          
+          document.getElementById('modal-invoice').setAttribute('data-no', noInvoice);
+          document.getElementById('modal-invoice').setAttribute('data-total', subtotal - diskon);
+      }
+
+      async function prosesCetakDanShare() {
+          if (!navigator.onLine) return alert("Wajib online untuk generate PDF!");
+          let btn = document.getElementById('btn_cetak_inv');
+          let statusLabel = document.getElementById('inv_status_upload');
+          let noInv = document.getElementById('modal-invoice').getAttribute('data-no');
+          let totalTagihan = document.getElementById('modal-invoice').getAttribute('data-total');
+          let nf = new Intl.NumberFormat('id-ID');
+          
+          btn.innerText = "⏳ Sedang Memproses..."; btn.disabled = true;
+          statusLabel.innerText = "Sistem sedang merakit dokumen...";
+
+          let elemenCetak = document.getElementById('area-cetak-invoice');
+          let opt = {
+              margin: 0,
+              filename: `Inv ${namaKonsumenAktif} - ${noInv}.pdf`,
+              image: { type: 'jpeg', quality: 0.98 },
+              html2canvas: { scale: 2, useCORS: true },
+              jsPDF: { unit: 'mm', format: 'a5', orientation: 'landscape' }
+          };
+
+          const pdfBlob = await html2pdf().set(opt).from(elemenCetak).output('blob');
+          const filePdf = new File([pdfBlob], `Invoice-${namaKonsumenAktif}.pdf`, { type: 'application/pdf' });
+
+          statusLabel.innerText = "Menyimpan ke Arsip Google Drive...";
+          
+          let reader = new FileReader();
+          reader.readAsDataURL(pdfBlob);
+          reader.onloadend = function() {
+              let base64data = reader.result.split(',')[1];
+              let payload = { source: 'upload_invoice', noInvoice: noInv, pelanggan: namaKonsumenAktif, total: totalTagihan, namaFile: `Inv ${namaKonsumenAktif} - ${noInv}`, fileBase64: base64data };
+              fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) }); 
+          }
+
+          if (navigator.share) {
+              try {
+                  await navigator.share({
+                      title: 'Invoice Pakan CBL',
+                      text: `Halo Bpk/Ibu ${namaKonsumenAktif},\nBerikut kami lampirkan Invoice tagihan pakan ternak.\n\nTotal: *Rp ${nf.format(totalTagihan)}*\n\nTerima kasih. 🙏`,
+                      files: [filePdf]
+                  });
+                  statusLabel.innerText = "✅ Berhasil dibagikan!";
+                  setTimeout(() => { document.getElementById('modal-invoice').classList.add('hidden'); }, 2000);
+              } catch (err) { statusLabel.innerText = "⚠️ Share dibatalkan / gagal."; }
+          } else {
+              alert("Browser bos tidak mendukung fitur share file langsung.");
+          }
+          btn.innerText = "📤 SHARE PDF KE WA"; btn.disabled = false;
+      }
     </script>
   </body>
 </html>
