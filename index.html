@@ -124,14 +124,10 @@
       table { width: 100%; border-collapse: collapse; font-size: 11px; }
       th { background: #f8f9fa; color: #1a5c40; text-align: left; padding: 8px; border-bottom: 2px solid #eee; }
       td { padding: 8px; border-bottom: 1px solid #f1f1f1; color: #444; }
-      .tr-masuk { color: #2e7d32; font-weight: bold; }
-      .tr-keluar { color: #d32f2f; font-weight: bold; }
-      .tr-total { background: #fdf5e6; font-weight: bold; border-top: 2px solid #ccc; }
 
       /* MODAL INVOICE & TEMPLATE A5 */
       #modal-invoice { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.85); z-index:9999; padding:15px; display:flex; flex-direction:column; align-items:center; overflow-y:auto; }
       .invoice-wrapper { width: 100%; max-width: 100vw; overflow-x: auto; background: transparent; display: flex; justify-content: flex-start; margin-bottom: 15px; padding-bottom: 10px; -webkit-overflow-scrolling: touch; }
-      /* Exact A5 Size at 96 DPI: 794px x 559px */
       #area-cetak-invoice { width: 794px; min-width: 794px; height: 559px; min-height: 559px; padding: 30px 40px; box-sizing: border-box; background: white; color: black; font-family: 'Arial', sans-serif; display: flex; flex-direction: column; }
       .inv-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; border: 2px solid #000; font-size: 11px; }
       .inv-table th, .inv-table td { border: 1px solid #000; padding: 5px; }
@@ -558,7 +554,7 @@
                             </div>
                             <div style="width: 45%; font-size:10px;">
                                 <table style="width:100%; border:none; line-height:1.5;">
-                                    <tr><td style="width:90px; border:none; padding:0;">No. Invoice</td><td style="border:none; padding:0;">: <strong id="inv_pdf_no"></strong></td></tr>
+                                    <tr><td style="width:90px; border:none; padding:0;">No. Invoice</td><td style="border:none; padding:0;">: <i id="inv_pdf_no"></i></td></tr>
                                     <tr><td style="border:none; padding:0;">Tanggal Invoice</td><td style="border:none; padding:0;">: <span id="inv_pdf_tgl"></span></td></tr>
                                     <tr><td style="border:none; padding:0;">Kepada Yth</td><td style="border:none; padding:0;">: <span id="inv_pdf_nama"></span></td></tr>
                                     <tr><td style="vertical-align:top; border:none; padding:0;">Alamat</td><td style="vertical-align:top; border:none; padding:0;">: <span id="inv_pdf_alamat"></span></td></tr>
@@ -793,7 +789,7 @@
                   chGudang = new Chart(document.getElementById('chartGudang').getContext('2d'), {
                       type: 'bar',
                       data: {
-                          labels: ['PM Gudang', 'RPH Gudang', 'SPN Gudang'],
+                          labels: ['PM', 'RPH', 'SPN'],
                           datasets: [
                               { label: 'Masuk', data: [d.gudangData.PM.masuk, d.gudangData.RPH.masuk, d.gudangData.SPN.masuk], backgroundColor: '#f1c40f' },
                               { label: 'Mutasi', data: [d.gudangData.PM.mutasi, d.gudangData.RPH.mutasi, d.gudangData.SPN.mutasi], backgroundColor: '#e67e22' },
@@ -945,6 +941,7 @@
 
       function renderListPiutang() {
           let nf = new Intl.NumberFormat('id-ID'); let html = "";
+          // Sorting nominal piutang dari terbanyak ke sedikit
           let sortedKeys = Object.keys(dataPiutangLokal).sort((a, b) => dataPiutangLokal[b].total - dataPiutangLokal[a].total);
 
           for (let i = 0; i < sortedKeys.length; i++) {
@@ -1085,24 +1082,18 @@
           let nf = new Intl.NumberFormat('id-ID');
           
           btn.innerText = "⏳ Sedang Memproses..."; btn.disabled = true;
-          statusLabel.innerText = "Merakit PDF A5 Landscape...";
+          statusLabel.innerText = "Merakit PDF A5 Anti-Blank...";
 
           let originalEl = document.getElementById('area-cetak-invoice');
           let clonedEl = originalEl.cloneNode(true);
-          clonedEl.style.position = 'absolute'; clonedEl.style.top = '-9999px'; clonedEl.style.left = '-9999px';
+          clonedEl.style.position = 'absolute'; clonedEl.style.top = '0px'; clonedEl.style.left = '0px'; clonedEl.style.zIndex = '-9999';
           document.body.appendChild(clonedEl);
 
-          let opt = {
-              margin: 0,
-              filename: `${fileNameInv}.pdf`,
-              image: { type: 'jpeg', quality: 1 },
-              html2canvas: { scale: 2, useCORS: true, windowWidth: 794, windowHeight: 559 },
-              jsPDF: { unit: 'mm', format: 'a5', orientation: 'landscape' }
-          };
+          let opt = { margin: 0, filename: `${fileNameInv}.pdf`, image: { type: 'jpeg', quality: 1 }, html2canvas: { scale: 2, useCORS: true, scrollY: 0 }, jsPDF: { unit: 'mm', format: 'a5', orientation: 'landscape' } };
 
           try {
               const pdfBase64Data = await html2pdf().set(opt).from(clonedEl).outputPdf('datauristring');
-              document.body.removeChild(clonedEl);
+              document.body.removeChild(clonedEl); 
 
               const base64Clean = pdfBase64Data.split(',')[1];
               const byteCharacters = atob(base64Clean);
@@ -1113,11 +1104,7 @@
               const filePdf = new File([pdfBlob], `${fileNameInv}.pdf`, { type: 'application/pdf' });
 
               statusLabel.innerText = "Menyimpan salinan ke Arsip Google Drive...";
-              
-              fetch(API_URL, { method: 'POST', body: JSON.stringify({ 
-                  source: 'upload_invoice', noInvoice: noInv, pelanggan: namaKonsumenAktif, total: totalTagihan, 
-                  namaFile: fileNameInv, fileBase64: base64Clean 
-              }) });
+              fetch(API_URL, { method: 'POST', body: JSON.stringify({ source: 'upload_invoice', noInvoice: noInv, pelanggan: namaKonsumenAktif, total: totalTagihan, namaFile: fileNameInv, fileBase64: base64Clean }) });
 
               if (navigator.share) {
                   await navigator.share({
@@ -1127,13 +1114,10 @@
                   });
                   statusLabel.innerText = "✅ Berhasil dibagikan!";
                   setTimeout(() => { document.getElementById('modal-invoice').classList.add('hidden'); }, 2000);
-              } else {
-                  alert("Browser tidak mendukung share file langsung. Silakan pakai Chrome/Safari terbaru.");
-              }
+              } else { alert("Browser tidak mendukung share file langsung. Silakan pakai Chrome/Safari terbaru."); }
           } catch(e) {
-              if (document.body.contains(clonedEl)) document.body.removeChild(clonedEl);
+              if(document.body.contains(clonedEl)) document.body.removeChild(clonedEl);
               statusLabel.innerText = "⚠️ Gagal mencetak dokumen.";
-              console.log(e);
           }
           btn.innerText = "📤 SHARE PDF KE WA"; btn.disabled = false;
       }
