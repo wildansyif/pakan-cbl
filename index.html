@@ -1082,19 +1082,50 @@
           let nf = new Intl.NumberFormat('id-ID');
           
           btn.innerText = "⏳ Sedang Memproses..."; btn.disabled = true;
-          statusLabel.innerText = "Merakit PDF A5 Anti-Blank...";
+          statusLabel.innerText = "Memindai dokumen...";
 
-          let originalEl = document.getElementById('area-cetak-invoice');
-          let clonedEl = originalEl.cloneNode(true);
-          clonedEl.style.position = 'absolute'; clonedEl.style.top = '0px'; clonedEl.style.left = '0px'; clonedEl.style.zIndex = '-9999';
-          document.body.appendChild(clonedEl);
+          // TRIK LAMPU FLASH: Ekstrak elemen ke body utama agar tidak terjepit kotak scroll
+          let cetakArea = document.getElementById('area-cetak-invoice');
+          let originalParent = cetakArea.parentNode;
+          
+          // Simpan posisi asli
+          let originalPos = cetakArea.style.position;
+          let originalTop = cetakArea.style.top;
+          let originalLeft = cetakArea.style.left;
+          let originalZ = cetakArea.style.zIndex;
 
-          let opt = { margin: 0, filename: `${fileNameInv}.pdf`, image: { type: 'jpeg', quality: 1 }, html2canvas: { scale: 2, useCORS: true, scrollY: 0 }, jsPDF: { unit: 'mm', format: 'a5', orientation: 'landscape' } };
+          // Pindahkan ke depan layar HP persis
+          document.body.appendChild(cetakArea);
+          cetakArea.style.position = 'absolute';
+          cetakArea.style.top = '0px';
+          cetakArea.style.left = '0px';
+          cetakArea.style.zIndex = '999999';
+          
+          window.scrollTo(0, 0); // Posisikan layar ke paling atas
+
+          let opt = { 
+              margin: 0, 
+              filename: `${fileNameInv}.pdf`, 
+              image: { type: 'jpeg', quality: 1 }, 
+              html2canvas: { scale: 2, useCORS: true, scrollY: 0, scrollX: 0 }, 
+              jsPDF: { unit: 'mm', format: 'a5', orientation: 'landscape' } 
+          };
 
           try {
-              const pdfBase64Data = await html2pdf().set(opt).from(clonedEl).outputPdf('datauristring');
-              document.body.removeChild(clonedEl); 
+              // Beri jeda 0.5 detik agar HP memuat gambar dengan sempurna
+              await new Promise(r => setTimeout(r, 500));
 
+              // Potret ke PDF
+              const pdfBase64Data = await html2pdf().set(opt).from(cetakArea).outputPdf('datauristring');
+              
+              // KEMBALIKAN POSISI INVOICE KE TEMPAT ASAL (Biar rapi lagi)
+              originalParent.appendChild(cetakArea);
+              cetakArea.style.position = originalPos;
+              cetakArea.style.top = originalTop;
+              cetakArea.style.left = originalLeft;
+              cetakArea.style.zIndex = originalZ;
+
+              // Olah File untuk di Share
               const base64Clean = pdfBase64Data.split(',')[1];
               const byteCharacters = atob(base64Clean);
               const byteNumbers = new Array(byteCharacters.length);
@@ -1114,9 +1145,18 @@
                   });
                   statusLabel.innerText = "✅ Berhasil dibagikan!";
                   setTimeout(() => { document.getElementById('modal-invoice').classList.add('hidden'); }, 2000);
-              } else { alert("Browser tidak mendukung share file langsung. Silakan pakai Chrome/Safari terbaru."); }
+              } else { 
+                  alert("Browser tidak mendukung share file langsung. Silakan pakai Chrome/Safari terbaru."); 
+              }
           } catch(e) {
-              if(document.body.contains(clonedEl)) document.body.removeChild(clonedEl);
+              // Kalau gagal, tetep kembalikan elemennya
+              if(document.body.contains(cetakArea)) {
+                  originalParent.appendChild(cetakArea);
+                  cetakArea.style.position = originalPos;
+                  cetakArea.style.top = originalTop;
+                  cetakArea.style.left = originalLeft;
+                  cetakArea.style.zIndex = originalZ;
+              }
               statusLabel.innerText = "⚠️ Gagal mencetak dokumen.";
           }
           btn.innerText = "📤 SHARE PDF KE WA"; btn.disabled = false;
