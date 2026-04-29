@@ -955,11 +955,22 @@
               
               let htmlItems = d.items.map((it, idx) => {
                   let safeSatuan = it.satuan || (it.pakan.toLowerCase().includes('ongkir') ? 'Rit' : 'Kg');
-                  return `<div style="display:flex; align-items:center; padding:8px 0; border-bottom:1px solid #eee;">
-                      <input type="checkbox" id="chk_${safeClass}_${idx}" class="chk-inv-${safeClass}" value='${JSON.stringify(it)}' style="width:20px; height:20px; margin-right:10px;" checked onchange="hitungPreviewSubtotal('${safeClass}')">
-                      <div style="flex:1; line-height:1.2;"><b>${it.tgl}</b><br><small>${it.pakan} (${it.qty} ${safeSatuan})</small></div>
-                      <div style="font-weight:bold; color:#1a5c40; font-size:11px;">Rp ${nf.format(it.nominal)}</div>
-                  </div>`;
+                  
+                  // LOGIKA JIKA BARIS TERSEBUT SUDAH ADA DP
+                  if (it.dp > 0) {
+                      return `<div style="display:flex; align-items:center; padding:8px 0; border-bottom:1px solid #eee; background:#f9f9f9; opacity:0.6;">
+                          <div style="width:20px; height:20px; margin-right:10px; display:flex; justify-content:center; align-items:center; font-size:14px;">🔒</div>
+                          <div style="flex:1; line-height:1.3;"><b>${it.tgl}</b><br><small><del>${it.pakan} (${it.qty} ${safeSatuan})</del><br><span style="color:#d32f2f; font-weight:bold;">Telah di-DP: Rp ${nf.format(it.dp)}</span></small></div>
+                          <div style="font-weight:bold; color:#888; font-size:11px;">Rp ${nf.format(it.nominal)}</div>
+                      </div>`;
+                  } else {
+                      // LOGIKA NORMAL JIKA BELUM ADA DP (Bisa dicentang)
+                      return `<div style="display:flex; align-items:center; padding:8px 0; border-bottom:1px solid #eee;">
+                          <input type="checkbox" id="chk_${safeClass}_${idx}" class="chk-inv-${safeClass}" value='${JSON.stringify(it)}' style="width:20px; height:20px; margin-right:10px;" checked onchange="hitungPreviewSubtotal('${safeClass}')">
+                          <div style="flex:1; line-height:1.2;"><b>${it.tgl}</b><br><small>${it.pakan} (${it.qty} ${safeSatuan})</small></div>
+                          <div style="font-weight:bold; color:#1a5c40; font-size:11px;">Rp ${nf.format(it.nominal)}</div>
+                      </div>`;
+                  }
               }).join('');
 
               html += `
