@@ -572,35 +572,36 @@
                             </div>
                         </div>
                         
-                        <table class="inv-table" style="width:100%; border-collapse:collapse; margin-bottom:10px; border:1px solid #000; color:#000;">
+                        <!-- Table -->
+                        <table class="inv-table" style="width:100%; border-collapse:collapse; margin-bottom:10px; border:0.5px solid #000;">
                             <thead>
-                                <tr style="background:#f2f2f2;">
-                                    <th style="background:#f2f2f2 !important; color:#000 !important; border: 1px solid #000; text-align:center; width:5%; padding:4px;">No.</th>
-                                    <th style="background:#f2f2f2 !important; color:#000 !important; border: 1px solid #000; text-align:center; width:15%; padding:4px;">Tanggal DO</th>
-                                    <th style="background:#f2f2f2 !important; color:#000 !important; border: 1px solid #000; text-align:center; width:35%; padding:4px;">Deskripsi</th>
-                                    <th style="background:#f2f2f2 !important; color:#000 !important; border: 1px solid #000; text-align:center; width:10%; padding:4px;">Qty</th>
-                                    <th style="background:#f2f2f2 !important; color:#000 !important; border: 1px solid #000; text-align:center; width:8%; padding:4px;">Satuan</th>
-                                    <th style="background:#f2f2f2 !important; color:#000 !important; border: 1px solid #000; text-align:center; width:12%; padding:4px;">Harga</th>
-                                    <th style="background:#f2f2f2 !important; color:#000 !important; border: 1px solid #000; text-align:center; width:15%; padding:4px;">Total</th>
+                                <tr style="background:#444444;">
+                                    <th style="background:#444444 !important; color:#ffffff !important; border: 0.5px solid #000; text-align:center; width:5%; padding:4px;">No.</th>
+                                    <th style="background:#444444 !important; color:#ffffff !important; border: 0.5px solid #000; text-align:center; width:15%; padding:4px;">Tanggal DO</th>
+                                    <th style="background:#444444 !important; color:#ffffff !important; border: 0.5px solid #000; text-align:center; width:35%; padding:4px;">Deskripsi</th>
+                                    <th style="background:#444444 !important; color:#ffffff !important; border: 0.5px solid #000; text-align:center; width:10%; padding:4px;">Qty</th>
+                                    <th style="background:#444444 !important; color:#ffffff !important; border: 0.5px solid #000; text-align:center; width:8%; padding:4px;">Satuan</th>
+                                    <th style="background:#444444 !important; color:#ffffff !important; border: 0.5px solid #000; text-align:center; width:12%; padding:4px;">Harga</th>
+                                    <th style="background:#444444 !important; color:#ffffff !important; border: 0.5px solid #000; text-align:center; width:15%; padding:4px;">Total</th>
                                 </tr>
                             </thead>
-                            <tbody id="inv_pdf_items" style="color:#000; font-weight:500;"></tbody>
+                            <tbody id="inv_pdf_items" style="color:#000000; font-weight:500;"></tbody>
                         </table>
-                        
-                        <div style="display:flex; justify-content:space-between; margin-top: auto;">
-                            <div style="width: 50%; background:#f9f9f9; padding:10px; font-size:9px; border:1px solid #000; height:fit-content; color:#000;">
+
+                        <div style="display:flex; justify-content:space-between; margin-top: 5px;">
+                            <div style="width: 50%; background:#f9f9f9; padding:8px; font-size:9px; border:0.5px solid #000; height:fit-content; color:#000000;">
                                 <b>Catatan:</b><br>
                                 Diskon berlaku hanya pada tanggal penerbitan invoice dan tidak berlaku untuk transaksi pada tanggal berikutnya.<br><br>
                                 Pembayaran ditransfer ke <b>rek. BCA 1374444550</b><br>
                                 a/n. CITA BENGGALA LESTARI PT
-                                <div style="margin-top:8px; border-top:1px dashed #999; padding-top:5px; font-size:10px;">
+                                <div style="margin-top:6px; border-top:1px dashed #999; padding-top:4px; font-size:10px;">
                                     <b>Keterangan:</b> <span id="inv_pdf_ket">-</span>
                                 </div>
                             </div>
-                            <div style="width: 40%; font-size:12px; color:#000;">
-                                <div style="display:flex; justify-content:space-between; padding:3px 0;"><span>Subtotal:</span> <span id="inv_pdf_subtotal">Rp 0</span></div>
-                                <div style="display:flex; justify-content:space-between; padding:3px 0;"><span>Diskon:</span> <span id="inv_pdf_diskon">Rp 0</span></div>
-                                <div style="display:flex; justify-content:space-between; padding:5px 0; border-top:1px solid #000; border-bottom:1px solid #000; font-size:15px; font-weight:bold; margin-top:3px; margin-bottom:5px;"><span>Total:</span> <span id="inv_pdf_grandtotal">Rp 0</span></div>
+                            <div style="width: 40%; font-size:11px; color:#000000;">
+                                <div style="display:flex; justify-content:space-between; padding:2px 0;"><span>Subtotal:</span> <span id="inv_pdf_subtotal">Rp 0</span></div>
+                                <div style="display:flex; justify-content:space-between; padding:2px 0;"><span>Diskon:</span> <span id="inv_pdf_diskon">Rp 0</span></div>
+                                <div style="display:flex; justify-content:space-between; padding:5px 0; border-top:0.5px solid #000; border-bottom:0.5px solid #000; font-size:14px; font-weight:bold; margin-top:3px; margin-bottom:5px;"><span>Total:</span> <span id="inv_pdf_grandtotal">Rp 0</span></div>
                                 <div style="font-size:9px; text-align:right; font-style:italic; font-weight:bold;" id="inv_pdf_terbilang">Terbilang: -</div>
                             </div>
                         </div>
@@ -1101,14 +1102,15 @@
               subtotal += it.nominal;
               let hargaSatuanStr = it.hargaSatuan > 0 ? nf.format(it.hargaSatuan) : nf.format(it.nominal / (it.qty || 1));
               let safeSatuan = it.satuan || (it.pakan.toLowerCase().includes('ongkir') ? 'Rit' : 'Kg');
-              return `<tr style="font-size:${fSize}; line-height:${lHeight}; color:#000;">
-                  <td style="padding:${pad}; border:1px solid #000; text-align:center;">${i+1}</td>
-                  <td style="padding:${pad}; border:1px solid #000; text-align:center;">${it.tgl}</td>
-                  <td style="padding:${pad}; border:1px solid #000;">${it.pakan}</td>
-                  <td style="padding:${pad}; border:1px solid #000; text-align:right;">${nf.format(it.qty)}</td>
-                  <td style="padding:${pad}; border:1px solid #000; text-align:center;">${safeSatuan}</td>
-                  <td style="padding:${pad}; border:1px solid #000; text-align:right;">${hargaSatuanStr}</td>
-                  <td style="padding:${pad}; border:1px solid #000; text-align:right;">${nf.format(it.nominal)}</td>
+              // Warna font #000000 pekat dan garis ditipiskan jadi 0.5px
+              return `<tr style="font-size:${fSize}; line-height:${lHeight}; color:#000000; font-weight:500;">
+                  <td style="padding:${pad}; border:0.5px solid #000; text-align:center;">${i+1}</td>
+                  <td style="padding:${pad}; border:0.5px solid #000; text-align:center;">${it.tgl}</td>
+                  <td style="padding:${pad}; border:0.5px solid #000; text-align:left;">${it.pakan}</td>
+                  <td style="padding:${pad}; border:0.5px solid #000; text-align:right;">${nf.format(it.qty)}</td>
+                  <td style="padding:${pad}; border:0.5px solid #000; text-align:center;">${safeSatuan}</td>
+                  <td style="padding:${pad}; border:0.5px solid #000; text-align:right;">${hargaSatuanStr}</td>
+                  <td style="padding:${pad}; border:0.5px solid #000; text-align:right;">${nf.format(it.nominal)}</td>
               </tr>`;
           }).join('');
 
