@@ -3409,6 +3409,13 @@
             let antrian = JSON.parse(localStorage.getItem('antrian_pakan')) || [];
             antrian.push(payload);
             localStorage.setItem('antrian_pakan', JSON.stringify(antrian));
+            
+            // Mainkan suara sukses terkirim (lokal)
+            try {
+                let notifSound = new Audio('notif.wav');
+                notifSound.play().catch(e => console.log("Browser memblokir suara otomatis"));
+            } catch (err) { }
+            
             if (navigator.onLine) {
                 prosesAntreanBackground();
             } else {
@@ -5725,6 +5732,12 @@
                     if (document.getElementById('lbl-karung-' + index)) document.getElementById('lbl-karung-' + index).innerText = "";
                 });
                 hapusSJ();
+
+                // Mainkan suara sukses masuk keranjang
+                try {
+                    let notifSound = new Audio('notif.wav');
+                    notifSound.play().catch(e => console.log("Browser memblokir suara otomatis"));
+                } catch (err) { }
 
                 // SweetAlert toast kalo ada? Kalo tidak alert biasa
                 alert("🛒 Ditambahkan ke Keranjang!\nBapak bisa lanjut input rombongan/menu pakan selanjutnya.");
