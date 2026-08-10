@@ -1614,6 +1614,11 @@
                         ke Keranjang
                     </button>
                 </div>
+                <div
+                    style="font-size: 11px; color: #666; text-align: center; margin-top: 8px; font-style: italic; line-height: 1.3;">
+                    💡 <b>TIPS:</b> Gunakan <b>Keranjang</b> jika ingin melaporkan lebih dari 1 laporan sekaligus.
+                    Agar proses lebih cepat.
+                </div>
 
                 <!-- UI KERANJANG LAPORAN -->
                 <div id="keranjang-container" class="hidden"
@@ -3409,13 +3414,13 @@
             let antrian = JSON.parse(localStorage.getItem('antrian_pakan')) || [];
             antrian.push(payload);
             localStorage.setItem('antrian_pakan', JSON.stringify(antrian));
-            
+
             // Mainkan suara sukses terkirim (lokal)
             try {
                 let notifSound = new Audio('notif.wav');
                 notifSound.play().catch(e => console.log("Browser memblokir suara otomatis"));
             } catch (err) { }
-            
+
             if (navigator.onLine) {
                 prosesAntreanBackground();
             } else {
