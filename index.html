@@ -5067,7 +5067,7 @@
             } else {
                 document.getElementById('product-list').innerHTML = '<div class="loader">Membutuhkan koneksi internet...</div>';
             }
-            if (navigator.onLine) { fetch(`${API_URL}?action=getPakan&lokasi=${lokasi}`).then(res => res.json()).then(res => { if (res.status === 'success') { localStorage.setItem('pakan_data_' + lokasi, JSON.stringify(res)); renderPakan(res); } }).catch(e => { console.log("Gagal fetch data"); document.getElementById('product-list').innerHTML = '<div class="loader">Gagal mengambil data dari server</div>'; }); }
+            if (navigator.onLine) { fetch(API_URL, { method: 'POST', body: JSON.stringify({ source: 'getPakan', lokasi: lokasi }) }).then(res => res.json()).then(res => { if (res.status === 'success') { localStorage.setItem('pakan_data_' + lokasi, JSON.stringify(res)); renderPakan(res); } }).catch(e => { console.log("Gagal fetch data"); document.getElementById('product-list').innerHTML = '<div class="loader">Gagal mengambil data dari server</div>'; }); }
             fetchStokKandang(); // Panggil pengecekan stok murni
         }
         let globalStokKandang = {};
