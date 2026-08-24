@@ -9704,7 +9704,8 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
                 return;
             }
 
-            fetch(`${SUPA_URL}/rest/v1/transaksi_pakan?tanggal=gte.${startDate}&tanggal=lte.${endDate}&cabang=eq.PM&status=ilike.%25keluar%25&select=tanggal,relasi,qty`, {
+            // SULAP: Tarik data dari Gudang PM maupun Kandang PM
+            fetch(`${SUPA_URL}/rest/v1/transaksi_pakan?tanggal=gte.${startDate}&tanggal=lte.${endDate}&cabang=ilike.*PM*&status=ilike.%25keluar%25&select=tanggal,relasi,qty`, {
                 headers: { 'apikey': SUPA_ANON_KEY, 'Authorization': `Bearer ${SUPA_ANON_KEY}` }
             })
             .then(r => r.json())
@@ -9719,10 +9720,11 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
                     let relasiLower = String(row.relasi || "").toLowerCase();
                     let qty = parseFloat(row.qty) || 0;
                     
-                    // Filter: Hanya hitung "Pemakaian Kandang" dari Gudang PM (Sesuai SOP Upah Panggul)
-                    let isPemakaian = relasiLower.includes('kandang') || kelompokSapi.includes(relasiLower);
+                    // 🔥 LOGIKA BARU: Hanya hitung pemakaian riil sapi. 
+                    // JANGAN HITUNG Mutasi Bulk Gudang ke Kandang (biar gak membludak 3 ton)
+                    let isPemakaianRiil = kelompokSapi.includes(relasiLower) || relasiLower.includes('sapi');
                     
-                    if (isPemakaian) {
+                    if (isPemakaianRiil) {
                         let tgl = row.tanggal;
                         if (!dailyTotals[tgl]) dailyTotals[tgl] = 0;
                         dailyTotals[tgl] += qty;
@@ -9732,10 +9734,10 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
                 // Merge dengan data laporan yang baru saja diinput di HP tapi belum di-Sync (Optimistic UI)
                 let pendingMaster = JSON.parse(localStorage.getItem('pending_master_data') || "[]");
                 pendingMaster.forEach(p => {
-                    if (p.tgl >= startDate && p.tgl <= endDate && p.gudang === 'PM' && p.status === 'Keluar') {
+                    if (p.tgl >= startDate && p.tgl <= endDate && p.gudang.includes('PM') && p.status === 'Keluar') {
                         let relasiLower = String(p.relasi || "").toLowerCase();
-                        let isPemakaian = relasiLower.includes('kandang') || kelompokSapi.includes(relasiLower);
-                        if (isPemakaian) {
+                        let isPemakaianRiil = kelompokSapi.includes(relasiLower) || relasiLower.includes('sapi');
+                        if (isPemakaianRiil) {
                             if (!dailyTotals[p.tgl]) dailyTotals[p.tgl] = 0;
                             dailyTotals[p.tgl] += (parseFloat(p.qty) || 0);
                         }
