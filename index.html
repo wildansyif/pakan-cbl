@@ -6667,26 +6667,34 @@ async function prosesAntreanBackground() {
             let hashStr = payload.relasi + "_" + stringItem + "_" + payload.status + "_" + payload.tanggal;
             let duplikat = historyInput.find(h => h.hash === hashStr);
 
+            let isGilingan = (payload.relasi.toLowerCase().includes("rd") || payload.relasi.toLowerCase().includes("rl") || payload.relasi.toLowerCase().includes("darbun") || payload.relasi.toLowerCase().includes("laktasi"));
+
             if (duplikat) {
-                if (payload.status === "Masuk" || payload.status === "Masuk (Retur)") {
-                    let lanjut = confirm(`⚠️ TRUK/BARANG IDENTIK TERDETEKSI!\n\nBarang dengan jenis dan jumlah ini sudah diinput pada pukul ${duplikat.waktu}.\n\nApakah ini memang kiriman KEDUA (berbeda) yang kebetulan jumlahnya sama persis? Klik OK untuk tetap menyimpan.`);
+                if (payload.status === "Masuk" || payload.status === "Masuk (Retur)" || isGilingan) {
+                    let txtAlert = isGilingan ? 
+                        `⚠️ GILINGAN IDENTIK TERDETEKSI!\n\nCampuran gilingan dengan formula dan jumlah ini sudah diinput pada pukul ${duplikat.waktu}.\n\nApakah ini memang gilingan KEDUA (berbeda) yang kebetulan formulanya sama persis? Klik OK untuk tetap menyimpan.` :
+                        `⚠️ TRUK/BARANG IDENTIK TERDETEKSI!\n\nBarang dengan jenis dan jumlah ini sudah diinput pada pukul ${duplikat.waktu}.\n\nApakah ini memang kiriman KEDUA (berbeda) yang kebetulan jumlahnya sama persis? Klik OK untuk tetap menyimpan.`;
+                    
+                    let lanjut = confirm(txtAlert);
                     if (!lanjut) return;
+                    
+                    // SULAP: Tambahkan stempel copy agar lolos dari gembok Supabase!
                     hashStr = hashStr + "_copy_" + Date.now();
                 } else {
                     let msg = `⚠️ STOP! DATA IDENTIK TERDETEKSI!\n\nData ini sudah masuk ke sistem pada pukul ${duplikat.waktu} oleh ${duplikat.petugas}.\n\nSistem mengunci input ganda agar database tidak rusak. Apakah Anda hanya ingin mengirim ulang Laporan WhatsApp ke Admin?`;
                     if (confirm(msg)) {
-                    if (currentLoggedPin === "1234") {
-                        let tempInput = document.createElement("textarea");
-                        tempInput.value = duplikat.teksWA;
-                        document.body.appendChild(tempInput);
-                        tempInput.select();
-                        document.execCommand("copy");
-                        document.body.removeChild(tempInput);
-                        alert("✅ Laporan berhasil di-copy! Silakan teruskan/paste manual ke grup WhatsApp.");
-                    } else {
-                        let waUrl = `https://wa.me/${NOMOR_WA_ADMIN}?text=${encodeURIComponent(duplikat.teksWA)}`;
-                        window.open(waUrl, '_blank') || (window.location.href = waUrl);
-                    }
+                        if (currentLoggedPin === "1234") {
+                            let tempInput = document.createElement("textarea");
+                            tempInput.value = duplikat.teksWA;
+                            document.body.appendChild(tempInput);
+                            tempInput.select();
+                            document.execCommand("copy");
+                            document.body.removeChild(tempInput);
+                            alert("✅ Laporan berhasil di-copy! Silakan teruskan/paste manual ke grup WhatsApp.");
+                        } else {
+                            let waUrl = `https://wa.me/${NOMOR_WA_ADMIN}?text=${encodeURIComponent(duplikat.teksWA)}`;
+                            window.open(waUrl, '_blank') || (window.location.href = waUrl);
+                        }
                     }
 
                     if (payload.lokasi !== '/kandang') document.getElementById('relasi').value = "";
