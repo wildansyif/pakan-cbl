@@ -7095,7 +7095,8 @@ async function prosesAntreanBackground() {
 
         function prosesReminderWA(namaKey) {
             let d = dataPiutangLokal[namaKey];
-            if (!d || d.totalTelat <= 0) return;
+            // FIX: Menggunakan nama variabel yang benar (total_telat)
+            if (!d || d.total_telat <= 0) return;
 
             let nf = new Intl.NumberFormat('id-ID');
             let rincianTelat = "";
@@ -7112,8 +7113,9 @@ async function prosesAntreanBackground() {
             }
 
             let namaPeternak = namaKey.split('-')[0].trim();
-            let nominalTelat = nf.format(d.totalTelat);
-            let totalPiutang = nf.format(d.total);
+            // FIX: Menggunakan nama variabel yang benar dari database lokal
+            let nominalTelat = nf.format(d.total_telat);
+            let totalPiutang = nf.format(d.total_sisa);
 
             let relData = globalRelasi.find(r => r.nama.toLowerCase() === namaPeternak.toLowerCase());
             let hpRaw = relData ? relData.hp : "";
@@ -8230,19 +8232,34 @@ async function prosesAntreanBackground() {
                             }
                             let ketOngkir = m.ongkir > 0 ? `<br><span style="color:#e65100; font-size:10px;">+ Ongkir / Lainnya: Rp ${nf.format(m.ongkir)}</span>` : '';
 
-                            // SULAP: Ciptakan Stempel Lunas / DP berdasarkan data FIFO
+                            // SULAP JATUH TEMPO
+                            let hariIni = new Date(); hariIni.setHours(0,0,0,0);
+                            let dTrx = new Date(m.tglObj); dTrx.setHours(0,0,0,0);
+                            let jtDate = new Date(dTrx); jtDate.setDate(jtDate.getDate() + 15);
+                            let selisihHari = Math.ceil((jtDate.getTime() - hariIni.getTime()) / (1000 * 60 * 60 * 24));
+                            
+                            let txtJT = "";
+                            if (selisihHari < 0) {
+                                txtJT = `Telat ${Math.abs(selisihHari)} Hr`;
+                            } else if (selisihHari === 0) {
+                                txtJT = `Jatuh Tempo Hari Ini`;
+                            } else {
+                                txtJT = `Tempo H-${selisihHari}`;
+                            }
+
+                            // SULAP STEMPEL
                             let statusHtml = "";
                             let sisaTagihan = m.totalTagihanNota - m.terbayarNota;
                             if (sisaTagihan <= 0) {
                                 statusHtml = `<div style="margin-top:6px; font-size:9px; background:#e8f5e9; color:#2e7d32; padding:3px 6px; border-radius:4px; font-weight:bold; border:1px solid #c8e6c9; display:inline-block;"><span class="material-symbols-outlined" style="font-size:11px; vertical-align:middle;">check_circle</span> LUNAS</div>`;
                             } else if (m.terbayarNota > 0) {
                                 statusHtml = `<div style="margin-top:6px; font-size:9px; background:#fff8e1; color:#e65100; padding:4px 6px; border-radius:4px; border:1px solid #ffecb3; line-height:1.3; display:inline-block;">
-                                                <span style="font-weight:bold;"><span class="material-symbols-outlined" style="font-size:11px; vertical-align:middle;">error</span> TER-DP (Belum Lunas)</span><br>
+                                                <span style="font-weight:bold;"><span class="material-symbols-outlined" style="font-size:11px; vertical-align:middle;">error</span> TER-DP (${txtJT})</span><br>
                                                 <span style="color:#666;">Dibayar: Rp ${nf.format(m.terbayarNota)}</span> | <b style="color:#c62828;">Sisa: Rp ${nf.format(sisaTagihan)}</b>
                                               </div>`;
                             } else {
                                 statusHtml = `<div style="margin-top:6px; font-size:9px; background:#ffebee; color:#c62828; padding:4px 6px; border-radius:4px; border:1px solid #ffcdd2; line-height:1.3; display:inline-block;">
-                                                <span style="font-weight:bold;"><span class="material-symbols-outlined" style="font-size:11px; vertical-align:middle;">cancel</span> BELUM DIBAYAR</span><br>
+                                                <span style="font-weight:bold;"><span class="material-symbols-outlined" style="font-size:11px; vertical-align:middle;">cancel</span> BELUM DIBAYAR (${txtJT})</span><br>
                                                 <b style="color:#c62828;">Sisa: Rp ${nf.format(sisaTagihan)}</b>
                                               </div>`;
                             }
@@ -8399,20 +8416,35 @@ async function prosesAntreanBackground() {
                     }
                     let ketOngkir = m.ongkir > 0 ? `<br>+ Ongkir Pengiriman: Rp ${nf.format(m.ongkir)}` : '';
 
-                    // SULAP: Stempel Lunas untuk PDF (Tanpa background warna agar hemat tinta printer)
+                    // SULAP JATUH TEMPO (PDF)
+                    let hariIni = new Date(); hariIni.setHours(0,0,0,0);
+                    let dTrx = new Date(m.tglObj); dTrx.setHours(0,0,0,0);
+                    let jtDate = new Date(dTrx); jtDate.setDate(jtDate.getDate() + 15);
+                    let selisihHari = Math.ceil((jtDate.getTime() - hariIni.getTime()) / (1000 * 60 * 60 * 24));
+                    
+                    let txtJT = "";
+                    if (selisihHari < 0) {
+                        txtJT = `Telat ${Math.abs(selisihHari)} Hr`;
+                    } else if (selisihHari === 0) {
+                        txtJT = `Tempo Hari Ini`;
+                    } else {
+                        txtJT = `H-${selisihHari}`;
+                    }
+
+                    // SULAP STEMPEL (PDF)
                     let statusHtml = "";
                     let sisaTagihan = m.totalTagihanNota - m.terbayarNota;
                     if (sisaTagihan <= 0) {
                         statusHtml = `<div style="margin-top:4px; font-size:9px; color:#2e7d32; font-weight:bold;">[ LUNAS ]</div>`;
                     } else if (m.terbayarNota > 0) {
                         statusHtml = `<div style="margin-top:4px; font-size:9px; color:#e65100; font-weight:bold; line-height:1.2;">
-                                        [ TER-DP ]<br>
+                                        [ TER-DP: ${txtJT} ]<br>
                                         <span style="font-weight:normal; color:#555;">Telah dibayar: Rp ${nf.format(m.terbayarNota)}</span><br>
                                         <b style="color:#c62828;">Sisa Tunggakan: Rp ${nf.format(sisaTagihan)}</b>
                                       </div>`;
                     } else {
                         statusHtml = `<div style="margin-top:4px; font-size:9px; color:#c62828; font-weight:bold; line-height:1.2;">
-                                        [ BELUM DIBAYAR ]<br>
+                                        [ BELUM DIBAYAR: ${txtJT} ]<br>
                                         Sisa Tunggakan: Rp ${nf.format(sisaTagihan)}
                                       </div>`;
                     }
