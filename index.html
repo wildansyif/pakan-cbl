@@ -9503,22 +9503,30 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
             
             // 1. Grouping Data berdasarkan KATEGORI, lalu Relasi & Status
             let grouped = {};
+            let sumKategori = {}; // Untuk menyimpan total per kategori
+
             globalTransaksiHariIni.forEach(t => {
                 let wkt = new Date(t.waktu_input || t.tanggal).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'});
                 let kategori = getKategoriReview(t);
                 
-                // SULAP: Key tidak mempedulikan waktu, jadi ongkir susulan akan masuk ke grup yang sama!
                 let key = `${kategori}_${t.relasi}_${t.status}`; 
                 if (!grouped[key]) {
                     grouped[key] = {
                         kategori: kategori,
                         relasi: t.relasi,
                         status: t.status,
-                        waktu_awal: wkt, // Ambil waktu transaksi pertama
+                        waktu_awal: wkt,
                         items: []
                     };
                 }
                 grouped[key].items.push(t);
+
+                // Hitung sum kategori hanya untuk satuan Kg
+                let safeSatuan = String(t.pakan).toLowerCase().includes('ongkir') ? 'Rit' : (t.satuan || 'Kg');
+                if (safeSatuan === 'Kg') {
+                    if (!sumKategori[kategori]) sumKategori[kategori] = 0;
+                    sumKategori[kategori] += (parseFloat(t.qty) || 0);
+                }
             });
 
             // Sortir agar Ongkir selalu di paling bawah dalam satu card
@@ -9532,10 +9540,8 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
                 });
             }
 
-            // 2. Render UI Kartu (Dikelompokkan berdasarkan Kategori)
+            // 2. Render UI Kartu
             let kategoriAktif = "";
-            
-            // SULAP: Urutkan kategori sesuai hierarki (Penjualan > Mutasi > Masuk > Pemakaian > Giling)
             let sortedKeys = Object.keys(grouped).sort((a, b) => {
                 let getRnk = (k) => k.includes("Penjualan") ? 1 : k.includes("Mutasi") ? 2 : k.includes("Masuk") ? 3 : k.includes("Pemakaian") ? 4 : k.includes("Gilingan") ? 5 : 99;
                 let rankA = getRnk(grouped[a].kategori);
@@ -9549,8 +9555,14 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
                 
                 // Bikin header kategori jika berubah
                 if (g.kategori !== kategoriAktif) {
-                    let colorKat = g.kategori.includes('Masuk') ? '#2e7d32' : (g.kategori === 'Penjualan Pakan' ? '#1565c0' : '#e65100');
-                    html += `<div style="font-weight:bold; font-size:13px; color:${colorKat}; margin:15px 0 5px 0; border-bottom:2px solid ${colorKat}; padding-bottom:5px;"><span class="material-symbols-outlined" style="font-size:16px; vertical-align:middle;">label</span> ${g.kategori.toUpperCase()}</div>`;
+                    let colorKat = g.kategori.includes('Masuk') ? '#2e7d32' : (g.kategori.includes('Penjualan') ? '#1565c0' : (g.kategori.includes('Pemakaian') ? '#9C27B0' : '#e65100'));
+                    let emoteKat = g.kategori.includes('Penjualan') ? '🛒' : (g.kategori.includes('Pemakaian') ? '🐮' : (g.kategori.includes('Giling') ? '⚙️' : '🏭'));
+                    let totKgKat = sumKategori[g.kategori] || 0;
+
+                    html += `<div style="font-weight:bold; font-size:13px; color:${colorKat}; margin:15px 0 5px 0; border-bottom:2px solid ${colorKat}; padding-bottom:5px; display:flex; justify-content:space-between;">
+                        <span>${emoteKat} ${g.kategori.toUpperCase()}</span>
+                        <span>TOTAL: ${nf.format(totKgKat)} Kg</span>
+                    </div>`;
                     kategoriAktif = g.kategori;
                 }
 
@@ -9604,21 +9616,29 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
             if (tglForm) dObj = new Date(tglForm);
             let tglIndo = ("0" + dObj.getDate()).slice(-2) + "/" + ("0" + (dObj.getMonth() + 1)).slice(-2) + "/" + dObj.getFullYear();
 
-            let txt = `*TUTUP SHIFT AREA ${baseCabang}*\nTanggal: ${tglIndo}\nPetugas: ${activeUser}\n\n`;
+            let txt = `*TUTUP SHIFT GUDANG ${baseCabang}*\nTanggal: ${tglIndo}\nPetugas: ${activeUser}\n\n`;
             let nf = new Intl.NumberFormat('id-ID');
             
             let grouped = {};
+            let sumKategori = {}; // Untuk menyimpan total per kategori
+
             globalTransaksiHariIni.forEach(t => {
+                let wkt = new Date(t.waktu_input || t.tanggal).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'});
                 let kategori = getKategoriReview(t);
                 let key = `${kategori}_${t.relasi}_${t.status}`;
+                
                 if (!grouped[key]) {
-                    let wkt = new Date(t.waktu_input || t.tanggal).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'});
                     grouped[key] = { kategori: kategori, relasi: t.relasi, status: t.status, waktu_awal: wkt, items: [] };
                 }
                 grouped[key].items.push(t);
+
+                let safeSatuan = String(t.pakan).toLowerCase().includes('ongkir') ? 'Rit' : (t.satuan || 'Kg');
+                if (safeSatuan === 'Kg') {
+                    if (!sumKategori[kategori]) sumKategori[kategori] = 0;
+                    sumKategori[kategori] += (parseFloat(t.qty) || 0);
+                }
             });
 
-            // Sortir agar Ongkir selalu di paling bawah dalam satu card
             for(let k in grouped) {
                 grouped[k].items.sort((a,b) => {
                     let isOngkirA = String(a.pakan).toLowerCase().includes('ongkir');
@@ -9630,7 +9650,6 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
             }
 
             let kategoriAktif = "";
-            // SULAP: Urutkan kategori sesuai hierarki (Penjualan > Mutasi > Masuk > Pemakaian > Giling)
             let sortedKeys = Object.keys(grouped).sort((a, b) => {
                 let getRnk = (k) => k.includes("Penjualan") ? 1 : k.includes("Mutasi") ? 2 : k.includes("Masuk") ? 3 : k.includes("Pemakaian") ? 4 : k.includes("Gilingan") ? 5 : 99;
                 let rankA = getRnk(grouped[a].kategori);
@@ -9643,13 +9662,14 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
                 let g = grouped[key];
                 
                 if (g.kategori !== kategoriAktif) {
-                    let emote = g.kategori.includes('Masuk') ? '🟢' : (g.kategori === 'Penjualan Pakan' ? '🔵' : '🔴');
-                    txt += `\n${emote} *${g.kategori.toUpperCase()}*\n`;
+                    let emote = g.kategori.includes('Penjualan') ? '🔵' : (g.kategori.includes('Pemakaian') ? '🐮' : (g.kategori.includes('Giling') ? '⚙️' : (g.kategori.includes('Masuk') ? '🟢' : '🔴')));
+                    let totKgKat = sumKategori[g.kategori] || 0;
+                    txt += `\n${emote} *${g.kategori.toUpperCase()} | TOTAL: ${nf.format(totKgKat)}*\n\n`;
                     kategoriAktif = g.kategori;
                 }
                 
                 let tStatus = g.status === 'Masuk' ? 'Dari' : 'Ke';
-                txt += `\n${tStatus}: *${g.relasi}* | Pukul: ${g.waktu_awal}\n`;
+                txt += `${tStatus}: ${g.relasi} | Pukul: ${g.waktu_awal}\n`;
                 
                 let subt = 0;
                 g.items.forEach(i => {
@@ -9659,7 +9679,8 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
                     txt += `• ${i.pakan}: ${nf.format(i.qty)} ${safeSatuan}${ketKoreksi}${ketSusulan}\n`; 
                     if (safeSatuan === 'Kg') subt += i.qty;
                 });
-                if (subt > 0) txt += `Total Kg: ${nf.format(subt)} Kg\n`;
+                if (subt > 0) txt += `Total Kg: ${nf.format(subt)} Kg\n\n`;
+                else txt += `\n`; // Spasi kalau misal isinya cuma ongkir
             });
 
             if (currentLoggedPin === "1234") {
