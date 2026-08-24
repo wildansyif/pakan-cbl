@@ -8089,6 +8089,9 @@ async function prosesAntreanBackground() {
                 } else if (rTahun === parseInt(tahunTarget)) {
                     let key = row.tanggal + "_" + (isBayar ? "BAYAR" : "DO");
                     if(!groupBulanTgl[key]) {
+                        // SULAP: Ambil informasi lunas/belum dari mesin FIFO sebelumnya
+                        let infoNota = groupedNota[row.tanggal] || { totalTagihan: 0, terbayar: 0 };
+                        
                         groupBulanTgl[key] = {
                             tglObj: tglObj,
                             bulan: tglObj.getMonth(),
@@ -8097,7 +8100,9 @@ async function prosesAntreanBackground() {
                             tagihan: 0, bayar: 0, items: [], ongkir: 0,
                             metode: isBayar ? (row.metode || "Cash") : "",
                             detailPotongan: [],
-                            sisaDeposit: 0
+                            sisaDeposit: 0,
+                            totalTagihanNota: infoNota.totalTagihan,
+                            terbayarNota: infoNota.terbayar
                         };
                     }
                     
@@ -8225,10 +8230,27 @@ async function prosesAntreanBackground() {
                             }
                             let ketOngkir = m.ongkir > 0 ? `<br><span style="color:#e65100; font-size:10px;">+ Ongkir / Lainnya: Rp ${nf.format(m.ongkir)}</span>` : '';
 
+                            // SULAP: Ciptakan Stempel Lunas / DP berdasarkan data FIFO
+                            let statusHtml = "";
+                            let sisaTagihan = m.totalTagihanNota - m.terbayarNota;
+                            if (sisaTagihan <= 0) {
+                                statusHtml = `<div style="margin-top:6px; font-size:9px; background:#e8f5e9; color:#2e7d32; padding:3px 6px; border-radius:4px; font-weight:bold; border:1px solid #c8e6c9; display:inline-block;"><span class="material-symbols-outlined" style="font-size:11px; vertical-align:middle;">check_circle</span> LUNAS</div>`;
+                            } else if (m.terbayarNota > 0) {
+                                statusHtml = `<div style="margin-top:6px; font-size:9px; background:#fff8e1; color:#e65100; padding:4px 6px; border-radius:4px; border:1px solid #ffecb3; line-height:1.3; display:inline-block;">
+                                                <span style="font-weight:bold;"><span class="material-symbols-outlined" style="font-size:11px; vertical-align:middle;">error</span> TER-DP (Belum Lunas)</span><br>
+                                                <span style="color:#666;">Dibayar: Rp ${nf.format(m.terbayarNota)}</span> | <b style="color:#c62828;">Sisa: Rp ${nf.format(sisaTagihan)}</b>
+                                              </div>`;
+                            } else {
+                                statusHtml = `<div style="margin-top:6px; font-size:9px; background:#ffebee; color:#c62828; padding:4px 6px; border-radius:4px; border:1px solid #ffcdd2; line-height:1.3; display:inline-block;">
+                                                <span style="font-weight:bold;"><span class="material-symbols-outlined" style="font-size:11px; vertical-align:middle;">cancel</span> BELUM DIBAYAR</span><br>
+                                                <b style="color:#c62828;">Sisa: Rp ${nf.format(sisaTagihan)}</b>
+                                              </div>`;
+                            }
+
                             barisHtml = `
                             <tr style="border-bottom: 1px solid #eee; background: #fff; vertical-align: top;">
                                 <td style="text-align: center; padding: 6px; color:#666;">${m.tglStr.substring(0, 5)}</td>
-                                <td style="line-height: 1.4; padding: 6px;">${ketPakan} ${ketOngkir}</td>
+                                <td style="line-height: 1.4; padding: 6px;">${ketPakan} ${ketOngkir} <br>${statusHtml}</td>
                                 <td style="text-align: right; color: #b91c1c; font-weight:bold; padding: 6px;">+ ${nf.format(m.tagihan)}</td>
                                 <td style="text-align: right; font-weight: bold; padding: 6px; color:#333; background:#fafafa;">${nf.format(m.saldo)}</td>
                             </tr>`;
@@ -8377,10 +8399,28 @@ async function prosesAntreanBackground() {
                     }
                     let ketOngkir = m.ongkir > 0 ? `<br>+ Ongkir Pengiriman: Rp ${nf.format(m.ongkir)}` : '';
 
+                    // SULAP: Stempel Lunas untuk PDF (Tanpa background warna agar hemat tinta printer)
+                    let statusHtml = "";
+                    let sisaTagihan = m.totalTagihanNota - m.terbayarNota;
+                    if (sisaTagihan <= 0) {
+                        statusHtml = `<div style="margin-top:4px; font-size:9px; color:#2e7d32; font-weight:bold;">[ LUNAS ]</div>`;
+                    } else if (m.terbayarNota > 0) {
+                        statusHtml = `<div style="margin-top:4px; font-size:9px; color:#e65100; font-weight:bold; line-height:1.2;">
+                                        [ TER-DP ]<br>
+                                        <span style="font-weight:normal; color:#555;">Telah dibayar: Rp ${nf.format(m.terbayarNota)}</span><br>
+                                        <b style="color:#c62828;">Sisa Tunggakan: Rp ${nf.format(sisaTagihan)}</b>
+                                      </div>`;
+                    } else {
+                        statusHtml = `<div style="margin-top:4px; font-size:9px; color:#c62828; font-weight:bold; line-height:1.2;">
+                                        [ BELUM DIBAYAR ]<br>
+                                        Sisa Tunggakan: Rp ${nf.format(sisaTagihan)}
+                                      </div>`;
+                    }
+
                     barisHtml = `
                 <tr class="avoid-break" style="vertical-align: top; page-break-inside: avoid !important;">
                     <td style="text-align: center; padding: 6px;">${m.tglStr.substring(0, 5)}</td>
-                    <td style="line-height: 1.4; padding: 6px;">${ketPakan} ${ketOngkir}</td>
+                    <td style="line-height: 1.4; padding: 6px;">${ketPakan} ${ketOngkir} ${statusHtml}</td>
                     <td style="text-align: right; color: #b91c1c; padding: 6px;">${nf.format(m.tagihan)}</td>
                     <td style="text-align: right; padding: 6px;">-</td>
                     <td style="text-align: right; font-weight: bold; padding: 6px;">${nf.format(m.saldo)}</td>
