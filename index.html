@@ -9725,8 +9725,8 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
                 return;
             }
 
-            // SULAP: Tarik data dari Gudang PM maupun Kandang PM
-            fetch(`${SUPA_URL}/rest/v1/transaksi_pakan?tanggal=gte.${startDate}&tanggal=lte.${endDate}&cabang=ilike.*PM*&status=ilike.%25keluar%25&select=tanggal,relasi,qty`, {
+            // SULAP: Tarik data dari Gudang PM maupun Kandang PM sekalian (ilike.*PM*) dan select kolom 'cabang'
+            fetch(`${SUPA_URL}/rest/v1/transaksi_pakan?tanggal=gte.${startDate}&tanggal=lte.${endDate}&cabang=ilike.*PM*&status=ilike.%25keluar%25&select=tanggal,relasi,qty,cabang`, {
                 headers: { 'apikey': SUPA_ANON_KEY, 'Authorization': `Bearer ${SUPA_ANON_KEY}` }
             })
             .then(r => r.json())
@@ -9735,15 +9735,17 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
                 if (!Array.isArray(data)) throw new Error(data.message || "Gagal memuat data dari Supabase");
 
                 let dailyTotals = {};
-                let kelompokSapi = ['bx', 'domba', 'rd', 'rl', 'darbun', 'laktasi', 'kapalang', 'dewasa', 'jantan', 'pedet', 'kerbau', 'bunting'];
+                // Hapus RD, RL, Darbun dari kelompok sapi panggulan karena itu adalah gilingan
+                let kelompokSapi = ['bx', 'domba', 'laktasi', 'kapalang', 'dewasa', 'jantan', 'pedet', 'kerbau', 'bunting'];
 
                 data.forEach(row => {
-                    let relasiLower = String(row.relasi || "").toLowerCase();
+                    let relasiLower = String(row.relasi || "").toLowerCase().trim();
+                    let cabangRow = String(row.cabang || "").toLowerCase();
                     let qty = parseFloat(row.qty) || 0;
                     
-                    // 🔥 LOGIKA BARU: Hanya hitung pemakaian riil sapi. 
-                    // JANGAN HITUNG Mutasi Bulk Gudang ke Kandang (biar gak membludak 3 ton)
-                    let isPemakaianRiil = kelompokSapi.includes(relasiLower) || relasiLower.includes('sapi');
+                    // 🔥 LOGIKA KETAT: Murni dari cabang Kandang PM ATAU nama grup sapi. 
+                    // JANGAN pakai includes('sapi') agar 'Gilang (Sapi)' tidak tersedot!
+                    let isPemakaianRiil = (cabangRow === 'kandang pm') || kelompokSapi.includes(relasiLower);
                     
                     if (isPemakaianRiil) {
                         let tgl = row.tanggal;
@@ -9752,12 +9754,15 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
                     }
                 });
                 
-                // Merge dengan data laporan yang baru saja diinput di HP tapi belum di-Sync (Optimistic UI)
+                // Merge dengan data laporan lokal di HP (Optimistic UI)
                 let pendingMaster = JSON.parse(localStorage.getItem('pending_master_data') || "[]");
                 pendingMaster.forEach(p => {
-                    if (p.tgl >= startDate && p.tgl <= endDate && p.gudang.includes('PM') && p.status === 'Keluar') {
-                        let relasiLower = String(p.relasi || "").toLowerCase();
-                        let isPemakaianRiil = kelompokSapi.includes(relasiLower) || relasiLower.includes('sapi');
+                    if (p.tgl >= startDate && p.tgl <= endDate && p.status === 'Keluar') {
+                        let relasiLower = String(p.relasi || "").toLowerCase().trim();
+                        let lokasiInput = String(p.lokasiAsli || p.lokasi || "").toLowerCase(); 
+                        
+                        let isPemakaianRiil = (lokasiInput === '/kandang' || String(p.gudang).toLowerCase() === 'kandang pm') || kelompokSapi.includes(relasiLower);
+                        
                         if (isPemakaianRiil) {
                             if (!dailyTotals[p.tgl]) dailyTotals[p.tgl] = 0;
                             dailyTotals[p.tgl] += (parseFloat(p.qty) || 0);
