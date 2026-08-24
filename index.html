@@ -9535,8 +9535,14 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
             // 2. Render UI Kartu (Dikelompokkan berdasarkan Kategori)
             let kategoriAktif = "";
             
-            // Urutkan key agar kategorinya terkelompok rapi
-            let sortedKeys = Object.keys(grouped).sort();
+            // SULAP: Urutkan kategori sesuai hierarki (Penjualan > Mutasi > Masuk > Pemakaian > Giling)
+            let sortedKeys = Object.keys(grouped).sort((a, b) => {
+                let getRnk = (k) => k.includes("Penjualan") ? 1 : k.includes("Mutasi") ? 2 : k.includes("Masuk") ? 3 : k.includes("Pemakaian") ? 4 : k.includes("Gilingan") ? 5 : 99;
+                let rankA = getRnk(grouped[a].kategori);
+                let rankB = getRnk(grouped[b].kategori);
+                if (rankA !== rankB) return rankA - rankB;
+                return a.localeCompare(b);
+            });
             
             sortedKeys.forEach(key => {
                 let g = grouped[key];
@@ -9624,7 +9630,14 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
             }
 
             let kategoriAktif = "";
-            let sortedKeys = Object.keys(grouped).sort();
+            // SULAP: Urutkan kategori sesuai hierarki (Penjualan > Mutasi > Masuk > Pemakaian > Giling)
+            let sortedKeys = Object.keys(grouped).sort((a, b) => {
+                let getRnk = (k) => k.includes("Penjualan") ? 1 : k.includes("Mutasi") ? 2 : k.includes("Masuk") ? 3 : k.includes("Pemakaian") ? 4 : k.includes("Gilingan") ? 5 : 99;
+                let rankA = getRnk(grouped[a].kategori);
+                let rankB = getRnk(grouped[b].kategori);
+                if (rankA !== rankB) return rankA - rankB;
+                return a.localeCompare(b);
+            });
             
             sortedKeys.forEach(key => {
                 let g = grouped[key];
