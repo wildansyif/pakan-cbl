@@ -4342,13 +4342,16 @@ async function prosesAntreanBackground() {
 
                 // TRIGGER TARIK DATA OTOMATIS (MODE SILENT)
                 tarikDataGiling(true);
+            } // <--- INI DIA KURUNG KURAWAL YANG TADI HILANG!
+
             if (menu === 'panggul') {
                 let t = new Date();
                 document.getElementById('panggul_bulan').value = t.getMonth() + 1;
                 document.getElementById('panggul_tahun').value = t.getFullYear();
                 tarikDataPanggul(true);
             }
-        }
+        } // <--- Dan ini penutup akhir fungsi pindahMenu(menu)
+
         // Fungsi Buka Tutup Sub-Menu Rekap
         function toggleSubMenu(e) {
             e.stopPropagation(); // Mencegah klik bocor ke background
