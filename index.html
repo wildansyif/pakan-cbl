@@ -2657,6 +2657,96 @@
             </div>
         </div>
 
+        <!-- ================= HALAMAN UPAH PANGGUL ================= -->
+        <div id="page-panggul" class="container hidden">
+            <h2 style="display:flex; justify-content:center; align-items:center; gap:8px; color:#1a5c40;">
+                <span class="material-symbols-outlined" style="font-size:26px;">fitness_center</span> Upah Panggul
+            </h2>
+            <div class="sub-header" style="margin-bottom:15px;">Rekapitulasi Kuli Harian PM (Pak Agus)</div>
+
+            <div style="margin-bottom:15px; background:#fff; padding:15px; border-radius:12px; border:1px solid #DBE4C9;">
+                <div class="form-row" style="margin-bottom:10px;">
+                    <div style="margin-bottom:0;">
+                        <label style="font-size:10px;">Bulan</label>
+                        <select id="panggul_bulan" style="padding:8px; font-size:12px; width:100%;">
+                            <option value="1">Januari</option><option value="2">Februari</option><option value="3">Maret</option>
+                            <option value="4">April</option><option value="5">Mei</option><option value="6">Juni</option>
+                            <option value="7">Juli</option><option value="8" selected>Agustus</option><option value="9">September</option>
+                            <option value="10">Oktober</option><option value="11">November</option><option value="12">Desember</option>
+                        </select>
+                    </div>
+                    <div style="margin-bottom:0;">
+                        <label style="font-size:10px;">Tahun</label>
+                        <select id="panggul_tahun" style="padding:8px; font-size:12px; width:100%;">
+                            <option value="2025">2025</option><option value="2026" selected>2026</option>
+                        </select>
+                    </div>
+                </div>
+                <button class="btn-submit" onclick="tarikDataPanggul()" style="margin:0; background:#8AA624; width:100%;">
+                    <span class="material-symbols-outlined" style="font-size:16px;">search</span> Tarik Rincian
+                </button>
+            </div>
+
+            <div id="panggul-loader" class="loader hidden">Mengumpulkan data pemakaian...</div>
+
+            <div id="panggul-result" class="hidden">
+                <div class="rekap-card" style="padding:0; overflow:hidden;">
+                    <div style="background:#1a5c40; color:white; padding:12px; text-align:center;">
+                        <h3 style="margin:0; font-size:15px;">Rekap Upah Panggul Pak Agus</h3>
+                        <div id="panggul_periode" style="font-size:11px; font-style:italic;">-</div>
+                    </div>
+                    <div style="max-height: 400px; overflow-y: auto;">
+                        <table style="width:100%; border-collapse:collapse; font-size:11px;">
+                            <thead style="background:#e8f0d8; position:sticky; top:0; z-index:1;">
+                                <tr>
+                                    <th style="padding:10px 5px; text-align:center; border:1px solid #1a5c40; color:#1a5c40;">Tanggal</th>
+                                    <th style="padding:10px 5px; text-align:right; border:1px solid #1a5c40; color:#1a5c40;">Total (Kg)</th>
+                                    <th style="padding:10px 5px; text-align:right; border:1px solid #1a5c40; color:#1a5c40;">Upah</th>
+                                    <th style="padding:10px 5px; text-align:right; border:1px solid #1a5c40; color:#1a5c40;">Saldo</th>
+                                </tr>
+                            </thead>
+                            <tbody id="panggul_list_harian"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <button class="btn-submit" onclick="cetakPengajuanPanggul()" style="background:#4A90E2; margin-top:15px;">
+                    <span class="material-symbols-outlined">picture_as_pdf</span> Cetak PDF & Ajukan WA
+                </button>
+            </div>
+        </div>
+
+        <!-- HIDDEN CONTAINER UNTUK CETAK PDF UPAH PANGGUL -->
+        <div id="panggul-pdf-container" style="display: none;">
+            <div id="panggul-pdf-content" style="padding: 20px 40px; font-family: 'Arial', sans-serif; color: #000; background: #fff; width: 794px; box-sizing: border-box;">
+                <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 15px;">
+                    <h2 style="margin: 0; font-size: 18px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">Pengajuan Upah Panggul (PM)</h2>
+                    <p style="margin: 5px 0 0; font-size: 12px; color: #333;" id="pdf_panggul_periode"></p>
+                </div>
+                <table style="width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 30px;">
+                    <thead>
+                        <tr style="background-color: #1a5c40; color: #ffffff;">
+                            <th style="padding: 8px; border: 1px solid #000; text-align: center;">Tanggal</th>
+                            <th style="padding: 8px; border: 1px solid #000; text-align: right;">Total Pakan (Kg)</th>
+                            <th style="padding: 8px; border: 1px solid #000; text-align: right;">Upah Panggul</th>
+                            <th style="padding: 8px; border: 1px solid #000; text-align: right;">Total Saldo Berjalan</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pdf_tbody_panggul"></tbody>
+                </table>
+                <div style="display: flex; justify-content: space-between; font-size: 11px; page-break-inside: avoid !important;">
+                    <div style="width: 40%; line-height: 1.5;">
+                        <strong>Info Pembayaran:</strong><br>
+                        Transfer ke rekening terkait sesuai instruksi pimpinan.
+                    </div>
+                    <div style="width: 60%; display: flex; justify-content: space-around; text-align: center; line-height: 1.5;">
+                        <div>Diajukan Oleh,<br><br><br><br><strong>( Pak Agus )</strong></div>
+                        <div>Disetujui Oleh,<br><br><br><br><strong>( Admin Pusat )</strong></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div id="modal-koreksi-giling" class="hidden"
             style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:9999; display:flex; justify-content:center; align-items:center; padding:20px; box-sizing:border-box;">
             <div
@@ -2994,6 +3084,9 @@
             </div>
             <div id="sub-rekap-giling" class="submenu-item" onclick="pindahMenu('giling')">
                 <span class="material-symbols-outlined" style="color:#FEA405;">manufacturing</span> Rekap Giling
+            </div>
+            <div id="sub-rekap-panggul" class="submenu-item" onclick="pindahMenu('panggul')">
+                <span class="material-symbols-outlined" style="color:#1a5c40;">fitness_center</span> Upah Panggul
             </div>
         </div>
 
@@ -4249,6 +4342,11 @@ async function prosesAntreanBackground() {
 
                 // TRIGGER TARIK DATA OTOMATIS (MODE SILENT)
                 tarikDataGiling(true);
+            if (menu === 'panggul') {
+                let t = new Date();
+                document.getElementById('panggul_bulan').value = t.getMonth() + 1;
+                document.getElementById('panggul_tahun').value = t.getFullYear();
+                tarikDataPanggul(true);
             }
         }
         // Fungsi Buka Tutup Sub-Menu Rekap
@@ -9540,6 +9638,218 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
             } else {
                 let waUrl = `https://wa.me/${NOMOR_WA_ADMIN}?text=${encodeURIComponent(txt.trim())}`;
                 window.open(waUrl, '_blank') || (window.location.href = waUrl);
+            }
+        }
+
+        let globalPanggulData = {};
+        function tarikDataPanggul(isSilent = false) {
+            let bln = document.getElementById('panggul_bulan').value;
+            let thn = document.getElementById('panggul_tahun').value;
+
+            let startDate = `${thn}-${("0" + bln).slice(-2)}-01`;
+            let lastDate = new Date(thn, bln, 0); 
+            let endDate = `${thn}-${("0" + (lastDate.getMonth() + 1)).slice(-2)}-${("0" + lastDate.getDate()).slice(-2)}`;
+
+            let btn = document.querySelector('#page-panggul .btn-submit');
+            let oriTxt = `<span class="material-symbols-outlined" style="font-size:16px;">search</span> Tarik Rincian`;
+
+            if (!isSilent && btn) {
+                btn.innerHTML = `<span class="material-symbols-outlined icon-spin" style="font-size:16px;">sync</span> Menyelaraskan...`;
+                btn.disabled = true;
+            }
+
+            let cacheKey = `panggul_supa_${thn}_${bln}`;
+            let cached = localStorage.getItem(cacheKey);
+
+            if (!navigator.onLine) {
+                if (!isSilent && btn) { btn.innerHTML = oriTxt; btn.disabled = false; }
+                if (cached) {
+                    globalPanggulData = JSON.parse(cached);
+                    renderPanggulUI();
+                    document.getElementById('panggul-result').classList.remove('hidden');
+                } else {
+                    alert("Sedang offline dan belum ada data tersimpan di HP untuk periode ini.");
+                }
+                return;
+            }
+
+            fetch(`${SUPA_URL}/rest/v1/transaksi_pakan?tanggal=gte.${startDate}&tanggal=lte.${endDate}&cabang=eq.PM&status=ilike.%25keluar%25&select=tanggal,relasi,qty`, {
+                headers: { 'apikey': SUPA_ANON_KEY, 'Authorization': `Bearer ${SUPA_ANON_KEY}` }
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (!isSilent && btn) { btn.innerHTML = oriTxt; btn.disabled = false; }
+                if (!Array.isArray(data)) throw new Error(data.message || "Gagal memuat data dari Supabase");
+
+                let dailyTotals = {};
+                let kelompokSapi = ['bx', 'domba', 'rd', 'rl', 'darbun', 'laktasi', 'kapalang', 'dewasa', 'jantan', 'pedet', 'kerbau', 'bunting'];
+
+                data.forEach(row => {
+                    let relasiLower = String(row.relasi || "").toLowerCase();
+                    let qty = parseFloat(row.qty) || 0;
+                    
+                    // Filter: Hanya hitung "Pemakaian Kandang" dari Gudang PM (Sesuai SOP Upah Panggul)
+                    let isPemakaian = relasiLower.includes('kandang') || kelompokSapi.includes(relasiLower);
+                    
+                    if (isPemakaian) {
+                        let tgl = row.tanggal;
+                        if (!dailyTotals[tgl]) dailyTotals[tgl] = 0;
+                        dailyTotals[tgl] += qty;
+                    }
+                });
+                
+                // Merge dengan data laporan yang baru saja diinput di HP tapi belum di-Sync (Optimistic UI)
+                let pendingMaster = JSON.parse(localStorage.getItem('pending_master_data') || "[]");
+                pendingMaster.forEach(p => {
+                    if (p.tgl >= startDate && p.tgl <= endDate && p.gudang === 'PM' && p.status === 'Keluar') {
+                        let relasiLower = String(p.relasi || "").toLowerCase();
+                        let isPemakaian = relasiLower.includes('kandang') || kelompokSapi.includes(relasiLower);
+                        if (isPemakaian) {
+                            if (!dailyTotals[p.tgl]) dailyTotals[p.tgl] = 0;
+                            dailyTotals[p.tgl] += (parseFloat(p.qty) || 0);
+                        }
+                    }
+                });
+
+                globalPanggulData = dailyTotals;
+                localStorage.setItem(cacheKey, JSON.stringify(globalPanggulData));
+                
+                renderPanggulUI();
+                document.getElementById('panggul-result').classList.remove('hidden');
+            })
+            .catch(e => {
+                if (!isSilent && btn) { btn.innerHTML = oriTxt; btn.disabled = false; }
+                console.error("Error Panggul:", e);
+                if (!isSilent) alert("Gagal menyinkronkan data: " + e.message);
+            });
+        }
+
+        function renderPanggulUI() {
+            let bln = document.getElementById('panggul_bulan').value;
+            let thn = document.getElementById('panggul_tahun').value;
+            let namaBulan = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'][bln - 1];
+            document.getElementById('panggul_periode').innerText = `Periode: ${namaBulan} ${thn}`;
+
+            let daysInMonth = new Date(thn, bln, 0).getDate();
+            let html = ""; let pdfHtml = "";
+            let runningSaldo = 0;
+            let grandTotalKg = 0;
+            let nf = new Intl.NumberFormat('id-ID');
+
+            for (let i = 1; i <= daysInMonth; i++) {
+                let dateStr = `${thn}-${("0" + bln).slice(-2)}-${("0" + i).slice(-2)}`;
+                let tglIndo = `${("0" + i).slice(-2)}/${("0" + bln).slice(-2)}/${thn}`;
+                let qty = globalPanggulData[dateStr] || 0;
+                
+                let upah = qty * 25;
+                runningSaldo += upah;
+                grandTotalKg += qty;
+
+                let qtyTxt = qty > 0 ? nf.format(qty) : "-";
+                let upahTxt = qty > 0 ? nf.format(upah) : "0";
+
+                html += `<tr style="border-bottom:1px solid #ccc; background:#fff;">
+                            <td style="padding:6px 5px; text-align:center; border:1px solid #1a5c40;">${tglIndo}</td>
+                            <td style="padding:6px 5px; text-align:right; border:1px solid #1a5c40;">${qtyTxt}</td>
+                            <td style="padding:6px 5px; text-align:right; border:1px solid #1a5c40;">${upahTxt}</td>
+                            <td style="padding:6px 5px; text-align:right; border:1px solid #1a5c40;">${nf.format(runningSaldo)}</td>
+                         </tr>`;
+                pdfHtml += `<tr style="color:#000;">
+                            <td style="padding:4px; border:1px solid #000; text-align:center;">${tglIndo}</td>
+                            <td style="padding:4px; border:1px solid #000; text-align:right;">${qtyTxt}</td>
+                            <td style="padding:4px; border:1px solid #000; text-align:right;">${upahTxt}</td>
+                            <td style="padding:4px; border:1px solid #000; text-align:right; font-weight:bold;">${nf.format(runningSaldo)}</td>
+                         </tr>`;
+            }
+
+            html += `<tr style="background:#ffeb3b; font-weight:bold;">
+                        <td style="padding:8px 5px; text-align:center; border:1px solid #1a5c40;">Grand Total</td>
+                        <td style="padding:8px 5px; text-align:right; border:1px solid #1a5c40;">${nf.format(grandTotalKg)}</td>
+                        <td style="padding:8px 5px; text-align:right; border:1px solid #1a5c40;">${nf.format(runningSaldo)}</td>
+                        <td style="padding:8px 5px; text-align:right; border:1px solid #1a5c40;">${nf.format(runningSaldo)}</td>
+                     </tr>`;
+            pdfHtml += `<tr style="background:#ffeb3b; font-weight:bold; color:#000;">
+                        <td style="padding:6px; border:1px solid #000; text-align:center;">Grand Total</td>
+                        <td style="padding:6px; border:1px solid #000; text-align:right;">${nf.format(grandTotalKg)}</td>
+                        <td style="padding:6px; border:1px solid #000; text-align:right;">${nf.format(runningSaldo)}</td>
+                        <td style="padding:6px; border:1px solid #000; text-align:right;">${nf.format(runningSaldo)}</td>
+                     </tr>`;
+
+            document.getElementById('panggul_list_harian').innerHTML = html;
+            document.getElementById('pdf_tbody_panggul').innerHTML = pdfHtml;
+            document.getElementById('pdf_panggul_periode').innerText = `Rekapitulasi: ${namaBulan} ${thn}`;
+        }
+
+        async function cetakPengajuanPanggul() {
+            let btn = document.querySelector('#page-panggul .btn-submit:last-child');
+            let oriTxt = btn.innerHTML;
+            btn.innerHTML = `<span class="material-symbols-outlined icon-spin">sync</span> Merakit PDF...`;
+            btn.disabled = true;
+            
+            let bln = document.getElementById('panggul_bulan').value;
+            let thn = document.getElementById('panggul_tahun').value;
+            let namaBulan = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'][bln - 1];
+            let namaFile = `Pengajuan_Upah_Panggul_Agus_${namaBulan}_${thn}.pdf`;
+
+            let appScreen = document.getElementById('app-screen');
+            let bottomNav = document.querySelector('.bottom-nav');
+            let oriAppDisplay = appScreen.style.display;
+            let oriNavDisplay = bottomNav ? bottomNav.style.display : '';
+
+            appScreen.style.display = 'none';
+            if (bottomNav) bottomNav.style.display = 'none';
+
+            let oriBodyWidth = document.body.style.width;
+            let oriBodyOverflow = document.body.style.overflow;
+            document.body.style.width = '794px';
+            document.body.style.overflow = 'visible';
+
+            let virtualDoc = document.getElementById('panggul-pdf-content');
+            virtualDoc.parentElement.style.display = 'block';
+
+            let opt = {
+                margin: [0.5, 0, 0.5, 0],
+                filename: namaFile,
+                image: { type: 'jpeg', quality: 1 },
+                html2canvas: { scale: 2, useCORS: true, width: 794, windowWidth: 794, scrollY: 0 },
+                pagebreak: { mode: 'css', avoid: ['tr', 'td', '.avoid-break'] },
+                jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+            };
+
+            try {
+                let pdfBase64Data = await html2pdf().set(opt).from(virtualDoc).outputPdf('datauristring');
+                
+                virtualDoc.parentElement.style.display = 'none';
+                document.body.style.width = oriBodyWidth;
+                document.body.style.overflow = oriBodyOverflow;
+                appScreen.style.display = oriAppDisplay || '';
+                if (bottomNav) bottomNav.style.display = oriNavDisplay || '';
+
+                const base64Clean = pdfBase64Data.split(',')[1];
+                const byteCharacters = atob(base64Clean);
+                const byteNumbers = new Array(byteCharacters.length);
+                for (let i = 0; i < byteCharacters.length; i++) { byteNumbers[i] = byteCharacters.charCodeAt(i); }
+                const byteArray = new Uint8Array(byteNumbers);
+                const pdfBlob = new Blob([byteArray], { type: 'application/pdf' });
+                const filePdf = new File([pdfBlob], namaFile, { type: 'application/pdf' });
+
+                if (navigator.share) {
+                    let pesanWA = `*PENGAJUAN UPAH PANGGUL*\n\nPeriode: ${namaBulan} ${thn}\nPetugas: Pak Agus\n\nRincian lengkap (Hari/Tanggal) terlampir pada dokumen PDF. Mohon untuk diperiksa dan diproses. Terima kasih.`;
+                    await navigator.share({ title: 'Upah Panggul', text: pesanWA, files: [filePdf] });
+                } else {
+                    alert("File PDF akan didownload otomatis.");
+                    html2pdf().set(opt).from(virtualDoc).save();
+                }
+            } catch(e) {
+                console.error(e);
+                alert("Gagal mencetak dokumen.");
+                virtualDoc.parentElement.style.display = 'none';
+                document.body.style.width = oriBodyWidth;
+                document.body.style.overflow = oriBodyOverflow;
+                appScreen.style.display = oriAppDisplay || '';
+                if (bottomNav) bottomNav.style.display = oriNavDisplay || '';
+            } finally {
+                btn.innerHTML = oriTxt; btn.disabled = false;
             }
         }
     </script>
