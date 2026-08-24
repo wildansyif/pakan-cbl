@@ -6127,6 +6127,9 @@ async function prosesAntreanBackground() {
             
             if (html === "") {
                 html = "<div style='font-size:11px; color:#8AA624; text-align:center; padding:10px; background:#f8fdf4; border-radius:8px; border:1px dashed #8AA624;'>Semua Pakan Habis Bersih (0 Kg).</div>";
+            } else {
+                // Tambahkan teks tips klik
+                html = "<div style='font-size:10px; color:#8AA624; font-weight:bold; margin-bottom:8px; text-align:center; background:#f4f7f0; padding:4px; border-radius:4px;'><span class='material-symbols-outlined' style='font-size:14px; vertical-align:middle;'>touch_app</span> Sentuh nama pakan untuk rincian pemakaian</div>" + html;
             }
             
             list.innerHTML = html;
@@ -6144,8 +6147,8 @@ async function prosesAntreanBackground() {
                 return;
             }
 
-            // 🚀 TEMBAK LANGSUNG KE VIEW RECORDING STOK KANDANG
-            fetch(`${SUPA_URL}/rest/v1/recording_stok_kandang?gudang=eq.${gudang}&pakan=eq.${encodeURIComponent(pakan)}&order=tanggal.asc,waktu_input.asc`, {
+            // 🚀 TEMBAK LANGSUNG KE VIEW RECORDING STOK KANDANG (URUTAN Z-A / TERBARU DI ATAS)
+            fetch(`${SUPA_URL}/rest/v1/recording_stok_kandang?gudang=eq.${gudang}&pakan=eq.${encodeURIComponent(pakan)}&order=tanggal.desc,waktu_input.desc`, {
                 headers: {
                     'apikey': SUPA_ANON_KEY,
                     'Authorization': `Bearer ${SUPA_ANON_KEY}`
@@ -6166,10 +6169,13 @@ async function prosesAntreanBackground() {
                         let parts = d.tanggal.split('-');
                         let tglFormat = parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0].substring(2)}` : d.tanggal;
 
+                        // Mencegah kolom kosong. Panggil semua kemungkinan nama kolom dari View Supabase Bapak!
+                        let relasiText = d.keterangan_transaksi || d.keterangan_trx || d.relasi || d.keterangan_t || '-';
+
                         html += `
                         <tr style="border-bottom:1px solid #eee; background:#fff;">
                             <td style="padding:8px 5px;">${tglFormat}</td>
-                            <td style="padding:8px 5px;"><strong style="color:#555;">${d.keterangan_t || '-'}</strong><br><span style="color:#888; font-size:9px;">${d.catatan || ''}</span></td>
+                            <td style="padding:8px 5px;"><strong style="color:#555;">${relasiText}</strong><br><span style="color:#888; font-size:9px;">${d.catatan || ''}</span></td>
                             <td style="padding:8px 5px; text-align:right; font-weight:bold; color:#8AA624;">${strIn}</td>
                             <td style="padding:8px 5px; text-align:right; font-weight:bold; color:#c62828;">${strOut}</td>
                             <td style="padding:8px 5px; text-align:right; font-weight:bold; background:#fafafa;">${nf.format(d.saldo_berjalan)}</td>
