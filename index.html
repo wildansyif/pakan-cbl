@@ -4122,9 +4122,10 @@ async function prosesAntreanBackground() {
 }
 
         function sinkronisasiAntrianLokal() {
-            // Paksa reset lock jika antrean dipanggil ulang (misal dari resume)
-            isProsesUploadPWA = false;
-            prosesAntreanBackground();
+            // PERBAIKAN: Jangan buka paksa gembok saat kembali dari WhatsApp!
+            if (!isProsesUploadPWA) {
+                prosesAntreanBackground();
+            }
         }
 
         if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
