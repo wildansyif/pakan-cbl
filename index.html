@@ -2692,7 +2692,7 @@
             <div id="panggul-result" class="hidden">
                 <div class="rekap-card" style="padding:0; overflow:hidden;">
                     <div style="background:#1a5c40; color:white; padding:12px; text-align:center;">
-                        <h3 style="margin:0; font-size:15px;">Rekap Upah Panggul Pak Agus</h3>
+                        <h3 style="margin:0; font-size:15px;">Rekap Upah Panggul Kandang PM</h3>
                         <div id="panggul_periode" style="font-size:11px; font-style:italic;">-</div>
                     </div>
                     <div style="max-height: 400px; overflow-y: auto;">
@@ -9366,9 +9366,8 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
         function bukaReviewHarian() {
             if (!navigator.onLine) return alert("Wajib online untuk mereview laporan Supabase!");
             
-            let lokasiAktif = getLokasiAktif();
-            let mapLoc = { '/pm': 'PM', '/spn': 'SPN', '/rph': 'RPH', '/kandang': 'Kandang PM', '/spn_kandang': 'Kandang SPN' };
-            let cabangStr = mapLoc[lokasiAktif] || 'PM';
+            // SULAP: Tarik langsung area utamanya, abaikan sub-fasilitas!
+            let baseCabang = document.querySelector('input[name="lokasi_utama"]:checked').value;
             
             let dObj = new Date();
             let tglForm = document.getElementById('tanggal').value;
@@ -9377,12 +9376,13 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
             let tglFilter = dObj.toISOString().split('T')[0];
             let tglIndo = ("0" + dObj.getDate()).slice(-2) + "/" + ("0" + (dObj.getMonth() + 1)).slice(-2) + "/" + dObj.getFullYear();
 
-            document.getElementById('review-subtitle').innerText = `Gudang: ${cabangStr} | Tgl: ${tglIndo}`;
+            document.getElementById('review-subtitle').innerText = `Area: ${baseCabang} (Gudang & Kandang) | Tgl: ${tglIndo}`;
             document.getElementById('modal-review-harian').classList.remove('hidden');
             document.getElementById('review-loader').style.display = 'block';
             document.getElementById('review-list').innerHTML = '';
 
-            fetch(`${SUPA_URL}/rest/v1/transaksi_pakan?tanggal=eq.${tglFilter}&cabang=eq.${cabangStr}&order=waktu_input.asc`, {
+            // SULAP QUERY: Tarik semua cabang yang mengandung kata PM (PM dan Kandang PM)
+            fetch(`${SUPA_URL}/rest/v1/transaksi_pakan?tanggal=eq.${tglFilter}&cabang=ilike.*${baseCabang}*&order=waktu_input.asc`, {
                 headers: { 'apikey': SUPA_ANON_KEY, 'Authorization': `Bearer ${SUPA_ANON_KEY}` }
             })
             .then(r => r.json())
@@ -9587,18 +9587,18 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
             container.innerHTML = html;
         }
 
-        function generateWALaporanHarian() {
+        ffunction generateWALaporanHarian() {
             if (globalTransaksiHariIni.length === 0) return alert("Tidak ada data untuk direkap!");
 
-            let mapLoc = { '/pm': 'PM', '/spn': 'SPN', '/rph': 'RPH', '/kandang': 'Kandang PM', '/spn_kandang': 'Kandang SPN' };
-            let cabangStr = mapLoc[getLokasiAktif()] || 'PM';
+            // SULAP JUDUL WA
+            let baseCabang = document.querySelector('input[name="lokasi_utama"]:checked').value;
 
             let dObj = new Date();
             let tglForm = document.getElementById('tanggal').value;
             if (tglForm) dObj = new Date(tglForm);
             let tglIndo = ("0" + dObj.getDate()).slice(-2) + "/" + ("0" + (dObj.getMonth() + 1)).slice(-2) + "/" + dObj.getFullYear();
 
-            let txt = `*TUTUP SHIFT GUDANG ${cabangStr}*\nTanggal: ${tglIndo}\nPetugas: ${activeUser}\n\n`;
+            let txt = `*TUTUP SHIFT AREA ${baseCabang}*\nTanggal: ${tglIndo}\nPetugas: ${activeUser}\n\n`;
             let nf = new Intl.NumberFormat('id-ID');
             
             let grouped = {};
