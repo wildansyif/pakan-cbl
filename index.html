@@ -9141,73 +9141,6 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
             });
         }
 
-        function renderListReviewHarian() {
-            let container = document.getElementById('review-list');
-            if (globalTransaksiHariIni.length === 0) {
-                container.innerHTML = '<div style="text-align:center; color:#888; font-size:12px; padding:20px;">Belum ada transaksi hari ini di gudang ini.</div>';
-                return;
-            }
-
-            let html = '';
-            let nf = new Intl.NumberFormat('id-ID');
-            
-            // 1. Grouping Data berdasarkan Relasi, Status, dan Jam Input
-            let grouped = {};
-            globalTransaksiHariIni.forEach(t => {
-                let wkt = new Date(t.waktu_input || t.tanggal).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'});
-                let key = `${t.relasi}_${t.status}_${wkt}`;
-                if (!grouped[key]) {
-                    grouped[key] = {
-                        relasi: t.relasi,
-                        status: t.status,
-                        waktu: wkt,
-                        items: []
-                    };
-                }
-                grouped[key].items.push(t);
-            });
-
-            // 2. Render UI Kartu per Group
-            for (let key in grouped) {
-                let g = grouped[key];
-                let stStyle = g.status === 'Masuk' ? 'color:#2e7d32; background:#e8f5e9;' : 'color:#c62828; background:#ffebee;';
-                
-                let itemHtml = g.items.map(it => {
-                    let isKoreksi = it.catatan && it.catatan.includes('[DIKOREKSI');
-                    let bgItem = isKoreksi ? 'background:#fff8e1;' : '';
-                    let infoKoreksi = isKoreksi ? `<div style="font-size:9px; color:#e65100; font-style:italic; margin-top:2px;">Catatan: ${it.catatan}</div>` : (it.catatan ? `<div style="font-size:9px; color:#888; margin-top:2px;">Catatan: ${it.catatan}</div>` : '');
-                    
-                    return `
-                    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding:8px 5px; ${bgItem}">
-                        <div style="flex:1;">
-                            <div style="font-size:12px; color:#555;">${it.pakan}</div>
-                            ${infoKoreksi}
-                        </div>
-                        <div style="display:flex; align-items:center; gap:10px;">
-                            <strong style="color:#8AA624; font-size:12px;">${nf.format(it.qty)} ${it.satuan || 'Kg'}</strong>
-                            <button onclick="bukaModalEditTrx(${it.id})" style="background:#fff; border:1px solid #8AA624; color:#1a5c40; border-radius:4px; padding:4px 8px; font-size:10px; font-weight:bold; cursor:pointer;">
-                                <span class="material-symbols-outlined" style="font-size:12px; vertical-align:middle;">edit</span> Edit
-                            </button>
-                        </div>
-                    </div>`;
-                }).join('');
-
-                html += `
-                <div style="background:#fff; border:1px solid #DBE4C9; border-radius:8px; padding:10px; margin-bottom:15px; box-shadow:0 2px 4px rgba(0,0,0,0.02);">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; border-bottom:2px solid #f4f7f0; padding-bottom:8px;">
-                        <div>
-                            <span style="font-size:10px; font-weight:bold; padding:2px 6px; border-radius:4px; ${stStyle}">${g.status}</span>
-                            <strong style="font-size:14px; color:#333; margin-left:5px;">${g.relasi}</strong>
-                        </div>
-                        <div style="font-size:11px; color:#888; font-weight:bold;">${g.waktu}</div>
-                    </div>
-                    <div>${itemHtml}</div>
-                </div>`;
-            }
-
-            container.innerHTML = html;
-        }
-
         function bukaModalEditTrx(id) {
             let t = globalTransaksiHariIni.find(x => x.id === id);
             if (!t) return;
@@ -9288,6 +9221,118 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
             .finally(() => { btn.innerHTML = "Simpan"; btn.disabled = false; });
         }
 
+        function getKategoriReview(row) {
+            let namaRelasi = String(row.relasi).toLowerCase();
+            let catatanLengkap = String(row.catatan || "").toLowerCase();
+            let cabangLower = String(row.cabang || "").toLowerCase();
+            let kelompokSapi = ['bx', 'domba', 'rd', 'rl', 'darbun', 'laktasi', 'kapalang', 'dewasa', 'jantan', 'pedet', 'kerbau', 'bunting'];
+
+            if (String(row.status).toLowerCase().includes("masuk")) {
+                if (catatanLengkap.includes("gudang") || namaRelasi.includes("mutasi")) return "Mutasi Masuk";
+                return "Barang Masuk";
+            } else {
+                if (namaRelasi === "rd" || namaRelasi === "rl" || namaRelasi === "darbun" || namaRelasi === "laktasi") return "Gilingan Pakan";
+                if (cabangLower.includes('kandang') || namaRelasi.includes("kandang") || kelompokSapi.includes(namaRelasi)) return "Pemakaian Kandang";
+                if (namaRelasi.includes("rph") || namaRelasi.includes("spn") || namaRelasi.includes("cibulakan") || namaRelasi.includes("pembibitan") || namaRelasi.includes("mutasi")) return "Mutasi Keluar";
+                return "Penjualan Pakan";
+            }
+        }
+
+        function renderListReviewHarian() {
+            let container = document.getElementById('review-list');
+            if (globalTransaksiHariIni.length === 0) {
+                container.innerHTML = '<div style="text-align:center; color:#888; font-size:12px; padding:20px;">Belum ada transaksi hari ini di gudang ini.</div>';
+                return;
+            }
+
+            let html = ''; let nf = new Intl.NumberFormat('id-ID');
+            
+            // 1. Grouping Data berdasarkan KATEGORI, lalu Relasi & Status
+            let grouped = {};
+            globalTransaksiHariIni.forEach(t => {
+                let wkt = new Date(t.waktu_input || t.tanggal).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'});
+                let kategori = getKategoriReview(t);
+                
+                // SULAP: Key tidak mempedulikan waktu, jadi ongkir susulan akan masuk ke grup yang sama!
+                let key = `${kategori}_${t.relasi}_${t.status}`; 
+                if (!grouped[key]) {
+                    grouped[key] = {
+                        kategori: kategori,
+                        relasi: t.relasi,
+                        status: t.status,
+                        waktu_awal: wkt, // Ambil waktu transaksi pertama
+                        items: []
+                    };
+                }
+                grouped[key].items.push(t);
+            });
+
+            // Sortir agar Ongkir selalu di paling bawah dalam satu card
+            for(let k in grouped) {
+                grouped[k].items.sort((a,b) => {
+                    let isOngkirA = String(a.pakan).toLowerCase().includes('ongkir');
+                    let isOngkirB = String(b.pakan).toLowerCase().includes('ongkir');
+                    if (isOngkirA && !isOngkirB) return 1;
+                    if (!isOngkirA && isOngkirB) return -1;
+                    return 0;
+                });
+            }
+
+            // 2. Render UI Kartu (Dikelompokkan berdasarkan Kategori)
+            let kategoriAktif = "";
+            
+            // Urutkan key agar kategorinya terkelompok rapi
+            let sortedKeys = Object.keys(grouped).sort();
+            
+            sortedKeys.forEach(key => {
+                let g = grouped[key];
+                
+                // Bikin header kategori jika berubah
+                if (g.kategori !== kategoriAktif) {
+                    let colorKat = g.kategori.includes('Masuk') ? '#2e7d32' : (g.kategori === 'Penjualan Pakan' ? '#1565c0' : '#e65100');
+                    html += `<div style="font-weight:bold; font-size:13px; color:${colorKat}; margin:15px 0 5px 0; border-bottom:2px solid ${colorKat}; padding-bottom:5px;"><span class="material-symbols-outlined" style="font-size:16px; vertical-align:middle;">label</span> ${g.kategori.toUpperCase()}</div>`;
+                    kategoriAktif = g.kategori;
+                }
+
+                let stStyle = g.status === 'Masuk' ? 'color:#2e7d32; background:#e8f5e9;' : 'color:#c62828; background:#ffebee;';
+                
+                let itemHtml = g.items.map(it => {
+                    let isKoreksi = it.catatan && it.catatan.includes('[DIKOREKSI');
+                    let bgItem = isKoreksi ? 'background:#fff8e1;' : '';
+                    let infoKoreksi = isKoreksi ? `<div style="font-size:9px; color:#e65100; font-style:italic; margin-top:2px;">Catatan: ${it.catatan}</div>` : (it.catatan ? `<div style="font-size:9px; color:#888; margin-top:2px;">Catatan: ${it.catatan}</div>` : '');
+                    let safeSatuan = String(it.pakan).toLowerCase().includes('ongkir') ? 'Rit' : (it.satuan || 'Kg');
+                    
+                    return `
+                    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding:8px 5px; ${bgItem}">
+                        <div style="flex:1;">
+                            <div style="font-size:12px; color:#555; font-weight:bold;">${it.pakan}</div>
+                            ${infoKoreksi}
+                        </div>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <strong style="color:#8AA624; font-size:12px;">${nf.format(it.qty)} ${safeSatuan}</strong>
+                            <button onclick="bukaModalEditTrx(${it.id})" style="background:#fff; border:1px solid #8AA624; color:#1a5c40; border-radius:4px; padding:4px 8px; font-size:10px; font-weight:bold; cursor:pointer;">
+                                <span class="material-symbols-outlined" style="font-size:12px; vertical-align:middle;">edit</span> Edit
+                            </button>
+                        </div>
+                    </div>`;
+                }).join('');
+
+                html += `
+                <div style="background:#fff; border:1px solid #DBE4C9; border-radius:8px; padding:10px; margin-bottom:10px; box-shadow:0 2px 4px rgba(0,0,0,0.02);">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; border-bottom:2px solid #f4f7f0; padding-bottom:8px;">
+                        <div>
+                            <span style="font-size:10px; font-weight:bold; padding:2px 6px; border-radius:4px; ${stStyle}">${g.status}</span>
+                            <strong style="font-size:14px; color:#333; margin-left:5px;">${g.relasi}</strong>
+                        </div>
+                        <div style="font-size:11px; color:#888; font-weight:bold;">${g.waktu_awal}</div>
+                    </div>
+                    <div>${itemHtml}</div>
+                </div>`;
+            });
+
+            container.innerHTML = html;
+        }
+
         function generateWALaporanHarian() {
             if (globalTransaksiHariIni.length === 0) return alert("Tidak ada data untuk direkap!");
 
@@ -9300,66 +9345,55 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
             let tglIndo = ("0" + dObj.getDate()).slice(-2) + "/" + ("0" + (dObj.getMonth() + 1)).slice(-2) + "/" + dObj.getFullYear();
 
             let txt = `*TUTUP SHIFT GUDANG ${cabangStr}*\nTanggal: ${tglIndo}\nPetugas: ${activeUser}\n\n`;
-
-            let dMasuk = globalTransaksiHariIni.filter(x => x.status === 'Masuk');
-            let dKeluar = globalTransaksiHariIni.filter(x => x.status === 'Keluar');
             let nf = new Intl.NumberFormat('id-ID');
-
-            if (dMasuk.length > 0) {
-                txt += `🟢 *BARANG MASUK*\n`;
-                let grp = {};
-                dMasuk.forEach(x => { 
-                    // SULAPNYA DI SINI: Mesin hanya peduli nama Relasi, tidak peduli perbedaan jam
-                    let key = x.relasi; 
-                    if (!grp[key]) {
-                        // Ambil jam dari transaksi yang PERTAMA kali dilakukan hari itu
-                        let wkt = new Date(x.waktu_input || x.tanggal).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'});
-                        grp[key] = { relasi: x.relasi, waktu: wkt, items: [] }; 
-                    }
-                    grp[key].items.push(x); 
-                });
-                
-                for (let key in grp) {
-                    let rData = grp[key];
-                    txt += `\nDari: *${rData.relasi}* | Pukul: ${rData.waktu}\n`;
-                    let subt = 0;
-                    rData.items.forEach(i => {
-                        let ketKoreksi = i.catatan && i.catatan.includes('[DIKOREKSI') ? ' (Ada Koreksi)' : '';
-                        let ketSusulan = i.catatan && i.catatan.toLowerCase().includes('susulan') ? ' (Susulan)' : '';
-                        txt += `• ${i.pakan}: ${nf.format(i.qty)} ${i.satuan || 'Kg'}${ketKoreksi}${ketSusulan}\n`; 
-                        subt += i.qty;
-                    });
-                    txt += `Total Masuk: ${nf.format(subt)} Kg\n`;
+            
+            let grouped = {};
+            globalTransaksiHariIni.forEach(t => {
+                let kategori = getKategoriReview(t);
+                let key = `${kategori}_${t.relasi}_${t.status}`;
+                if (!grouped[key]) {
+                    let wkt = new Date(t.waktu_input || t.tanggal).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'});
+                    grouped[key] = { kategori: kategori, relasi: t.relasi, status: t.status, waktu_awal: wkt, items: [] };
                 }
-                txt += `\n`;
+                grouped[key].items.push(t);
+            });
+
+            // Sortir agar Ongkir selalu di paling bawah dalam satu card
+            for(let k in grouped) {
+                grouped[k].items.sort((a,b) => {
+                    let isOngkirA = String(a.pakan).toLowerCase().includes('ongkir');
+                    let isOngkirB = String(b.pakan).toLowerCase().includes('ongkir');
+                    if (isOngkirA && !isOngkirB) return 1;
+                    if (!isOngkirA && isOngkirB) return -1;
+                    return 0;
+                });
             }
 
-            if (dKeluar.length > 0) {
-                txt += `🔴 *BARANG KELUAR*\n`;
-                let grp = {};
-                dKeluar.forEach(x => { 
-                    // SULAPNYA DI SINI: Mesin menggabungkan item susulan ke nama yang sama
-                    let key = x.relasi; 
-                    if (!grp[key]) {
-                        let wkt = new Date(x.waktu_input || x.tanggal).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'});
-                        grp[key] = { relasi: x.relasi, waktu: wkt, items: [] }; 
-                    }
-                    grp[key].items.push(x); 
-                });
+            let kategoriAktif = "";
+            let sortedKeys = Object.keys(grouped).sort();
+            
+            sortedKeys.forEach(key => {
+                let g = grouped[key];
                 
-                for (let key in grp) {
-                    let rData = grp[key];
-                    txt += `\nKe: *${rData.relasi}* | Pukul: ${rData.waktu}\n`;
-                    let subt = 0;
-                    rData.items.forEach(i => {
-                        let ketKoreksi = i.catatan && i.catatan.includes('[DIKOREKSI') ? ' (Ada Koreksi)' : '';
-                        let ketSusulan = i.catatan && i.catatan.toLowerCase().includes('susulan') ? ' (Susulan)' : '';
-                        txt += `• ${i.pakan}: ${nf.format(i.qty)} ${i.satuan || 'Kg'}${ketKoreksi}${ketSusulan}\n`; 
-                        subt += i.qty;
-                    });
-                    txt += `Total Keluar: ${nf.format(subt)} Kg\n`;
+                if (g.kategori !== kategoriAktif) {
+                    let emote = g.kategori.includes('Masuk') ? '🟢' : (g.kategori === 'Penjualan Pakan' ? '🔵' : '🔴');
+                    txt += `\n${emote} *${g.kategori.toUpperCase()}*\n`;
+                    kategoriAktif = g.kategori;
                 }
-            }
+                
+                let tStatus = g.status === 'Masuk' ? 'Dari' : 'Ke';
+                txt += `\n${tStatus}: *${g.relasi}* | Pukul: ${g.waktu_awal}\n`;
+                
+                let subt = 0;
+                g.items.forEach(i => {
+                    let ketKoreksi = i.catatan && i.catatan.includes('[DIKOREKSI') ? ' (Ada Koreksi)' : '';
+                    let ketSusulan = i.catatan && i.catatan.toLowerCase().includes('susulan') ? ' (Susulan)' : '';
+                    let safeSatuan = String(i.pakan).toLowerCase().includes('ongkir') ? 'Rit' : (i.satuan || 'Kg');
+                    txt += `• ${i.pakan}: ${nf.format(i.qty)} ${safeSatuan}${ketKoreksi}${ketSusulan}\n`; 
+                    if (safeSatuan === 'Kg') subt += i.qty;
+                });
+                if (subt > 0) txt += `Total Kg: ${nf.format(subt)} Kg\n`;
+            });
 
             if (currentLoggedPin === "1234") {
                 let tempInput = document.createElement("textarea"); tempInput.value = txt.trim();
