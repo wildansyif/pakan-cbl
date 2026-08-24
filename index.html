@@ -9616,7 +9616,7 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
             if (tglForm) dObj = new Date(tglForm);
             let tglIndo = ("0" + dObj.getDate()).slice(-2) + "/" + ("0" + (dObj.getMonth() + 1)).slice(-2) + "/" + dObj.getFullYear();
 
-            let txt = `*TUTUP SHIFT GUDANG ${baseCabang}*\nTanggal: ${tglIndo}\nPetugas: ${activeUser}\n\n`;
+            let txt = `*REKAP LAPORAN GUDANG ${baseCabang}*\nTanggal: ${tglIndo}\nPetugas: ${activeUser}\n\n`;
             let nf = new Intl.NumberFormat('id-ID');
             
             let grouped = {};
