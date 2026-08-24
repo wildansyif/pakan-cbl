@@ -5227,10 +5227,25 @@ async function prosesAntreanBackground() {
             document.querySelector('#table-top-konsumen tbody').innerHTML = htmlTop;
 
             let sumIn = 0, sumOut = 0;
-            let htmlCF = (d.dailyCF.length > 0) ? d.dailyCF.map(c => { sumIn += safeNum(c.debet); sumOut += safeNum(c.kredit); return `<tr><td>${c.tglFormat}</td><td><small>${c.kat} (${c.met})</small><br>${c.relasi}</td><td style="text-align:right; font-weight:bold;" class="${c.debet > 0 ? 'tr-masuk' : 'tr-keluar'}">${nf.format(safeNum(c.debet || c.kredit))}</td></tr>`; }).join('') : "<tr><td colspan='3' style='text-align:center'>Belum ada rincian kas</td></tr>";
+            let htmlCF = (d.dailyCF.length > 0) ? d.dailyCF.map(c => { 
+                sumIn += safeNum(c.db); 
+                sumOut += safeNum(c.kr); 
+                let warnaNominal = c.db > 0 ? '#15803d' : '#c62828';
+                let tandaNominal = c.db > 0 ? '+' : '-';
+                return `<tr style="border-bottom:1px solid #f1f1f1;">
+                            <td style="padding:10px 8px; vertical-align:top;">${c.tF}</td>
+                            <td style="padding:10px 8px; vertical-align:top;">
+                                <small style="color:#888; font-weight:bold;">${c.k} (${c.m})</small><br>
+                                <span style="color:#333; font-weight:bold;">${c.r}</span>
+                            </td>
+                            <td style="padding:10px 8px; text-align:right; font-weight:bold; color:${warnaNominal}; vertical-align:top;">
+                                ${tandaNominal} Rp ${nf.format(safeNum(c.db || c.kr))}
+                            </td>
+                        </tr>`; 
+            }).join('') : "<tr><td colspan='3' style='text-align:center; padding:15px; color:#888;'>Belum ada rincian kas</td></tr>";
+            
             document.querySelector('#table-cf-daily tbody').innerHTML = htmlCF;
-            document.getElementById('gl_cf_summary').innerHTML = `<span style="color:#8AA624">IN: Rp ${nf.format(sumIn)}</span> <span style="color:#FEA405">OUT: Rp ${nf.format(sumOut)}</span> <span style="color:#333">SISA: Rp ${nf.format(sumIn - sumOut)}</span>`;
-
+            document.getElementById('gl_cf_summary').innerHTML = `<span style="color:#8AA624">IN: Rp ${nf.format(sumIn)}</span> <span style="color:#c62828">OUT: Rp ${nf.format(sumOut)}</span> <span style="color:#333">SISA: Rp ${nf.format(sumIn - sumOut)}</span>`;
             // ==============================
             // LOGIKA SORTING TABEL PAKAN
             // ==============================
