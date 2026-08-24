@@ -6111,16 +6111,76 @@ async function prosesAntreanBackground() {
 
             keys.forEach(pakan => {
                 let qty = globalStokKandang[pakan];
+                
+                // SULAP 1: Hide jika stok tepat = 0
+                if (Math.abs(qty) < 0.01) return;
+
                 let isKritis = qty <= 50;
                 let color = isKritis ? "#c62828" : "#8AA624"; let bg = isKritis ? "#ffebee" : "#e8f0d8";
 
-                // Tampilan super ramping (satu baris)
-                html += `<div style="display:flex; justify-content:space-between; align-items:center; background:${bg}; border-left:4px solid ${color}; padding:6px 8px; border-radius:6px; margin-bottom:5px; box-shadow:0 1px 2px rgba(0,0,0,0.05);">
+                // SULAP 2: Buat barisnya bisa diklik untuk buka riwayat!
+                html += `<div onclick="cekKartuStokKandang('${pakan.replace(/'/g, "\\'")}', '${u}')" style="display:flex; justify-content:space-between; align-items:center; background:${bg}; border-left:4px solid ${color}; padding:8px; border-radius:6px; margin-bottom:5px; box-shadow:0 1px 2px rgba(0,0,0,0.05); cursor:pointer;">
                   <span style="font-size:11px; color:#333; font-weight:bold; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:60%;">${pakan}</span>
                   <span style="font-size:11px; color:${color}; font-weight:bold; white-space:nowrap;">${nf.format(qty)} Kg</span>
               </div>`;
             });
+            
+            if (html === "") {
+                html = "<div style='font-size:11px; color:#8AA624; text-align:center; padding:10px; background:#f8fdf4; border-radius:8px; border:1px dashed #8AA624;'>Semua Pakan Habis Bersih (0 Kg).</div>";
+            }
+            
             list.innerHTML = html;
+        }
+
+        function cekKartuStokKandang(pakan, gudang) {
+            document.getElementById('modal-kartu-stok').classList.remove('hidden');
+            document.getElementById('ks-subtitle').innerText = `Kandang ${gudang} | ${pakan}`;
+            document.getElementById('ks-tbody').innerHTML = "";
+            document.getElementById('ks-loader').classList.remove('hidden');
+
+            if (!navigator.onLine) {
+                document.getElementById('ks-loader').classList.add('hidden');
+                alert("Wajib online untuk menarik riwayat stok kandang!");
+                return;
+            }
+
+            // 🚀 TEMBAK LANGSUNG KE VIEW RECORDING STOK KANDANG
+            fetch(`${SUPA_URL}/rest/v1/recording_stok_kandang?gudang=eq.${gudang}&pakan=eq.${encodeURIComponent(pakan)}&order=tanggal.asc,waktu_input.asc`, {
+                headers: {
+                    'apikey': SUPA_ANON_KEY,
+                    'Authorization': `Bearer ${SUPA_ANON_KEY}`
+                }
+            })
+            .then(r => r.json())
+            .then(res => {
+                document.getElementById('ks-loader').classList.add('hidden');
+                let html = ""; let nf = new Intl.NumberFormat('id-ID');
+                
+                if (res.length === 0) {
+                    html = "<tr><td colspan='5' style='text-align:center; padding:20px; color:#888;'>Tidak ada riwayat mutasi di kandang ini.</td></tr>";
+                } else {
+                    res.forEach(d => {
+                        let strIn = d.masuk_kg > 0 ? `+${nf.format(d.masuk_kg)}` : "-";
+                        let strOut = d.keluar_kg > 0 ? `-${nf.format(d.keluar_kg)}` : "-";
+                        
+                        let parts = d.tanggal.split('-');
+                        let tglFormat = parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0].substring(2)}` : d.tanggal;
+
+                        html += `
+                        <tr style="border-bottom:1px solid #eee; background:#fff;">
+                            <td style="padding:8px 5px;">${tglFormat}</td>
+                            <td style="padding:8px 5px;"><strong style="color:#555;">${d.keterangan_t || '-'}</strong><br><span style="color:#888; font-size:9px;">${d.catatan || ''}</span></td>
+                            <td style="padding:8px 5px; text-align:right; font-weight:bold; color:#8AA624;">${strIn}</td>
+                            <td style="padding:8px 5px; text-align:right; font-weight:bold; color:#c62828;">${strOut}</td>
+                            <td style="padding:8px 5px; text-align:right; font-weight:bold; background:#fafafa;">${nf.format(d.saldo_berjalan)}</td>
+                        </tr>`;
+                    });
+                }
+                document.getElementById('ks-tbody').innerHTML = html;
+            }).catch(e => { 
+                document.getElementById('ks-loader').classList.add('hidden'); 
+                alert("Error jaringan: " + e.message); 
+            });
         }
 
         function flushStokKandang(pakan, sisaQty) {
