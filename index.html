@@ -1523,7 +1523,7 @@
         #view-pakan .form-row { max-width: 100%; }
         @media (min-width: 1024px) {
             #view-pakan .form-row {
-                max-width: 800px !important;
+                max-width: 500px !important;
             }
             #ap-metrics-grid {
                 display: grid !important;
@@ -4477,6 +4477,13 @@ async function prosesAntreanBackground() {
         }
 
         function switchTabAnalytics(tab) {
+            // SULAP DOM: Tarik paksa layar Pakan ke dalam wadah Analytics (Menyembuhkan blank HP & layout Desktop)
+            let viewPakan = document.getElementById('view-pakan');
+            let pageAnalytics = document.getElementById('page-analytics');
+            if (viewPakan && viewPakan.parentElement !== pageAnalytics) {
+                pageAnalytics.appendChild(viewPakan);
+            }
+
             // Reset warna tab
             document.getElementById('tab-global').classList.remove('active');
             document.getElementById('tab-konsumen').classList.remove('active');
@@ -4489,13 +4496,13 @@ async function prosesAntreanBackground() {
             document.getElementById('tab-' + tab).classList.add('active');
             document.getElementById('view-' + tab).classList.remove('hidden');
 
-            // SULAP: Isi list dropdown otomatis & mandiri ke server saat tab pakan ditekan
+            // SULAP DROPDOWN: Isi list otomatis ke server saat tab pakan ditekan
             if (tab === 'pakan') {
                 let sel = document.getElementById('ap_pilih_pakan');
                 if (sel.options.length <= 1) {
                     sel.innerHTML = '<option value="">-- Memuat Daftar Pakan... --</option>';
                     
-                    // Tembak langsung ke master_pakan agar tidak bergantung pada menu lain
+                    // Tembak langsung ke master_pakan
                     fetch(`${SUPA_URL}/rest/v1/master_pakan?select=jenis_pakan`, {
                         headers: { 'apikey': SUPA_ANON_KEY, 'Authorization': `Bearer ${SUPA_ANON_KEY}` }
                     })
