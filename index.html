@@ -4231,7 +4231,6 @@ async function prosesAntreanBackground() {
                 totalKgBongkar += parseFloat(itemQty) || 0;
 
                 let extraCatatan = pl.catatan || "";
-                if (pl.ekor > 0) extraCatatan += ` (Ekor: ${pl.ekor})`;
                 if (pl.status === "Masuk" && pl.ongkir) extraCatatan += ` (Supplier: ${pl.ongkir})`;
                 if (urlSJ !== "-") extraCatatan += `\nLink SJ: ${urlSJ}`; // Tempelkan URL SJ
 
