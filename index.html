@@ -1518,6 +1518,30 @@
                 transform: translateX(0) scale(1);
             }
         }
+
+        /* --- RESPONSIVE KHUSUS TAB JENIS PAKAN --- */
+        #view-pakan .form-row { max-width: 100%; }
+        @media (min-width: 1024px) {
+            #view-pakan .form-row {
+                max-width: 800px !important;
+            }
+            #ap-metrics-grid {
+                display: grid !important;
+                grid-template-columns: repeat(5, 1fr) !important;
+            }
+            #ap-charts-container {
+                display: grid;
+                grid-template-columns: repeat(12, 1fr);
+                gap: 20px;
+                align-items: start;
+            }
+            #ap-charts-container > div:nth-child(1) {
+                grid-column: 1 / 6;
+            }
+            #ap-charts-container > div:nth-child(2) {
+                grid-column: 6 / 13;
+            }
+        }
     </style>
 </head>
 
@@ -2611,68 +2635,81 @@
         </div>
 
         <!-- ================= LAYAR ANALISA PAKAN ================= -->
-                <div id="view-pakan" class="analytics-view hidden">
-                    <div style="background:#fff; padding:15px; border-radius:12px; border:1px solid #DBE4C9; margin-bottom:15px;">
-                        <div class="form-group">
-                            <label style="color:#1a5c40;"><span class="material-symbols-outlined" style="font-size:16px; vertical-align:middle;">shopping_basket</span> Pilih Pakan</label>
-                            <select id="ap_pilih_pakan" style="width:100%; padding:10px; border-radius:8px; border:1px solid #DBE4C9; font-weight:bold;"></select>
-                        </div>
-                        <div class="form-row" style="margin-bottom:10px;">
-                            <div style="margin-bottom:0;"><label style="font-size:10px;">Dari Tanggal</label><input type="date" id="ap_start"></div>
-                            <div style="margin-bottom:0;"><label style="font-size:10px;">Sampai Tanggal</label><input type="date" id="ap_end"></div>
-                        </div>
-                        <button class="btn-submit" onclick="tarikDataAnalisaPakan()" style="margin:0; background:#4A90E2; width:100%;">
-                            <span class="material-symbols-outlined" style="font-size:16px;">manage_search</span> Tarik Analisa
-                        </button>
+        <div id="view-pakan" class="analytics-view hidden">
+            <!-- Filter Rapat Ala Desktop/HP -->
+            <div class="form-row" style="margin-bottom: 15px; gap: 8px; flex-wrap: wrap; align-items: flex-end;">
+                <div style="flex: 2; min-width: 140px; margin-bottom: 0;">
+                    <label style="font-size:10px; margin-bottom:4px; color:#1a5c40;">Pilih Jenis Pakan</label>
+                    <select id="ap_pilih_pakan" style="width:100%; padding:10px; border-radius:8px; border:1px solid #DBE4C9; font-weight:bold; height:37px;"></select>
+                </div>
+                <div style="flex: 1; min-width: 100px; margin-bottom: 0;">
+                    <label style="font-size:10px; margin-bottom:4px;">Dari Tgl</label>
+                    <input type="date" id="ap_start" style="width:100%; padding:8px; font-size:11px; height:37px; border-radius:8px; border:1px solid #DBE4C9;">
+                </div>
+                <div style="flex: 1; min-width: 100px; margin-bottom: 0;">
+                    <label style="font-size:10px; margin-bottom:4px;">Sampai Tgl</label>
+                    <input type="date" id="ap_end" style="width:100%; padding:8px; font-size:11px; height:37px; border-radius:8px; border:1px solid #DBE4C9;">
+                </div>
+                <div style="flex: 0.4; min-width: 50px; margin-bottom: 0;">
+                    <button class="btn-submit" onclick="tarikDataAnalisaPakan()" style="margin:0; background:#4A90E2; width:100%; height:37px; padding:0; border-radius:8px;" title="Tarik Analisa">
+                        <span class="material-symbols-outlined" style="font-size:18px;">search</span>
+                    </button>
+                </div>
+            </div>
+
+            <div id="ap-loader" class="loader hidden">Mengumpulkan rekam jejak pakan...</div>
+
+            <div id="ap-result" class="hidden">
+                <div class="summary-card" style="background: linear-gradient(135deg, #4A90E2, #1565c0); margin-bottom: 15px;">
+                    <div style="font-size:12px; opacity:0.9; margin-bottom:5px;">Total Pergerakan (Keluar):</div>
+                    <div style="font-size:24px; font-weight:bold; color:#FFFFF0;" id="ap_total_keluar">0 Kg</div>
+                </div>
+
+                <div class="metrics-grid-desktop" id="ap-metrics-grid">
+                    <div class="m-card" style="border: 1px solid #8AA624; background: #f8fdf4;">
+                        <div class="m-title" style="color:#1a5c40;">Barang Masuk <span class="material-symbols-outlined" style="float:right; font-size:16px; color:#8AA624;">download</span></div>
+                        <div id="ap_val_masuk" class="m-val" style="color:#1a5c40;">0 Kg</div>
                     </div>
-
-                    <div id="ap-loader" class="loader hidden">Mengumpulkan rekam jejak pakan...</div>
-
-                    <div id="ap-result" class="hidden">
-                        <div class="summary-card" style="background: linear-gradient(135deg, #4A90E2, #1565c0); margin-bottom: 15px;">
-                            <div style="font-size:12px; opacity:0.9; margin-bottom:5px;">Total Pergerakan (Keluar):</div>
-                            <div style="font-size:24px; font-weight:bold; color:#FFFFF0;" id="ap_total_keluar">0 Kg</div>
-                        </div>
-
-                        <div class="metrics-grid-desktop">
-                            <div class="m-card">
-                                <div class="m-title">Penjualan <span class="material-symbols-outlined" style="float:right; font-size:16px; color:#1565c0;">shopping_cart</span></div>
-                                <div id="ap_val_jual" class="m-val" style="color:#333;">0 Kg</div>
-                            </div>
-                            <div class="m-card">
-                                <div class="m-title">Pemakaian <span class="material-symbols-outlined" style="float:right; font-size:16px; color:#4A90E2;">🐮</span></div>
-                                <div id="ap_val_pakai" class="m-val" style="color:#333;">0 Kg</div>
-                            </div>
-                            <div class="m-card">
-                                <div class="m-title">Mutasi <span class="material-symbols-outlined" style="float:right; font-size:16px; color:#FEA405;">🏭</span></div>
-                                <div id="ap_val_mutasi" class="m-val" style="color:#333;">0 Kg</div>
-                            </div>
-                            <div class="m-card">
-                                <div class="m-title">Giling <span class="material-symbols-outlined" style="float:right; font-size:16px; color:#9C27B0;">⚙️</span></div>
-                                <div id="ap_val_giling" class="m-val" style="color:#333;">0 Kg</div>
-                            </div>
-                        </div>
-
-                        <div class="rekap-card">
-                            <div class="rekap-title"><span class="material-symbols-outlined" style="font-size:18px;">pie_chart</span> Porsi Alokasi (Keluar)</div>
-                            <div style="height: 220px; position: relative;"><canvas id="chartApDistribusi"></canvas></div>
-                        </div>
-
-                        <div class="rekap-card">
-                            <div class="rekap-title"><span class="material-symbols-outlined" style="font-size:18px;">military_tech</span> Top 5 Pengambil Terbesar</div>
-                            <table style="width:100%; border-collapse:collapse; font-size:12px;">
-                                <thead>
-                                    <tr style="border-bottom:1px solid #ddd; color:#8AA624; text-align:left;">
-                                        <th style="padding:8px 5px; background:none;">Nama Relasi/Tujuan</th>
-                                        <th style="padding:8px 5px; background:none; text-align:right;">Total (Kg)</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="tbody-ap-top"></tbody>
-                            </table>
-                        </div>
+                    <div class="m-card">
+                        <div class="m-title">Penjualan <span class="material-symbols-outlined" style="float:right; font-size:16px; color:#1565c0;">shopping_cart</span></div>
+                        <div id="ap_val_jual" class="m-val" style="color:#333;">0 Kg</div>
+                    </div>
+                    <div class="m-card">
+                        <div class="m-title">Pemakaian <span class="material-symbols-outlined" style="float:right; font-size:16px; color:#4A90E2;">pets</span></div>
+                        <div id="ap_val_pakai" class="m-val" style="color:#333;">0 Kg</div>
+                    </div>
+                    <div class="m-card">
+                        <div class="m-title">Mutasi <span class="material-symbols-outlined" style="float:right; font-size:16px; color:#FEA405;">local_shipping</span></div>
+                        <div id="ap_val_mutasi" class="m-val" style="color:#333;">0 Kg</div>
+                    </div>
+                    <div class="m-card">
+                        <div class="m-title">Giling <span class="material-symbols-outlined" style="float:right; font-size:16px; color:#9C27B0;">manufacturing</span></div>
+                        <div id="ap_val_giling" class="m-val" style="color:#333;">0 Kg</div>
                     </div>
                 </div>
-                <!-- ======================================================= -->
+
+                <div id="ap-charts-container">
+                    <div class="rekap-card">
+                        <div class="rekap-title"><span class="material-symbols-outlined" style="font-size:18px;">pie_chart</span> Porsi Alokasi (Keluar)</div>
+                        <div style="height: 220px; position: relative;"><canvas id="chartApDistribusi"></canvas></div>
+                    </div>
+
+                    <div class="rekap-card">
+                        <div class="rekap-title"><span class="material-symbols-outlined" style="font-size:18px;">military_tech</span> Top 5 Pengambil Terbesar</div>
+                        <table style="width:100%; border-collapse:collapse; font-size:12px;">
+                            <thead>
+                                <tr style="border-bottom:1px solid #ddd; color:#8AA624; text-align:left;">
+                                    <th style="padding:8px 5px; background:none;">Nama Relasi/Tujuan</th>
+                                    <th style="padding:8px 5px; background:none; text-align:right;">Total (Kg)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbody-ap-top"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- ======================================================= -->
 
         <div id="page-giling" class="container hidden">
             <h2 style="display:flex; justify-content:center; align-items:center; gap:8px; color:#1a5c40;">
@@ -10029,28 +10066,32 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
             document.getElementById('ap-loader').classList.remove('hidden');
             document.getElementById('ap-result').classList.add('hidden');
 
-            // Tarik data Super Cepat dari Supabase (Tanpa limit karena sudah pakai fetchSupabaseAll)
             fetchSupabaseAll(`${SUPA_URL}/rest/v1/transaksi_pakan?pakan=eq.${encodeURIComponent(pakan)}&tanggal=gte.${start}&tanggal=lte.${end}&select=tanggal,relasi,cabang,status,qty,catatan`)
             .then(data => {
                 document.getElementById('ap-loader').classList.add('hidden');
                 
-                let totalKeluar = 0, tJual = 0, tPakai = 0, tGiling = 0, tMutasi = 0;
+                let totalKeluar = 0, tJual = 0, tPakai = 0, tGiling = 0, tMutasi = 0, tMasuk = 0;
                 let topKonsumen = {};
-
                 let kelompokSapi = ['bx', 'domba', 'rd', 'rl', 'darbun', 'laktasi', 'kapalang', 'dewasa', 'jantan', 'pedet', 'kerbau', 'bunting'];
 
                 data.forEach(row => {
-                    let isKeluar = String(row.status).toLowerCase().includes("keluar");
-                    if (!isKeluar) return; // Fokus analisa pengeluaran flow (keluar)
-
                     let qty = parseFloat(row.qty) || 0;
+                    let statusTxt = String(row.status).toLowerCase();
+                    let isKeluar = statusTxt.includes("keluar");
+                    let isMasuk = statusTxt.includes("masuk");
+
+                    // Hitung Barang Masuk
+                    if (isMasuk) {
+                        tMasuk += qty;
+                        return; // Berhenti di sini, tidak masuk ke alokasi Keluar/Pie Chart
+                    }
+
+                    if (!isKeluar) return;
+
                     let namaRelasi = String(row.relasi).toLowerCase();
-                    let catatanLengkap = String(row.catatan || "").toLowerCase();
                     let cabangLower = String(row.cabang).toLowerCase();
-                    
                     let cKat = "Penjualan";
 
-                    // Logika Filter Identik dengan Dashboard Master
                     if (namaRelasi === "rd" || namaRelasi === "rl" || namaRelasi === "darbun" || namaRelasi === "laktasi") {
                         cKat = "Giling";
                     } 
@@ -10069,29 +10110,26 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
                     else if (cKat === "Giling") tGiling += qty;
                     else if (cKat === "Mutasi") tMutasi += qty;
 
-                    // Rekap Market Share (Siapa yang paling banyak ambil?)
                     if (cKat === "Penjualan" || cKat === "Pemakaian" || cKat === "Mutasi" || cKat === "Giling") {
                         let namaAsli = row.relasi || "Tanpa Nama";
                         topKonsumen[namaAsli] = (topKonsumen[namaAsli] || 0) + qty;
                     }
                 });
 
-                // Render Angka
                 let nf = new Intl.NumberFormat('id-ID');
                 document.getElementById('ap_total_keluar').innerText = nf.format(totalKeluar) + " Kg";
+                document.getElementById('ap_val_masuk').innerText = nf.format(tMasuk) + " Kg";
                 document.getElementById('ap_val_jual').innerText = nf.format(tJual) + " Kg";
                 document.getElementById('ap_val_pakai').innerText = nf.format(tPakai) + " Kg";
                 document.getElementById('ap_val_giling').innerText = nf.format(tGiling) + " Kg";
                 document.getElementById('ap_val_mutasi').innerText = nf.format(tMutasi) + " Kg";
 
-                // Render Table Top Konsumen
                 let arrKonsumen = Object.keys(topKonsumen).map(k => ({ n: k, q: topKonsumen[k] })).sort((a,b) => b.q - a.q).slice(0, 5);
                 let htmlTop = arrKonsumen.length > 0 
                     ? arrKonsumen.map(k => `<tr style="border-bottom:1px solid #eee;"><td style="padding:10px 5px; font-weight:bold; color:#555;">${k.n}</td><td style="text-align:right; font-weight:bold; color:#8AA624; padding:10px 5px;">${nf.format(k.q)} Kg</td></tr>`).join('')
                     : "<tr><td colspan='2' style='text-align:center; padding:15px; color:#888;'>Belum ada pergerakan pakan</td></tr>";
                 document.getElementById('tbody-ap-top').innerHTML = htmlTop;
 
-                // Render Chart Donut
                 let ctx = document.getElementById('chartApDistribusi').getContext('2d');
                 if (chartApDist) chartApDist.destroy();
                 
