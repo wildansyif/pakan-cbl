@@ -1053,7 +1053,8 @@
                 font-size: 13px;
             }
 
-            #view-global>.form-row {
+            #view-global > .form-row,
+            #view-pakan > div:first-child {
                 max-width: 500px;
                 margin-bottom: 20px;
             }
@@ -4451,18 +4452,27 @@ async function prosesAntreanBackground() {
             document.getElementById('tab-' + tab).classList.add('active');
             document.getElementById('view-' + tab).classList.remove('hidden');
 
-            // SULAP: Isi list dropdown otomatis saat tab pakan ditekan pertama kali
+            // SULAP: Isi list dropdown otomatis & mandiri ke server saat tab pakan ditekan
             if (tab === 'pakan') {
                 let sel = document.getElementById('ap_pilih_pakan');
                 if (sel.options.length <= 1) {
-                    sel.innerHTML = '<option value="">-- Silakan Pilih Jenis Pakan --</option>';
-                    if (window.currentItems && window.currentItems.length > 0) {
-                        window.currentItems.forEach(i => sel.innerHTML += `<option value="${i.nama}">${i.nama}</option>`);
-                    } else if (globalPakanListStok && globalPakanListStok.length > 0) {
-                        globalPakanListStok.forEach(p => sel.innerHTML += `<option value="${p}">${p}</option>`);
-                    }
+                    sel.innerHTML = '<option value="">-- Memuat Daftar Pakan... --</option>';
                     
-                    // Set default rentang waktu 30 hari ke belakang (Time-Series)
+                    // Tembak langsung ke master_pakan agar tidak bergantung pada menu lain
+                    fetch(`${SUPA_URL}/rest/v1/master_pakan?select=jenis_pakan`, {
+                        headers: { 'apikey': SUPA_ANON_KEY, 'Authorization': `Bearer ${SUPA_ANON_KEY}` }
+                    })
+                    .then(r => r.json())
+                    .then(data => {
+                        sel.innerHTML = '<option value="">-- Silakan Pilih Jenis Pakan --</option>';
+                        let pakanArr = data.map(d => d.jenis_pakan).sort();
+                        pakanArr.forEach(nama => sel.innerHTML += `<option value="${nama}">${nama}</option>`);
+                    })
+                    .catch(e => {
+                        sel.innerHTML = '<option value="">-- Gagal Muat, Cek Internet --</option>';
+                    });
+                    
+                    // Set default rentang waktu 30 hari ke belakang
                     let end = new Date();
                     let start = new Date(); start.setDate(end.getDate() - 30);
                     document.getElementById('ap_end').valueAsDate = end;
