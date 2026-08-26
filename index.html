@@ -1079,7 +1079,7 @@
                 grid-column: 1 / 13;
                 grid-row: 1;
                 display: grid;
-                grid-template-columns: repeat(6, 1fr);
+                grid-template-columns: repeat(7, 1fr);
                 gap: 15px;
                 margin-bottom: 15px;
             }
@@ -2287,6 +2287,11 @@
                             <div class="m-title">Volume Penjualan <span class="material-symbols-outlined"
                                     style="float:right; font-size:16px; color:#8AA624;">bar_chart</span></div>
                             <div id="gl_val_qty" class="m-val" style="color:#333;">0 Kg</div>
+                        </div>
+                        <div class="m-card" style="border: 1px solid #4A90E2; background: #f0f8ff;">
+                            <div class="m-title" style="color:#1565c0;">Pendapatan Ongkir <span class="material-symbols-outlined"
+                                    style="float:right; font-size:16px;">local_shipping</span></div>
+                            <div id="gl_val_ongkir" class="m-val" style="color:#1565c0;">Rp 0</div>
                         </div>
                         <div class="m-card">
                             <div class="m-title">HPP (Modal) <span class="material-symbols-outlined"
@@ -4967,10 +4972,14 @@ async function prosesAntreanBackground() {
                     }
                     if (!pass) return;
                     
-                    if (row.kat === "Penjualan") summary.penjualan += row.qty; 
-                    if (row.kat === "Mutasi") summary.mutasi += row.qty; 
-                    if (row.kat === "Masuk") summary.masuk += row.qty; 
-                    if (row.kat === "Giling") summary.giling += row.qty;
+                    // SULAP ONGKIR: Jangan hitung Rit ongkir sebagai Kg!
+                    let isOngkirRekap = String(row.pakan).toLowerCase().includes('ongkir');
+                    if (!isOngkirRekap) {
+                        if (row.kat === "Penjualan") summary.penjualan += row.qty; 
+                        if (row.kat === "Mutasi") summary.mutasi += row.qty; 
+                        if (row.kat === "Masuk") summary.masuk += row.qty; 
+                        if (row.kat === "Giling") summary.giling += row.qty;
+                    }
                     
                     if (!globalDataBulan[row.tgl]) globalDataBulan[row.tgl] = { isCashflow: false, dots: {}, items: {} };
                     
@@ -5235,7 +5244,7 @@ async function prosesAntreanBackground() {
         }
 
         function mesinKalkulasiPWA(raw, fM, fY) {
-            let tOmzet = 0, tHPP = 0, tQty = 0, tOPR = 0, tMasuk = 0;
+            let tOmzet = 0, tHPP = 0, tQty = 0, tOPR = 0, tMasuk = 0, tOngkir = 0;
             let tPiutangSehat = 0, tPiutangTelat = 0;
 
             let chartBln = { '01': { o: 0, q: 0 }, '02': { o: 0, q: 0 }, '03': { o: 0, q: 0 }, '04': { o: 0, q: 0 }, '05': { o: 0, q: 0 }, '06': { o: 0, q: 0 }, '07': { o: 0, q: 0 }, '08': { o: 0, q: 0 }, '09': { o: 0, q: 0 }, '10': { o: 0, q: 0 }, '11': { o: 0, q: 0 }, '12': { o: 0, q: 0 } };
@@ -5245,7 +5254,6 @@ async function prosesAntreanBackground() {
             let gudangQty = { "PM": { jual: 0, pakai: 0, giling: 0, masuk: 0, mutasi: 0 }, "RPH": { jual: 0, pakai: 0, giling: 0, masuk: 0, mutasi: 0 }, "SPN": { jual: 0, pakai: 0, giling: 0, masuk: 0, mutasi: 0 } };
             let lossGainMap = {};
 
-            // DAFTAR PAKAN HARGA MATI (HARDCODE SESUAI REQUEST)
             let targetPakan = ["Mako S-20", "Mako C-20", "Mako A-20", "Mako SP-15", "Kopra", "Meal Mix", "Rapen Kedelai", "Pongkol Singkong"];
             let trendPakan = {};
             targetPakan.forEach(p => trendPakan[p] = Array(12).fill(0));
@@ -5260,43 +5268,56 @@ async function prosesAntreanBackground() {
                     let isPenjualan = (katLower.includes('penjualan') || katLower === '');
                     let p = row.p ? row.p.trim() : "Pakan";
                     let isKeluar = row.s === 0;
+                    
+                    // 🔥 CEGATAN ONGKIR: Deteksi pakan siluman
+                    let isOngkir = p.toLowerCase().includes('ongkir');
 
                     if (isKeluar && isPenjualan) {
-                        let bKey = ("0" + row.b).slice(-2);
-                        chartBln[bKey].o += row.o;
-                        chartBln[bKey].q += row.q;
+                        if (!isOngkir) {
+                            let bKey = ("0" + row.b).slice(-2);
+                            chartBln[bKey].o += row.o;
+                            chartBln[bKey].q += row.q;
 
-                        let match = targetPakan.find(tp => p.toLowerCase() === tp.toLowerCase());
-                        let keyPakan = match ? match : "Lainnya";
-                        trendPakan[keyPakan][row.b - 1] += row.q;
+                            let match = targetPakan.find(tp => p.toLowerCase() === tp.toLowerCase());
+                            let keyPakan = match ? match : "Lainnya";
+                            trendPakan[keyPakan][row.b - 1] += row.q;
+                        }
                     }
 
                     if (!isFiltered || row.b === fM) {
                         let gudangName = row.g === 2 ? 'SPN' : (row.g === 3 ? 'RPH' : 'PM');
-                        if (katLower.includes("penjualan")) gudangQty[gudangName].jual += row.q;
-                        else if (katLower.includes("pemakaian")) gudangQty[gudangName].pakai += row.q;
-                        else if (katLower.includes("giling")) gudangQty[gudangName].giling += row.q;
-                        else if (katLower.includes("mutasi")) gudangQty[gudangName].mutasi += row.q;
-                        else if (katLower.includes("masuk") || !isKeluar) gudangQty[gudangName].masuk += row.q;
+                        if (!isOngkir) {
+                            if (katLower.includes("penjualan")) gudangQty[gudangName].jual += row.q;
+                            else if (katLower.includes("pemakaian")) gudangQty[gudangName].pakai += row.q;
+                            else if (katLower.includes("giling")) gudangQty[gudangName].giling += row.q;
+                            else if (katLower.includes("mutasi")) gudangQty[gudangName].mutasi += row.q;
+                            else if (katLower.includes("masuk") || !isKeluar) gudangQty[gudangName].masuk += row.q;
+                        }
 
                         if (isKeluar && isPenjualan) {
-                            tOmzet += row.o; tHPP += row.h; tQty += row.q;
-                            if (chartHari[row.d]) { chartHari[row.d].o += row.o; chartHari[row.d].q += row.q; }
-
-                            if (!produkMap[p]) produkMap[p] = { q: 0, o: 0, h: 0 };
-                            produkMap[p].q += row.q; produkMap[p].o += row.o; produkMap[p].h += row.h;
-
                             let r = row.r || "Tanpa Nama";
                             if (!konsumenMap[r]) konsumenMap[r] = { o: 0, q: 0 };
-                            konsumenMap[r].o += row.o; konsumenMap[r].q += row.q;
+                            
+                            if (isOngkir) {
+                                tOngkir += row.o;
+                                konsumenMap[r].o += row.o; // Ongkir tetap dihitung sbg omzet si konsumen
+                            } else {
+                                tOmzet += row.o; tHPP += row.h; tQty += row.q;
+                                if (chartHari[row.d]) { chartHari[row.d].o += row.o; chartHari[row.d].q += row.q; }
 
-                            if (!lossGainMap[r]) lossGainMap[r] = { curr: 0, prev: 0, items: {} };
-                            if (!lossGainMap[r].items[p]) lossGainMap[r].items[p] = { curr: 0, prev: 0 };
-                            lossGainMap[r].curr += row.q; lossGainMap[r].items[p].curr += row.q;
+                                if (!produkMap[p]) produkMap[p] = { q: 0, o: 0, h: 0 };
+                                produkMap[p].q += row.q; produkMap[p].o += row.o; produkMap[p].h += row.h;
+
+                                konsumenMap[r].o += row.o; konsumenMap[r].q += row.q;
+
+                                if (!lossGainMap[r]) lossGainMap[r] = { curr: 0, prev: 0, items: {} };
+                                if (!lossGainMap[r].items[p]) lossGainMap[r].items[p] = { curr: 0, prev: 0 };
+                                lossGainMap[r].curr += row.q; lossGainMap[r].items[p].curr += row.q;
+                            }
                         }
                     }
 
-                    if (isFiltered && row.b === prevM && isKeluar && isPenjualan) {
+                    if (isFiltered && row.b === prevM && isKeluar && isPenjualan && !isOngkir) {
                         let r = row.r || "Tanpa Nama";
                         if (!lossGainMap[r]) lossGainMap[r] = { curr: 0, prev: 0, items: {} };
                         if (!lossGainMap[r].items[p]) lossGainMap[r].items[p] = { curr: 0, prev: 0 };
@@ -5318,7 +5339,6 @@ async function prosesAntreanBackground() {
 
             if (raw.kp && raw.kp.length > 0) {
                 raw.kp.forEach(k => {
-                    // FIX: Piutang adalah akumulasi global (real-time), jadi abaikan filter bulan!
                     if (k.isTelat) tPiutangTelat += k.nominal; 
                     else tPiutangSehat += k.nominal; 
                 });
@@ -5341,7 +5361,6 @@ async function prosesAntreanBackground() {
             arrProdFull.forEach((p, i) => { if (i < 5) { dnLabel.push(p.name); dnData.push(p.qty); } else { otherVal += p.qty; } });
             if (otherVal > 0) { dnLabel.push("Lainnya"); dnData.push(otherVal); }
 
-            // BUNGKUS CHART TREN PAKAN SESUAI HARCODE + LAINNYA
             let colorsTrend = ['#8AA624', '#4A90E2', '#FEA405', '#9C27B0', '#795548', '#FF9800', '#009688', '#E91E63'];
             let datasetsTrend = targetPakan.map((name, i) => ({
                 label: name, data: trendPakan[name],
@@ -5364,7 +5383,7 @@ async function prosesAntreanBackground() {
             }
 
             return {
-                omzet: tOmzet, hpp: tHPP, opr: tOPR, profit: tOmzet - tHPP - tOPR, masuk: tMasuk, qty: tQty, ptgSehat: tPiutangSehat, ptgTelat: tPiutangTelat,
+                omzet: tOmzet, ongkir: tOngkir, hpp: tHPP, opr: tOPR, profit: tOmzet + tOngkir - tHPP - tOPR, masuk: tMasuk, qty: tQty, ptgSehat: tPiutangSehat, ptgTelat: tPiutangTelat,
                 chartMix: { label: ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Ags", "Sep", "Okt", "Nov", "Des"], omzet: arrOmzet, qty: arrQty },
                 chartDaily: { label: dailyLabels, omzet: dailyOmzet, qty: dailyQty }, chartDonut: { label: dnLabel, data: dnData },
                 chartOpr: { label: Object.keys(oprMap), data: Object.values(oprMap) }, dailyCF: rincianCF.reverse().slice(0, 50),
@@ -5379,11 +5398,16 @@ async function prosesAntreanBackground() {
             const safeNum = (n) => isNaN(parseFloat(n)) ? 0 : parseFloat(n);
 
             document.getElementById('gl_val_omzet').innerText = "Rp " + nf.format(safeNum(d.omzet));
+            if (document.getElementById('gl_val_ongkir')) document.getElementById('gl_val_ongkir').innerText = "Rp " + nf.format(safeNum(d.ongkir));
             document.getElementById('gl_val_hpp').innerText = "Rp " + nf.format(safeNum(d.hpp));
             document.getElementById('gl_val_opr').innerText = "Rp " + nf.format(safeNum(d.opr));
             document.getElementById('gl_val_profit').innerText = "Rp " + nf.format(safeNum(d.profit));
-            let hitungMargin = safeNum(d.omzet) > 0 ? (safeNum(d.profit) / safeNum(d.omzet) * 100) : 0;
+            
+            // Rumus Margin: Profit / Total Revenue (Omzet + Ongkir)
+            let totalRevenue = safeNum(d.omzet) + safeNum(d.ongkir);
+            let hitungMargin = totalRevenue > 0 ? (safeNum(d.profit) / totalRevenue * 100) : 0;
             document.getElementById('gl_val_margin').innerText = hitungMargin.toFixed(1) + "%";
+            
             let yieldPerKg = safeNum(d.qty) > 0 ? (safeNum(d.profit) / safeNum(d.qty)) : 0;
             document.getElementById('gl_val_yield').innerText = "Rp " + nf.format(yieldPerKg.toFixed(0));
             document.getElementById('gl_val_qty').innerText = nf.format(safeNum(d.qty)) + " Kg";
@@ -5424,9 +5448,7 @@ async function prosesAntreanBackground() {
             
             document.querySelector('#table-cf-daily tbody').innerHTML = htmlCF;
             document.getElementById('gl_cf_summary').innerHTML = `<span style="color:#8AA624">IN: Rp ${nf.format(sumIn)}</span> <span style="color:#c62828">OUT: Rp ${nf.format(sumOut)}</span> <span style="color:#333">SISA: Rp ${nf.format(sumIn - sumOut)}</span>`;
-            // ==============================
-            // LOGIKA SORTING TABEL PAKAN
-            // ==============================
+
             window.dataPakanGlobal = d.rankingPakan;
             window.sortStatePakan = { key: 'qty', desc: true };
 
@@ -5459,11 +5481,8 @@ async function prosesAntreanBackground() {
                 document.querySelector('#tabel-analisa-pakan tbody').innerHTML = html || "<tr><td colspan='6' style='text-align:center; padding:15px;'>Belum ada data pakan</td></tr>";
             }
 
-            window.renderTabelPakanView(); // Tampilkan tabel pertama kali
+            window.renderTabelPakanView();
 
-            // ==============================
-            // RENDER CHART TREN TOP 5
-            // ==============================
             if (window.chTrendPakan) window.chTrendPakan.destroy();
             window.chTrendPakan = new Chart(document.getElementById('chartTrendPakan').getContext('2d'), {
                 type: 'line',
@@ -5476,7 +5495,6 @@ async function prosesAntreanBackground() {
                 }
             });
 
-            // --- (CHART GUDANG, DONUT, DLL TETAP BERJALAN DI BAWAH INI) ---
             if (chGudang) chGudang.destroy();
             chGudang = new Chart(document.getElementById('chartGudang').getContext('2d'), { type: 'bar', data: { labels: ['PM', 'RPH', 'SPN'], datasets: [{ label: 'Masuk', data: [d.gudangData.PM.masuk, d.gudangData.RPH.masuk, d.gudangData.SPN.masuk], backgroundColor: '#FEA405' }, { label: 'Mutasi', data: [d.gudangData.PM.mutasi, d.gudangData.RPH.mutasi, d.gudangData.SPN.mutasi], backgroundColor: '#8AA624' }, { label: 'Jual', data: [d.gudangData.PM.jual, d.gudangData.RPH.jual, d.gudangData.SPN.jual], backgroundColor: '#DBE4C9' }, { label: 'Pakai', data: [d.gudangData.PM.pakai, d.gudangData.RPH.pakai, d.gudangData.SPN.pakai], backgroundColor: '#4A90E2' }, { label: 'Giling', data: [d.gudangData.PM.giling, d.gudangData.RPH.giling, d.gudangData.SPN.giling], backgroundColor: '#9C27B0' }] }, plugins: [ChartDataLabels], options: { responsive: true, maintainAspectRatio: false, layout: { padding: { top: 20 } }, scales: { y: { beginAtZero: true, ticks: { display: true, font: { size: 9 } } } }, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } }, datalabels: { display: function (context) { return context.dataset.data[context.dataIndex] > 0; }, anchor: 'end', align: 'top', font: { size: 9, weight: 'bold' }, color: '#555', formatter: (val) => nf.format(val) } } } });
 
@@ -5494,14 +5512,15 @@ async function prosesAntreanBackground() {
 
             renderChartMix();
             renderLossGain(d.lossGainData, d.isFiltered);
+            
             // ==============================
             // AUTO-GENERATE NARASI PDF
             // ==============================
             let nTeks = `Berdasarkan data performa bisnis, berikut adalah kesimpulan utama:\n\n`;
 
-            // 1. Highlight Kinerja
+            // 1. Highlight Kinerja (SULAP: Ongkir dipisah dari kalimat)
             nTeks += `1. KINERJA KEUANGAN:\n`;
-            nTeks += `Mencetak Total Omzet sebesar Rp ${nf.format(safeNum(d.omzet))} dengan Net Profit Rp ${nf.format(safeNum(d.profit))}. Margin keuntungan berada pada angka ${hitungMargin.toFixed(1)}%.\n\n`;
+            nTeks += `Mencetak Total Omzet Pakan sebesar Rp ${nf.format(safeNum(d.omzet))} dan Pendapatan Ongkir Rp ${nf.format(safeNum(d.ongkir))}. Net Profit mencapai Rp ${nf.format(safeNum(d.profit))} dengan margin ${hitungMargin.toFixed(1)}%.\n\n`;
 
             // 2. Bedah Produk
             nTeks += `2. ANALISA PRODUK:\n`;
