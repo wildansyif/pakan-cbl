@@ -2987,6 +2987,25 @@
             </h2>
             <div class="sub-header">Manajemen & Cetak Invoice Tagihan</div>
 
+            <!-- 🔥 REKAP PIUTANG GLOBAL & REMINDER (BARU) 🔥 -->
+            <div class="rekap-card" style="background:#fff; border-left:4px solid #c62828; margin-bottom: 15px; padding: 12px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <div style="font-weight:bold; color:#333; font-size:12px; display:flex; align-items:center; gap:5px;"><span class="material-symbols-outlined" style="font-size:16px; color:#1a5c40;">monitoring</span> Status Piutang Global</div>
+                    <div id="piutang_global_sehat" style="color:#8AA624; font-size:11px; font-weight:bold;">Sehat: Rp 0</div>
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px dashed #eee; padding-top:8px;">
+                    <div>
+                        <div style="color:#c62828; font-size:10px; font-weight:bold;">TOTAL JATUH TEMPO</div>
+                        <div id="piutang_global_telat" style="font-size:16px; font-weight:bold; color:#c62828;">Rp 0</div>
+                    </div>
+                    <button onclick="document.getElementById('list_jatuh_tempo_global').classList.toggle('hidden')" style="background:#ffebee; color:#c62828; border:1px solid #ffcdd2; padding:6px 10px; border-radius:6px; font-size:10px; font-weight:bold; cursor:pointer; display:flex; align-items:center; gap:4px; outline:none;">
+                        <span class="material-symbols-outlined" style="font-size:14px;">warning</span> Daftar Telat ▾
+                    </button>
+                </div>
+                <div id="list_jatuh_tempo_global" class="hidden" style="margin-top:12px; border-top:1px solid #ffcdd2; padding-top:5px; max-height:250px; overflow-y:auto; padding-right:5px;">
+                </div>
+            </div>
+
             <div style="display:flex; gap:10px; margin-bottom:15px;">
                 <div style="position:relative; flex:1;">
                     <span class="material-symbols-outlined"
@@ -5948,6 +5967,10 @@ async function prosesAntreanBackground() {
             let nf = new Intl.NumberFormat('id-ID'); let html = "";
             let keys = Object.keys(dataPiutangLokal);
             
+            let globalSehat = 0;
+            let globalTelat = 0;
+            let listTelatHtml = "";
+            
             keys.forEach(namaKey => {
                 let d = dataPiutangLokal[namaKey];
                 let safeClass = namaKey.replace(/[\s\W]/g, '');
@@ -5956,6 +5979,25 @@ async function prosesAntreanBackground() {
                 let warnaBorder = isDeposit ? "#8AA624" : (d.total_telat > 0 ? "#c62828" : "#8AA624");
                 let displayTotal = isDeposit ? `- Rp ${nf.format(Math.abs(d.total_sisa))}` : `Rp ${nf.format(d.total_sisa)}`;
                 
+                // KALKULASI REKAP GLOBAL & LIST JATUH TEMPO
+                if (d.total_sisa > 0) {
+                    globalSehat += d.total_sehat || 0;
+                    globalTelat += d.total_telat || 0;
+                    
+                    if (d.total_telat > 0) {
+                        listTelatHtml += `
+                        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding:8px 0;">
+                            <div>
+                                <div style="font-size:12px; font-weight:bold; color:#333;">${namaKey}</div>
+                                <div style="font-size:10px; color:#c62828; font-weight:bold;">Telat: Rp ${nf.format(d.total_telat)}</div>
+                            </div>
+                            <button onclick="reminderCepatWA('${namaKey.replace(/'/g, "\\'")}')" style="background:#2196F3; color:white; border:none; padding:5px 10px; border-radius:4px; font-size:10px; font-weight:bold; cursor:pointer; display:flex; align-items:center; gap:3px;">
+                                <span class="material-symbols-outlined" style="font-size:12px;">send_to_mobile</span> WA
+                            </button>
+                        </div>`;
+                    }
+                }
+
                 let teksStatus = "";
                 if (isDeposit) {
                     teksStatus = `<div style="margin-top:4px;"><small style="color:#8AA624; font-weight:bold;"><span class="material-symbols-outlined" style="font-size:12px; vertical-align:middle;">account_balance_wallet</span> Deposit / Lebih Bayar</small></div>`;
@@ -5970,7 +6012,7 @@ async function prosesAntreanBackground() {
                 }
 
                 html += `<div class="rekap-card card-piutang-item" data-nama="${namaKey.toLowerCase()}" style="border-left: 4px solid ${warnaBorder}; margin-bottom: 12px; background: ${isDeposit ? '#f8fdf4' : '#fff'};">
-                      <div style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="bukaDetailPiutang('${namaKey}', '${safeClass}', ${d.total_sisa})">
+                      <div style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="bukaDetailPiutang('${namaKey.replace(/'/g, "\\'")}', '${safeClass}', ${d.total_sisa})">
                           <div style="flex:1;"><strong style="font-size:14px; display:block;">${namaKey}</strong>${teksStatus}</div>
                           <div style="font-size:16px; font-weight:bold; text-align:right; color: ${isDeposit ? '#8AA624' : '#333'}">${displayTotal}</div>
                       </div>
@@ -5981,7 +6023,65 @@ async function prosesAntreanBackground() {
                       </div>
                   </div>`;
             });
+            
             document.getElementById('piutang-list').innerHTML = html || "<div style='text-align:center; padding:20px;'>Tidak ada piutang/deposit aktif.</div>";
+            
+            // INJEKSI HASIL HITUNGAN KE KOTAK DASHBOARD
+            let elSehat = document.getElementById('piutang_global_sehat');
+            let elTelat = document.getElementById('piutang_global_telat');
+            let elListTelat = document.getElementById('list_jatuh_tempo_global');
+            
+            if (elSehat) elSehat.innerText = "Sehat: Rp " + nf.format(globalSehat);
+            if (elTelat) elTelat.innerText = "Rp " + nf.format(globalTelat);
+            if (elListTelat) elListTelat.innerHTML = listTelatHtml || "<div style='text-align:center; font-size:11px; color:#888; padding:10px;'>Alhamdulillah, semua piutang sehat/lancar! 🎉</div>";
+        }
+
+        function reminderCepatWA(namaKey) {
+            let d = dataPiutangLokal[namaKey];
+            if (!d || d.total_telat <= 0) return;
+
+            let namaPeternak = namaKey.split('-')[0].trim();
+            let relData = globalRelasi.find(r => r.nama.toLowerCase() === namaPeternak.toLowerCase());
+            let hpRaw = relData ? (relData.wa || relData.hp) : ""; // Antisipasi properti db
+            let hpFormated = formatWA(hpRaw);
+            
+            let nf = new Intl.NumberFormat('id-ID');
+            let nominalTelat = d.total_telat;
+            let totalPiutang = d.total_sisa;
+            
+            let teksWA = "";
+            
+            // Cek apakah data rincian per-nota sudah ditarik dari server
+            if (d.isLoaded && d.dates) {
+                let rincianTelat = "";
+                for (let dateStr in d.dates) {
+                    let dateObj = d.dates[dateStr];
+                    if (dateObj.isTelat && dateObj.sisaNyata > 0) {
+                        if (dateObj.dp > 0) {
+                            rincianTelat += `- Tgl ${dateObj.tgl}: *Rp ${nf.format(dateObj.sisaNyata)}* (Total Bon Rp ${nf.format(dateObj.tagihan)}, Ter-DP Rp ${nf.format(dateObj.dp)})\n`;
+                        } else {
+                            rincianTelat += `- Tgl ${dateObj.tgl}: *Rp ${nf.format(dateObj.sisaNyata)}*\n`;
+                        }
+                    }
+                }
+                teksWA = `Assalamualaikum Bpk/Ibu ${namaPeternak},\n\nMengingatkan untuk tagihan pakan yang sudah jatuh tempo dengan rincian sebagai berikut:\n\n${rincianTelat}\n*Total Tagihan Jatuh Tempo: Rp ${nf.format(nominalTelat)}*\nTotal Semua Piutang: Rp ${nf.format(totalPiutang)}\n\nMohon dicek dan dikonfirmasi kembali. Terima kasih.`;
+            } else {
+                // Jika rincian belum ditarik, kirim versi Generic agar super cepat
+                teksWA = generateTeksReminder(namaPeternak, nominalTelat, totalPiutang);
+            }
+
+            if (hpFormated) {
+                let waUrl = `https://wa.me/${hpFormated}?text=${encodeURIComponent(teksWA)}`;
+                window.open(waUrl, '_blank') || (window.location.href = waUrl);
+            } else {
+                let tempInput = document.createElement("textarea");
+                tempInput.value = teksWA;
+                document.body.appendChild(tempInput);
+                tempInput.select();
+                document.execCommand("copy");
+                document.body.removeChild(tempInput);
+                alert("⚠️ Nomor WA belum ada di database Konsumen.\n\n✅ Teks pengingat otomatis di-copy! Silakan paste manual di chat WhatsApp peternak.");
+            }
         }
 
         function toggleSelectSemua(safeClass, isSelect) { let checkboxes = document.querySelectorAll(`.chk-inv-${safeClass}`); checkboxes.forEach(cb => { cb.checked = isSelect; }); hitungPreviewSubtotal(safeClass); }
