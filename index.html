@@ -5708,14 +5708,22 @@ async function prosesAntreanBackground() {
                         // URL Bukti berhasil kita angkut kembali!
                         rawBayar.push({ tgl: row.tanggal, nominal: nomCF, sisaBayar: nomCF, detailPotongan: [], bukti_url: row.bukti_url });
                     } else {
-                        let isRetur = row.jenis_mutasi === "Retur Barang";
+                        // 🔥 Deteksi kalau ini Retur
+                        let isRetur = row.jenis_mutasi === "Retur Barang" || (row.status && String(row.status).toLowerCase().includes('retur'));
                         let nominalTagihan = parseFloat(row.tagihan) || 0;
                         let qtyTagihan = parseFloat(row.qty) || 0;
-                        if (isRetur && qtyTagihan > 0) qtyTagihan = -qtyTagihan;
                         
+                        // 🔥 PERBAIKAN: Jadikan nominal dan qty MINUS (-) agar otomatis memotong tagihan!
+                        if (isRetur) {
+                            if (nominalTagihan > 0) nominalTagihan = -nominalTagihan;
+                            if (qtyTagihan > 0) qtyTagihan = -qtyTagihan;
+                        }
+                        
+                        let namaPakanInvoice = isRetur && !String(row.pakan_kategori).toUpperCase().includes('RETUR') ? `[RETUR] ${row.pakan_kategori}` : row.pakan_kategori;
+
                         rawTagihan.push({ 
                             tgl: row.tanggal, 
-                            pakan: isRetur ? `[RETUR] ${row.pakan_kategori}` : row.pakan_kategori, 
+                            pakan: namaPakanInvoice, 
                             qty: qtyTagihan, 
                             satuan: row.satuan || 'Kg', 
                             nominal: nominalTagihan, 
