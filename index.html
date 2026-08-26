@@ -9956,29 +9956,12 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
                     let qty = parseFloat(row.qty) || 0;
                     
                     // 🔥 LOGIKA KETAT: Murni dari cabang Kandang PM ATAU nama grup sapi. 
-                    // JANGAN pakai includes('sapi') agar 'Gilang (Sapi)' tidak tersedot!
                     let isPemakaianRiil = (cabangRow === 'kandang pm') || kelompokSapi.includes(relasiLower);
                     
                     if (isPemakaianRiil) {
                         let tgl = row.tanggal;
                         if (!dailyTotals[tgl]) dailyTotals[tgl] = 0;
                         dailyTotals[tgl] += qty;
-                    }
-                });
-                
-                // Merge dengan data laporan lokal di HP (Optimistic UI)
-                let pendingMaster = JSON.parse(localStorage.getItem('pending_master_data') || "[]");
-                pendingMaster.forEach(p => {
-                    if (p.tgl >= startDate && p.tgl <= endDate && p.status === 'Keluar') {
-                        let relasiLower = String(p.relasi || "").toLowerCase().trim();
-                        let lokasiInput = String(p.lokasiAsli || p.lokasi || "").toLowerCase(); 
-                        
-                        let isPemakaianRiil = (lokasiInput === '/kandang' || String(p.gudang).toLowerCase() === 'kandang pm') || kelompokSapi.includes(relasiLower);
-                        
-                        if (isPemakaianRiil) {
-                            if (!dailyTotals[p.tgl]) dailyTotals[p.tgl] = 0;
-                            dailyTotals[p.tgl] += (parseFloat(p.qty) || 0);
-                        }
                     }
                 });
 
