@@ -5703,23 +5703,31 @@ async function prosesAntreanBackground() {
 
                 data.forEach(row => {
                     let isBayar = row.jenis_mutasi === "Pembayaran";
-                    if (isBayar) {
+                    let qtyFisik = parseFloat(row.qty) || 0;
+                    
+                    // 🔥 Deteksi Murni Retur Barang (Bukan Uang)
+                    // Jika status 'Retur Barang', ATAU (dianggap Pembayaran oleh Supabase tapi punya QTY fisik)
+                    let isReturBarang = (row.jenis_mutasi === "Retur Barang") || 
+                                        (row.status && String(row.status).toLowerCase().includes('retur')) ||
+                                        (isBayar && qtyFisik > 0);
+
+                    if (isBayar && !isReturBarang) {
+                        // Ini MURNI Uang Masuk (Cashflow)
                         let nomCF = parseFloat(row.pembayaran) || 0;
-                        // URL Bukti berhasil kita angkut kembali!
                         rawBayar.push({ tgl: row.tanggal, nominal: nomCF, sisaBayar: nomCF, detailPotongan: [], bukti_url: row.bukti_url });
                     } else {
-                        // 🔥 Deteksi kalau ini Retur
-                        let isRetur = row.jenis_mutasi === "Retur Barang" || (row.status && String(row.status).toLowerCase().includes('retur'));
-                        let nominalTagihan = parseFloat(row.tagihan) || 0;
-                        let qtyTagihan = parseFloat(row.qty) || 0;
+                        // Ini berarti Tagihan (Barang Keluar) ATAU Retur Barang (Barang Masuk)
+                        let nominalTagihan = parseFloat(row.tagihan) || parseFloat(row.pembayaran) || parseFloat(row.nominal) || 0;
+                        let qtyTagihan = qtyFisik;
                         
-                        // 🔥 PERBAIKAN: Jadikan nominal dan qty MINUS (-) agar otomatis memotong tagihan!
-                        if (isRetur) {
-                            if (nominalTagihan > 0) nominalTagihan = -nominalTagihan;
-                            if (qtyTagihan > 0) qtyTagihan = -qtyTagihan;
+                        // Kalau Retur, paksa jadi MINUS (-) agar otomatis memotong saldo hari itu
+                        if (isReturBarang) {
+                            nominalTagihan = -Math.abs(nominalTagihan);
+                            qtyTagihan = -Math.abs(qtyTagihan);
                         }
                         
-                        let namaPakanInvoice = isRetur && !String(row.pakan_kategori).toUpperCase().includes('RETUR') ? `[RETUR] ${row.pakan_kategori}` : row.pakan_kategori;
+                        let namaPkn = row.pakan_kategori || 'Pakan';
+                        let namaPakanInvoice = isReturBarang && !String(namaPkn).toUpperCase().includes('RETUR') ? `[RETUR] ${namaPkn}` : namaPkn;
 
                         rawTagihan.push({ 
                             tgl: row.tanggal, 
@@ -8394,12 +8402,30 @@ async function prosesAntreanBackground() {
             
             // 1. PISAHKAN DATA & SIAPKAN UNTUK FIFO
             dataSupabase.forEach(row => {
-                let isBayar = row.jenis_mutasi === "Pembayaran" || String(row.pakan_kategori).toLowerCase().includes("bayar");
-                let nom = parseFloat(row.nominal) || parseFloat(row.tagihan) || parseFloat(row.pembayaran) || 0;
+                let qtyFisik = parseFloat(row.qty) || 0;
+                let isSupabaseBayar = row.jenis_mutasi === "Pembayaran" || String(row.pakan_kategori).toLowerCase().includes("bayar");
                 
-                if (isBayar) {
+                let isReturBarang = (row.jenis_mutasi === "Retur Barang") || 
+                                    (row.status && String(row.status).toLowerCase().includes('retur')) ||
+                                    (isSupabaseBayar && qtyFisik > 0 && !String(row.pakan_kategori).toLowerCase().includes("bayar"));
+
+                if (isSupabaseBayar && !isReturBarang) {
+                    let nom = parseFloat(row.nominal) || parseFloat(row.pembayaran) || 0;
                     bayarArr.push({ tgl: row.tanggal, nominal: nom, sisaBayar: nom, detailPotongan: [], metode: row.metode || "Cash", raw: row });
                 } else {
+                    let nom = parseFloat(row.tagihan) || parseFloat(row.pembayaran) || parseFloat(row.nominal) || 0;
+                    
+                    if (isReturBarang) {
+                        nom = -Math.abs(nom);
+                        row.tagihan = nom; // Timpa raw data agar prosesRow gak bingung
+                        row.qty = -Math.abs(qtyFisik);
+                        row.jenis_mutasi = "Tagihan"; // Paksa sistem menganggapnya Barang (DO)
+                        if (!String(row.pakan_kategori).toUpperCase().includes('RETUR')) {
+                            row.pakan_kategori = `[RETUR] ${row.pakan_kategori || 'Pakan'}`;
+                        }
+                    } else {
+                        row.tagihan = nom; // Pastikan terisi
+                    }
                     tagihanArr.push({ tgl: row.tanggal, nominal: nom, terbayar: 0, raw: row });
                 }
             });
