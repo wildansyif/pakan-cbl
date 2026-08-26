@@ -4265,13 +4265,13 @@ async function prosesAntreanBackground() {
                     status: pl.status || 'Keluar',
                     relasi: pl.relasi || '-',
                     alamat: pl.alamat || '-',
-                    ekor: pl.ekor || 0,       // <--- INI DIA YANG KELUPAAN BANG! 🔥
-                    pakan: pakanName,
-                    qty: itemQty,
-                    satuan: satuan,
-                    harga_satuan: harga,
-                    catatan: extraCatatan.trim(),
-                    hash_str: pl.hashStr + '_' + pakanName
+                    ekor: 0,                           // <--- CUKUP TULIS 0 DI SINI UNTUK ONGKIR
+                    pakan: 'Ongkir Pengiriman',        // <--- KEMBALIKAN JADI TEKS 'Ongkir Pengiriman'
+                    qty: 1,                            // <--- QTY NYA 1
+                    satuan: 'Rit',                     // <--- SATUANNYA RIT
+                    harga_satuan: ongkirVal,           // <--- HARGA SATUANNYA DARI INPUT ONGKIR
+                    catatan: 'Biaya Pengiriman',
+                    hash_str: (pl.hashStr || '') + '_ONGKIR'
                 });
             }
 
