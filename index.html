@@ -3008,10 +3008,10 @@
                                 <tr>
                                     <th style="padding:10px; border:1px solid #DBE4C9; text-align:left;">Nama Konsumen</th>
                                     <th style="padding:10px; border:1px solid #DBE4C9; text-align:right;">Total Piutang</th>
-                                    <th style="padding:10px; border:1px solid #DBE4C9; text-align:right; color:#2e7d32;">Sehat</th>
-                                    <th style="padding:10px; border:1px solid #DBE4C9; text-align:right; color:#f57c00;">>15 Hari</th>
-                                    <th style="padding:10px; border:1px solid #DBE4C9; text-align:right; color:#e65100;">>30 Hari</th>
-                                    <th style="padding:10px; border:1px solid #DBE4C9; text-align:right; color:#c62828;">>60 Hari</th>
+                                    <th style="padding:10px; border:1px solid #DBE4C9; text-align:right; color:#2e7d32;">Piutang Sehat</th>
+                                    <th style="padding:10px; border:1px solid #DBE4C9; text-align:right; color:#f57c00;">Terlambat >15 Hari</th>
+                                    <th style="padding:10px; border:1px solid #DBE4C9; text-align:right; color:#e65100;">Terlambat >30 Hari</th>
+                                    <th style="padding:10px; border:1px solid #DBE4C9; text-align:right; color:#c62828;">Terlambat >60 Hari</th>
                                     <th style="padding:10px; border:1px solid #DBE4C9; text-align:center;">Reminder</th>
                                 </tr>
                             </thead>
@@ -5770,6 +5770,267 @@ async function prosesAntreanBackground() {
             });
         }
 
+        function switchTabPiutang(tab) {
+            document.getElementById('tab-piutang-dashboard').classList.remove('active');
+            document.getElementById('tab-piutang-invoice').classList.remove('active');
+            document.getElementById('view-piutang-dashboard').classList.add('hidden');
+            document.getElementById('view-piutang-invoice').classList.add('hidden');
+            
+            document.getElementById('tab-piutang-' + tab).classList.add('active');
+            document.getElementById('view-piutang-' + tab).classList.remove('hidden');
+        }
+
+        let chartAgingPiutang;
+
+        function tarikDataPiutang(forceSync = false) {
+            let cached = localStorage.getItem('piutang_ptcbl_cache');
+            if (cached && !forceSync) {
+                dataPiutangLokal = JSON.parse(cached);
+                renderAgingDashboard();
+                renderListPiutang();
+                return;
+            }
+
+            let btn = document.getElementById('btn-sync-piutang');
+            if (btn) btn.innerHTML = `<span class="material-symbols-outlined icon-spin" style="font-size:18px;">sync</span>`;
+            document.getElementById('piutang-loader').classList.remove('hidden');
+
+            if (!navigator.onLine) {
+                if (!cached) alert("Wajib online untuk tarik data pertama kali!");
+                return;
+            }
+
+            Promise.all([
+                fetchSupabaseAll(`${SUPA_URL}/rest/v1/view_rekap_piutang?sisa_piutang=neq.0&select=*`),
+                fetchSupabaseAll(`${SUPA_URL}/rest/v1/view_mutasi_piutang_detail?order=tanggal.asc`)
+            ])
+            .then(([rekapData, mutasiData]) => {
+                document.getElementById('piutang-loader').classList.add('hidden');
+                if (btn) btn.innerHTML = `<span class="material-symbols-outlined" style="font-size:18px;">sync</span>`;
+
+                if (rekapData.error) throw new Error(rekapData.message);
+                if (mutasiData.error) throw new Error(mutasiData.message);
+
+                let serverData = {};
+                let mutasiGrouped = {};
+
+                mutasiData.forEach(row => {
+                    let r = row.relasi;
+                    if (!mutasiGrouped[r]) mutasiGrouped[r] = { tagihan: [], bayar: [] };
+                    
+                    let isBayar = row.jenis_mutasi === "Pembayaran";
+                    let qtyFisik = parseFloat(row.qty) || 0;
+                    let isReturBarang = (row.jenis_mutasi === "Retur Barang") || (row.status && String(row.status).toLowerCase().includes('retur')) || (isBayar && qtyFisik > 0);
+
+                    if (isBayar && !isReturBarang) {
+                        let nomCF = parseFloat(row.pembayaran) || 0;
+                        mutasiGrouped[r].bayar.push({ tgl: row.tanggal, sisaBayar: nomCF, detailPotongan: [], bukti_url: row.bukti_url });
+                    } else {
+                        let nominalTagihan = parseFloat(row.tagihan) || parseFloat(row.pembayaran) || parseFloat(row.nominal) || 0;
+                        let qtyTagihan = qtyFisik;
+                        if (isReturBarang) { nominalTagihan = -Math.abs(nominalTagihan); qtyTagihan = -Math.abs(qtyTagihan); }
+                        let namaPkn = row.pakan_kategori || 'Pakan';
+                        let namaPakanInvoice = isReturBarang && !String(namaPkn).toUpperCase().includes('RETUR') ? `[RETUR] ${namaPkn}` : namaPkn;
+                        mutasiGrouped[r].tagihan.push({ tgl: row.tanggal, pakan: namaPakanInvoice, qty: qtyTagihan, satuan: row.satuan || 'Kg', nominal: nominalTagihan, terbayar: 0 });
+                    }
+                });
+
+                rekapData.forEach(d => {
+                    let rLower = String(d.relasi).toLowerCase();
+                    let kelompokSapi = ['bx', 'domba', 'rd', 'rl', 'darbun', 'laktasi', 'kapalang', 'dewasa', 'jantan', 'pedet', 'kerbau', 'bunting'];
+                    if (rLower.includes('kandang') || rLower.includes('spn') || rLower.includes('rph') || rLower.includes('cibulakan') || rLower.includes('pembibitan') || kelompokSapi.includes(rLower)) return;
+
+                    let namaRelasi = d.relasi;
+                    let sisaPiutangDB = parseFloat(d.sisa_piutang);
+
+                    serverData[namaRelasi] = {
+                        total_sisa: sisaPiutangDB, alamat: d.alamat || "-", isLoaded: true, dates: {}, riwayat: [],
+                        aging: { sehat: 0, t15: 0, t30: 0, t60: 0, total_telat: 0 }
+                    };
+
+                    if (sisaPiutangDB > 0 && mutasiGrouped[namaRelasi]) {
+                        let listTagihan = mutasiGrouped[namaRelasi].tagihan;
+                        let listBayar = mutasiGrouped[namaRelasi].bayar;
+
+                        let groupedNota = {};
+                        listTagihan.forEach(item => {
+                            if (!groupedNota[item.tgl]) groupedNota[item.tgl] = { tgl: item.tgl, totalTagihan: 0, terbayar: 0, items: [] };
+                            groupedNota[item.tgl].totalTagihan += item.nominal;
+                            groupedNota[item.tgl].items.push({ pakan: item.pakan, qty: item.qty, nominal: item.nominal, satuan: item.satuan });
+                        });
+                        let arrNota = Object.values(groupedNota).sort((a,b) => new Date(a.tgl) - new Date(b.tgl));
+
+                        let indexBayar = 0;
+                        for (let i = 0; i < arrNota.length; i++) {
+                            let nota = arrNota[i];
+                            let sisaHutangNota = nota.totalTagihan - nota.terbayar;
+                            while (sisaHutangNota > 0 && indexBayar < listBayar.length) {
+                                let uangMasuk = listBayar[indexBayar];
+                                if (uangMasuk.sisaBayar <= 0) { indexBayar++; continue; }
+                                let jumlahDipotong = Math.min(sisaHutangNota, uangMasuk.sisaBayar);
+                                if (jumlahDipotong > 0) { uangMasuk.detailPotongan.push({ tglNota: nota.tgl, hutangSblm: sisaHutangNota, jumlah: jumlahDipotong, sisaAkhir: sisaHutangNota - jumlahDipotong }); }
+                                nota.terbayar += jumlahDipotong; uangMasuk.sisaBayar -= jumlahDipotong; sisaHutangNota -= jumlahDipotong;
+                                if (uangMasuk.sisaBayar <= 0) indexBayar++;
+                            }
+                        }
+
+                        // 🔥 REVERSE FIFO UNTUK AGING & INVOICE 🔥
+                        let sisaUnpaid = sisaPiutangDB;
+                        for (let i = arrNota.length - 1; i >= 0; i--) {
+                            let nota = arrNota[i];
+                            if (sisaUnpaid <= 0.01) {
+                                nota.sisaNyata = 0; nota.terbayar_display = nota.totalTagihan;
+                            } else {
+                                if (nota.totalTagihan >= 0) {
+                                    if (sisaUnpaid >= nota.totalTagihan) {
+                                        nota.sisaNyata = nota.totalTagihan; nota.terbayar_display = 0; sisaUnpaid -= nota.totalTagihan;
+                                    } else {
+                                        nota.sisaNyata = sisaUnpaid; nota.terbayar_display = nota.totalTagihan - sisaUnpaid; sisaUnpaid = 0;
+                                    }
+                                } else {
+                                    nota.sisaNyata = nota.totalTagihan; nota.terbayar_display = 0; sisaUnpaid -= nota.totalTagihan;
+                                }
+                            }
+                        }
+
+                        let hariIni = new Date(); hariIni.setHours(0,0,0,0);
+                        arrNota.forEach(nota => {
+                            let sisaNyata = nota.sisaNyata;
+                            if (Math.abs(sisaNyata) > 0.01) {
+                                let parts = nota.tgl.split('-');
+                                let tglFormated = parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : nota.tgl;
+                                let dTrx = parts.length === 3 ? new Date(parts[0], parts[1] - 1, parts[2]) : new Date();
+                                dTrx.setHours(0, 0, 0, 0); 
+
+                                let ageDays = Math.floor((hariIni.getTime() - dTrx.getTime()) / (1000 * 60 * 60 * 24));
+                                
+                                // LOGIKA UMUR PIUTANG
+                                if (ageDays <= 15) serverData[namaRelasi].aging.sehat += sisaNyata;
+                                else if (ageDays >= 16 && ageDays <= 30) serverData[namaRelasi].aging.t15 += sisaNyata;
+                                else if (ageDays >= 31 && ageDays <= 60) serverData[namaRelasi].aging.t30 += sisaNyata;
+                                else if (ageDays > 60) serverData[namaRelasi].aging.t60 += sisaNyata;
+
+                                if (ageDays > 15) serverData[namaRelasi].aging.total_telat += sisaNyata;
+
+                                let jtDate = new Date(dTrx); jtDate.setDate(jtDate.getDate() + 15);
+                                let selisihHari = Math.ceil((jtDate.getTime() - hariIni.getTime()) / (1000 * 60 * 60 * 24));
+                                let telatNih = selisihHari < 0;
+                                let statusJtTxt = selisihHari < 0 ? `Terlambat ${Math.abs(selisihHari)} hari` : (selisihHari === 0 ? `Jatuh Tempo Hari Ini` : `H-${selisihHari}`);
+
+                                serverData[namaRelasi].dates[tglFormated] = { isLokal: false, tgl: tglFormated, tagihan: nota.totalTagihan, dp: nota.terbayar_display, sisaNyata: sisaNyata, jt: statusJtTxt, isTelat: telatNih, items: nota.items };
+                            }
+                        });
+
+                        let sisaDeposit = 0;
+                        while(indexBayar < listBayar.length) { sisaDeposit += listBayar[indexBayar].sisaBayar; indexBayar++; }
+                        if (sisaDeposit > 0) {
+                            let tglDepo = ("0" + hariIni.getDate()).slice(-2) + "/" + ("0" + (hariIni.getMonth() + 1)).slice(-2) + "/" + hariIni.getFullYear();
+                            serverData[namaRelasi].dates["DEPO-"+tglDepo] = { isLokal: false, tgl: tglDepo, tagihan: 0, dp: sisaDeposit, sisaNyata: -sisaDeposit, jt: "", isTelat: false, items: [{ pakan: "Deposit / Uang Lebih", qty: 0, nominal: -sisaDeposit, satuan: "-" }] };
+                        }
+                        serverData[namaRelasi].riwayat = [...listBayar].reverse().slice(0, 5);
+                    }
+                    
+                    serverData[namaRelasi].total_telat = serverData[namaRelasi].aging.total_telat;
+                    serverData[namaRelasi].total_sehat = serverData[namaRelasi].aging.sehat;
+                });
+
+                dataPiutangLokal = serverData;
+                localStorage.setItem('piutang_ptcbl_cache', JSON.stringify(serverData));
+                renderAgingDashboard();
+                renderListPiutang();
+            }).catch(e => {
+                document.getElementById('piutang-loader').classList.add('hidden');
+                if (btn) btn.innerHTML = `<span class="material-symbols-outlined">sync</span>`;
+                alert("Gagal memuat rekap piutang: " + e.message);
+            });
+        }
+
+        function renderAgingDashboard() {
+            let nf = new Intl.NumberFormat('id-ID');
+            let tbody = document.getElementById('tbody-aging-piutang');
+            let tfoot = document.getElementById('tfoot-aging-piutang');
+            
+            let html = "";
+            let tSisa = 0, tSehat = 0, t15 = 0, t30 = 0, t60 = 0;
+
+            let keys = Object.keys(dataPiutangLokal).filter(k => dataPiutangLokal[k].total_sisa > 0);
+            keys.sort((a,b) => dataPiutangLokal[b].total_sisa - dataPiutangLokal[a].total_sisa);
+
+            keys.forEach(k => {
+                let d = dataPiutangLokal[k];
+                tSisa += d.total_sisa; tSehat += d.aging.sehat; t15 += d.aging.t15; t30 += d.aging.t30; t60 += d.aging.t60;
+
+                let btnRemind = d.total_telat > 0 ? `<button onclick="reminderCepatWA('${k.replace(/'/g, "\\'")}')" style="background:#2196F3; color:white; border:none; padding:4px 8px; border-radius:4px; font-size:10px; font-weight:bold; cursor:pointer; display:flex; align-items:center; gap:2px; margin:auto;"><span class="material-symbols-outlined" style="font-size:12px;">send_to_mobile</span> WA</button>` : `<span style="color:#8AA624; font-size:10px; font-weight:bold;">Aman</span>`;
+
+                html += `<tr style="border-bottom:1px solid #eee; background:#fff;">
+                    <td style="padding:8px 10px; font-weight:bold; color:#333;">${k}</td>
+                    <td style="padding:8px 10px; text-align:right; font-weight:bold;">Rp ${nf.format(d.total_sisa)}</td>
+                    <td style="padding:8px 10px; text-align:right; color:#2e7d32;">Rp ${nf.format(d.aging.sehat)}</td>
+                    <td style="padding:8px 10px; text-align:right; color:#f57c00;">Rp ${nf.format(d.aging.t15)}</td>
+                    <td style="padding:8px 10px; text-align:right; color:#e65100;">Rp ${nf.format(d.aging.t30)}</td>
+                    <td style="padding:8px 10px; text-align:right; color:#c62828;">Rp ${nf.format(d.aging.t60)}</td>
+                    <td style="padding:8px 10px; text-align:center;">${btnRemind}</td>
+                </tr>`;
+            });
+
+            if (html === "") html = `<tr><td colspan="7" style="text-align:center; padding:15px; color:#888;">Tidak ada piutang aktif.</td></tr>`;
+            tbody.innerHTML = html;
+
+            tfoot.innerHTML = `<tr>
+                <td style="padding:10px; text-align:left;">TOTAL KESELURUHAN</td>
+                <td style="padding:10px; text-align:right; color:#000;">Rp ${nf.format(tSisa)}</td>
+                <td style="padding:10px; text-align:right; color:#2e7d32;">Rp ${nf.format(tSehat)}</td>
+                <td style="padding:10px; text-align:right; color:#f57c00;">Rp ${nf.format(t15)}</td>
+                <td style="padding:10px; text-align:right; color:#e65100;">Rp ${nf.format(t30)}</td>
+                <td style="padding:10px; text-align:right; color:#c62828;">Rp ${nf.format(t60)}</td>
+                <td></td>
+            </tr>`;
+
+            if (chartAgingPiutang) chartAgingPiutang.destroy();
+            let ctx = document.getElementById('chartAgingPiutang').getContext('2d');
+            
+            let totalTelatChart = t15 + t30 + t60;
+            let grandTotal = tSehat + totalTelatChart;
+            if (grandTotal === 0) grandTotal = 1;
+
+            let pSehat = (tSehat / grandTotal * 100).toFixed(1);
+            let p15 = (t15 / grandTotal * 100).toFixed(1);
+            let p30 = (t30 / grandTotal * 100).toFixed(1);
+            let p60 = (t60 / grandTotal * 100).toFixed(1);
+
+            chartAgingPiutang = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Rasio Kesehatan Piutang'],
+                    datasets: [
+                        { label: 'Sehat (<=15 Hr)', data: [pSehat], backgroundColor: '#2e7d32', stack: 'Stack 0' },
+                        { label: 'Telat >15 Hr', data: [p15], backgroundColor: '#f57c00', stack: 'Stack 0' },
+                        { label: 'Telat >30 Hr', data: [p30], backgroundColor: '#e65100', stack: 'Stack 0' },
+                        { label: 'Telat >60 Hr', data: [p60], backgroundColor: '#c62828', stack: 'Stack 0' }
+                    ]
+                },
+                options: {
+                    indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+                    scales: { x: { stacked: true, max: 100, display: false }, y: { stacked: true, display: false } },
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } },
+                        datalabels: { color: '#fff', font: { weight: 'bold', size: 10 }, formatter: (val) => val > 0 ? val + '%' : '' },
+                        tooltip: { callbacks: { label: function(context) { return context.dataset.label + ': ' + context.raw + '%'; } } }
+                    }
+                }
+            });
+        }
+
+        function filterPiutang() {
+            let val = document.getElementById('search-piutang').value.toLowerCase();
+            let cards = document.querySelectorAll('.card-piutang-item');
+            cards.forEach(c => {
+                let nama = c.getAttribute('data-nama');
+                if (nama.includes(val)) c.style.display = 'block';
+                else c.style.display = 'none';
+            });
+        }
+
         function renderListPiutang() {
             let nf = new Intl.NumberFormat('id-ID'); let html = "";
             let keys = Object.keys(dataPiutangLokal);
@@ -5800,7 +6061,6 @@ async function prosesAntreanBackground() {
                           <div style="flex:1;"><strong style="font-size:14px; display:block;">${namaKey}</strong>${teksStatus}</div>
                           <div style="font-size:16px; font-weight:bold; text-align:right; color: ${isDeposit ? '#8AA624' : '#333'}">${displayTotal}</div>
                       </div>
-                      
                       <div id="det_piutang_${safeClass}" class="hidden" style="margin-top:15px; border-top:1px dashed #DBE4C9; padding-top:10px;">
                           <div id="content_det_${safeClass}"></div>
                       </div>
@@ -5934,14 +6194,46 @@ async function prosesAntreanBackground() {
             content.innerHTML = actionButtons;
         }
 
-        function filterPiutang() {
-            let val = document.getElementById('search-piutang').value.toLowerCase();
-            let cards = document.querySelectorAll('.card-piutang-item');
-            cards.forEach(c => {
-                let nama = c.getAttribute('data-nama');
-                if (nama.includes(val)) c.style.display = 'block';
-                else c.style.display = 'none';
+        function reminderCepatWA(namaKey) {
+            let d = dataPiutangLokal[namaKey];
+            if (!d || d.total_telat <= 0) return;
+
+            let namaPeternak = namaKey.split('-')[0].trim();
+            let relData = globalRelasi.find(r => r.nama.toLowerCase() === namaPeternak.toLowerCase());
+            let hpRaw = relData ? (relData.wa || relData.hp) : "";
+            let hpFormated = formatWA(hpRaw);
+            
+            let nf = new Intl.NumberFormat('id-ID');
+            let nominalTelat = d.total_telat;
+            let totalPiutang = d.total_sisa;
+            
+            let rincianTelat = "";
+            let arrDates = Object.values(d.dates).sort((a,b) => {
+                let pA = a.tgl.split('/'); let dA = new Date(pA[2], pA[1]-1, pA[0]).getTime();
+                let pB = b.tgl.split('/'); let dB = new Date(pB[2], pB[1]-1, pB[0]).getTime();
+                return dA - dB;
             });
+
+            arrDates.forEach(dateObj => {
+                if (dateObj.isTelat && dateObj.sisaNyata > 0) {
+                    rincianTelat += `- Tgl ${dateObj.tgl}: *Rp ${nf.format(dateObj.sisaNyata)}*\n`;
+                }
+            });
+            
+            let teksWA = `Assalamualaikum Bpk/Ibu ${namaPeternak},\n\nMengingatkan untuk tagihan pakan yang sudah jatuh tempo dengan rincian sebagai berikut:\n\n${rincianTelat}\n*Total Tagihan Jatuh Tempo: Rp ${nf.format(nominalTelat)}*\nTotal Semua Piutang: Rp ${nf.format(totalPiutang)}\n\nMohon dicek dan dikonfirmasi kembali. Terima kasih.`;
+
+            if (hpFormated) {
+                let waUrl = `https://wa.me/${hpFormated}?text=${encodeURIComponent(teksWA)}`;
+                window.open(waUrl, '_blank') || (window.location.href = waUrl);
+            } else {
+                let tempInput = document.createElement("textarea");
+                tempInput.value = teksWA;
+                document.body.appendChild(tempInput);
+                tempInput.select();
+                document.execCommand("copy");
+                document.body.removeChild(tempInput);
+                alert("⚠️ Nomor WA belum ada di database Konsumen.\n\n✅ Teks pengingat otomatis di-copy! Silakan paste manual di chat WhatsApp peternak.");
+            }
         }
 
 
