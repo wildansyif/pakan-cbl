@@ -6030,9 +6030,14 @@ async function prosesAntreanBackground() {
         function bukaDetailPiutang(namaRelasi, safeClass) {
             let container = document.getElementById(`det_piutang_${safeClass}`);
             let content = document.getElementById(`content_det_${safeClass}`);
+            let loader = document.getElementById(`loader_det_${safeClass}`);
             
             if (!container.classList.contains('hidden')) { container.classList.add('hidden'); return; }
             container.classList.remove('hidden');
+            
+            // 🔥 PENAWAR LOADER NYANGKUT 🔥
+            if (loader) loader.classList.add('hidden');
+            if (content) content.classList.remove('hidden');
 
             let nf = new Intl.NumberFormat('id-ID');
             let d = dataPiutangLokal[namaRelasi];
