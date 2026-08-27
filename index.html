@@ -2987,46 +2987,60 @@
             </h2>
             <div class="sub-header">Manajemen & Cetak Invoice Tagihan</div>
 
-            <!-- 🔥 REKAP PIUTANG GLOBAL & REMINDER (BARU) 🔥 -->
-            <div class="rekap-card" style="background:#fff; border-left:4px solid #c62828; margin-bottom: 15px; padding: 12px;">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                    <div style="font-weight:bold; color:#333; font-size:12px; display:flex; align-items:center; gap:5px;"><span class="material-symbols-outlined" style="font-size:16px; color:#1a5c40;">monitoring</span> Status Piutang Global</div>
-                    <div id="piutang_global_sehat" style="color:#8AA624; font-size:11px; font-weight:bold;">Sehat: Rp 0</div>
+            <!-- TABS MENU PIUTANG -->
+            <div class="analytics-tabs" style="margin-bottom: 15px;">
+                <button class="tab-btn active" id="tab-piutang-dashboard" onclick="switchTabPiutang('dashboard')">DASHBOARD AGING</button>
+                <button class="tab-btn" id="tab-piutang-invoice" onclick="switchTabPiutang('invoice')">MANAJEMEN INVOICE</button>
+            </div>
+
+            <!-- TAB 1: DASHBOARD AGING & REMINDER -->
+            <div id="view-piutang-dashboard">
+                <div class="rekap-card">
+                    <div class="rekap-title"><span class="material-symbols-outlined" style="font-size:18px;">stacked_bar_chart</span> Rasio Kesehatan Piutang</div>
+                    <div style="height: 120px; position: relative;"><canvas id="chartAgingPiutang"></canvas></div>
                 </div>
-                <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px dashed #eee; padding-top:8px;">
-                    <div>
-                        <div style="color:#c62828; font-size:10px; font-weight:bold;">TOTAL JATUH TEMPO</div>
-                        <div id="piutang_global_telat" style="font-size:16px; font-weight:bold; color:#c62828;">Rp 0</div>
+                
+                <div class="rekap-card" style="padding:0; overflow:hidden;">
+                    <div style="background:#1a5c40; padding:12px; color:white; text-align:center;"><h3 style="margin:0; font-size:14px;">Aging Schedule Piutang Aktif</h3></div>
+                    <div style="overflow-x:auto;">
+                        <table style="width:100%; border-collapse:collapse; font-size:11px; white-space:nowrap;">
+                            <thead style="background:#e8f0d8;">
+                                <tr>
+                                    <th style="padding:10px; border:1px solid #DBE4C9; text-align:left;">Nama Konsumen</th>
+                                    <th style="padding:10px; border:1px solid #DBE4C9; text-align:right;">Total Piutang</th>
+                                    <th style="padding:10px; border:1px solid #DBE4C9; text-align:right; color:#2e7d32;">Piutang Sehat</th>
+                                    <th style="padding:10px; border:1px solid #DBE4C9; text-align:right; color:#f57c00;">Terlambat >15 Hari</th>
+                                    <th style="padding:10px; border:1px solid #DBE4C9; text-align:right; color:#e65100;">Terlambat >30 Hari</th>
+                                    <th style="padding:10px; border:1px solid #DBE4C9; text-align:right; color:#c62828;">Terlambat >60 Hari</th>
+                                    <th style="padding:10px; border:1px solid #DBE4C9; text-align:center;">Reminder</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbody-aging-piutang"></tbody>
+                            <tfoot id="tfoot-aging-piutang" style="background:#ffeb3b; font-weight:bold;"></tfoot>
+                        </table>
                     </div>
-                    <button onclick="document.getElementById('list_jatuh_tempo_global').classList.toggle('hidden')" style="background:#ffebee; color:#c62828; border:1px solid #ffcdd2; padding:6px 10px; border-radius:6px; font-size:10px; font-weight:bold; cursor:pointer; display:flex; align-items:center; gap:4px; outline:none;">
-                        <span class="material-symbols-outlined" style="font-size:14px;">warning</span> Daftar Telat ▾
+                </div>
+            </div>
+
+            <!-- TAB 2: MANAJEMEN KARTU INVOICE -->
+            <div id="view-piutang-invoice" class="hidden">
+                <div style="display:flex; gap:10px; margin-bottom:15px;">
+                    <div style="position:relative; flex:1;">
+                        <span class="material-symbols-outlined" style="position:absolute; left:10px; top:10px; color:#8AA624; font-size:18px;">search</span>
+                        <input type="text" id="search-piutang" placeholder="Cari nama konsumen..." oninput="filterPiutang()" style="width:100%; margin-bottom:0; padding-left:35px; box-sizing:border-box;">
+                    </div>
+                    <button id="btn-sync-piutang" class="btn-submit" onclick="tarikDataPiutang(true)" style="background:#FEA405; margin:0; width:auto; padding:10px 15px;">
+                        <span class="material-symbols-outlined" style="font-size:18px;">sync</span>
                     </button>
                 </div>
-                <div id="list_jatuh_tempo_global" class="hidden" style="margin-top:12px; border-top:1px solid #ffcdd2; padding-top:5px; max-height:250px; overflow-y:auto; padding-right:5px;">
+
+                <div id="piutang-loader" class="loader hidden" style="text-align:center; padding:15px; color:#FEA405; font-size:12px;">
+                    Mengumpulkan & Menghitung Data Piutang Global...
                 </div>
-            </div>
 
-            <div style="display:flex; gap:10px; margin-bottom:15px;">
-                <div style="position:relative; flex:1;">
-                    <span class="material-symbols-outlined"
-                        style="position:absolute; left:10px; top:10px; color:#8AA624; font-size:18px;">search</span>
-                    <input type="text" id="search-piutang" placeholder="Cari nama konsumen..." oninput="filterPiutang()"
-                        style="width:100%; margin-bottom:0; padding-left:35px; box-sizing:border-box;">
+                <div id="piutang-list" style="margin-bottom: 20px;">
+                    <div style="text-align:center; color:#888; font-size:12px; padding:20px;">Klik sinkron untuk memuat piutang aktif.</div>
                 </div>
-                <button id="btn-sync-piutang" class="btn-submit" onclick="tarikDataPiutang(true)"
-                    style="background:#FEA405; margin:0; width:auto; padding:10px 15px;">
-                    <span class="material-symbols-outlined" style="font-size:18px;">sync</span>
-                </button>
-            </div>
-
-            <div id="piutang-loader" class="loader hidden"
-                style="text-align:center; padding:15px; color:#FEA405; font-size:12px;">
-                Menyelaraskan data Piutang & Backup Local...
-            </div>
-
-            <div id="piutang-list" style="margin-bottom: 20px;">
-                <div style="text-align:center; color:#888; font-size:12px; padding:20px;">Klik sinkron untuk memuat
-                    piutang aktif.</div>
             </div>
 
             <div id="modal-invoice" class="hidden">
