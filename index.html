@@ -5791,7 +5791,8 @@ async function prosesAntreanBackground() {
                 let arrNota = Object.values(groupedNota).sort((a,b) => new Date(a.tgl) - new Date(b.tgl));
                 let indexBayar = 0;
                 for (let i = 0; i < arrNota.length; i++) {
-                    let nota = arrNota[i]; let sisaHutangNota = nota.totalTagihan - nota.terbayar;
+                    let nota = arrNota[i];
+                    let sisaHutangNota = nota.totalTagihan - nota.terbayar;
                     while (sisaHutangNota > 0 && indexBayar < listBayar.length) {
                         let uangMasuk = listBayar[indexBayar];
                         if (uangMasuk.sisaBayar <= 0) { indexBayar++; continue; }
@@ -5802,12 +5803,38 @@ async function prosesAntreanBackground() {
                     }
                 }
 
+                // 🔥 LOGIKA SAKTI REVERSE FIFO: Menghapus Hantu Return Lama 🔥
+                let sisaUnpaid = totalSisa;
+                for (let i = arrNota.length - 1; i >= 0; i--) {
+                    let nota = arrNota[i];
+                    if (sisaUnpaid <= 0.01) {
+                        nota.sisaNyata = 0;
+                        nota.terbayar_display = nota.totalTagihan;
+                    } else {
+                        if (nota.totalTagihan >= 0) {
+                            if (sisaUnpaid >= nota.totalTagihan) {
+                                nota.sisaNyata = nota.totalTagihan;
+                                nota.terbayar_display = 0;
+                                sisaUnpaid -= nota.totalTagihan;
+                            } else {
+                                nota.sisaNyata = sisaUnpaid;
+                                nota.terbayar_display = nota.totalTagihan - sisaUnpaid;
+                                sisaUnpaid = 0;
+                            }
+                        } else {
+                            nota.sisaNyata = nota.totalTagihan;
+                            nota.terbayar_display = 0;
+                            sisaUnpaid -= nota.totalTagihan;
+                        }
+                    }
+                }
+
                 let nf = new Intl.NumberFormat('id-ID'); let hariIni = new Date(); hariIni.setHours(0,0,0,0);
                 let htmlItems = ""; let totalSisaKalkulasi = 0;
 
                 arrNota.forEach(nota => {
-                    let sisaNyata = nota.totalTagihan - nota.terbayar;
-                    if (Math.round(sisaNyata) !== 0) {
+                    let sisaNyata = nota.sisaNyata; // PAKAI HASIL REVERSE FIFO
+                    if (Math.abs(sisaNyata) > 0.01) {
                         let parts = nota.tgl.split('-');
                         let tglFormated = parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : nota.tgl;
                         let dTrx = parts.length === 3 ? new Date(parts[0], parts[1] - 1, parts[2]) : new Date();
@@ -5828,7 +5855,7 @@ async function prosesAntreanBackground() {
                             statusJtTxt = `H-${selisihHari}`;
                         }
 
-                        dataPiutangLokal[namaRelasi].dates[tglFormated] = { isLokal: false, tgl: tglFormated, tagihan: nota.totalTagihan, dp: nota.terbayar, sisaNyata: sisaNyata, jt: statusJtTxt, isTelat: telatNih, items: nota.items };
+                        dataPiutangLokal[namaRelasi].dates[tglFormated] = { isLokal: false, tgl: tglFormated, tagihan: nota.totalTagihan, dp: nota.terbayar_display, sisaNyata: sisaNyata, jt: statusJtTxt, isTelat: telatNih, items: nota.items };
                         totalSisaKalkulasi += sisaNyata;
 
                         let rincianHtml = nota.items.map(it => {
@@ -5843,11 +5870,11 @@ async function prosesAntreanBackground() {
                         let warnaJT = telatNih ? "#c62828" : "#888";
                         let valStr = encodeURIComponent(JSON.stringify(dataPiutangLokal[namaRelasi].dates[tglFormated]));
                         let infoKanan = `<div style="text-align:right;">
-                                            <div style="font-weight:bold; color:#888; font-size:11px; text-decoration:line-through;">Rp ${nf.format(nota.totalTagihan)}</div>
-                                            <div style="font-size:9px; color:#FEA405; font-weight:bold;">Ter-DP: Rp ${nf.format(nota.terbayar)}</div>
+                                            <div style="font-weight:bold; color:#888; font-size:11px; text-decoration:line-through;">Rp ${nf.format(Math.abs(nota.totalTagihan))}</div>
+                                            <div style="font-size:9px; color:#FEA405; font-weight:bold;">Ter-DP: Rp ${nf.format(nota.terbayar_display)}</div>
                                             <div style="font-weight:bold; color:#333; font-size:13px; margin-top:2px;">Rp ${nf.format(sisaNyata)}</div>
                                          </div>`;
-                        if (nota.terbayar === 0) infoKanan = `<div style="font-weight:bold; color:#333; text-align:right; font-size:13px;">Rp ${nf.format(sisaNyata)}</div>`;
+                        if (nota.terbayar_display === 0) infoKanan = `<div style="font-weight:bold; color:#333; text-align:right; font-size:13px;">Rp ${nf.format(sisaNyata)}</div>`;
 
                         htmlItems += `<div style="padding:10px 0; border-bottom:1px solid #eee;">
                           <div style="display:flex; justify-content:space-between; align-items:flex-start;">
