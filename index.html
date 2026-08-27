@@ -5731,18 +5731,45 @@ async function prosesAntreanBackground() {
                     let r = row.relasi;
                     if (!mutasiGrouped[r]) mutasiGrouped[r] = { tagihan: [], bayar: [] };
                     
-                    let isBayar = row.jenis_mutasi === "Pembayaran";
-                    let qtyFisik = parseFloat(row.qty) || 0;
-                    let isReturBarang = (row.jenis_mutasi === "Retur Barang") || (row.status && String(row.status).toLowerCase().includes('retur')) || (isBayar && qtyFisik > 0);
+                    let namaPkn = row.pakan_kategori || 'Pakan';
+                    let statusMutasi = String(row.status || "").toLowerCase();
+                    let jenisMutasi = String(row.jenis_mutasi || "").toLowerCase();
+                    let ketMutasi = String(row.keterangan || "").toLowerCase();
+                    
+                    let isTarikDeposit = namaPkn.toLowerCase().includes('tarik deposit') || jenisMutasi.includes('tarik deposit') || statusMutasi.includes('tarik deposit') || ketMutasi.includes('tarik deposit');
 
-                    if (isBayar && !isReturBarang) {
-                        let nomCF = parseFloat(row.pembayaran) || 0;
-                        mutasiGrouped[r].bayar.push({ tgl: row.tanggal, sisaBayar: nomCF, detailPotongan: [], bukti_url: row.bukti_url });
-                    } else {
+                    let isBayar = jenisMutasi === "pembayaran";
+                    let qtyFisik = parseFloat(row.qty) || 0;
+                    let isReturBarang = (jenisMutasi === "retur barang") || statusMutasi.includes('retur') || (isBayar && qtyFisik > 0);
+
+                    // 1. TANGKAP TARIK DEPOSIT SEBAGAI PENYESUAIAN KAS (TIDAK MASUK INVOICE)
+                    if (isTarikDeposit) {
+                        let nomTarik = parseFloat(row.tagihan) || parseFloat(row.pembayaran) || parseFloat(row.nominal) || 0;
+                        mutasiGrouped[r].bayar.push({ 
+                            tgl: row.tanggal, 
+                            sisaBayar: 0, // Set 0 agar tidak dipakai memotong tagihan lainnya
+                            nominal: -Math.abs(nomTarik), // Angka negatif karena uang ditarik
+                            detailPotongan: [], 
+                            bukti_url: row.bukti_url,
+                            isTarikDeposit: true
+                        });
+                    } 
+                    // 2. TANGKAP PEMBAYARAN NORMAL
+                    else if (isBayar && !isReturBarang) {
+                        let nomCF = parseFloat(row.pembayaran) || parseFloat(row.nominal) || 0;
+                        mutasiGrouped[r].bayar.push({ 
+                            tgl: row.tanggal, 
+                            sisaBayar: nomCF, 
+                            nominal: nomCF, // FIX Rp NaN: Pastikan nominal asli terbawa
+                            detailPotongan: [], 
+                            bukti_url: row.bukti_url 
+                        });
+                    } 
+                    // 3. TANGKAP TRANSAKSI PAKAN MURNI
+                    else {
                         let nominalTagihan = parseFloat(row.tagihan) || parseFloat(row.pembayaran) || parseFloat(row.nominal) || 0;
                         let qtyTagihan = qtyFisik;
                         if (isReturBarang) { nominalTagihan = -Math.abs(nominalTagihan); qtyTagihan = -Math.abs(qtyTagihan); }
-                        let namaPkn = row.pakan_kategori || 'Pakan';
                         let namaPakanInvoice = isReturBarang && !String(namaPkn).toUpperCase().includes('RETUR') ? `[RETUR] ${namaPkn}` : namaPkn;
                         mutasiGrouped[r].tagihan.push({ tgl: row.tanggal, pakan: namaPakanInvoice, qty: qtyTagihan, satuan: row.satuan || 'Kg', nominal: nominalTagihan, terbayar: 0 });
                     }
@@ -5787,7 +5814,7 @@ async function prosesAntreanBackground() {
                             }
                         }
 
-                        // 🔥 REVERSE FIFO UNTUK AGING & INVOICE 🔥
+                        // REVERSE FIFO UNTUK AGING & INVOICE
                         let sisaUnpaid = sisaPiutangDB;
                         for (let i = arrNota.length - 1; i >= 0; i--) {
                             let nota = arrNota[i];
@@ -5817,7 +5844,6 @@ async function prosesAntreanBackground() {
 
                                 let ageDays = Math.floor((hariIni.getTime() - dTrx.getTime()) / (1000 * 60 * 60 * 24));
                                 
-                                // LOGIKA UMUR PIUTANG
                                 if (ageDays <= 15) serverData[namaRelasi].aging.sehat += sisaNyata;
                                 else if (ageDays >= 16 && ageDays <= 30) serverData[namaRelasi].aging.t15 += sisaNyata;
                                 else if (ageDays >= 31 && ageDays <= 60) serverData[namaRelasi].aging.t30 += sisaNyata;
@@ -6035,7 +6061,6 @@ async function prosesAntreanBackground() {
             if (!container.classList.contains('hidden')) { container.classList.add('hidden'); return; }
             container.classList.remove('hidden');
             
-            // 🔥 PENAWAR LOADER NYANGKUT 🔥
             if (loader) loader.classList.add('hidden');
             if (content) content.classList.remove('hidden');
 
@@ -6090,27 +6115,45 @@ async function prosesAntreanBackground() {
             let riwayatHtml = "";
             if (d.riwayat.length > 0) {
                 riwayatHtml = `<div style="margin-top:15px; border-top:1px dashed #DBE4C9; padding-top:10px; margin-bottom: 10px;">
-                  <strong style="font-size:12px; color:#8AA624; display:flex; align-items:center; gap:5px; margin-bottom:8px;"><span class="material-symbols-outlined" style="font-size:16px;">history</span> Riwayat Uang Masuk</strong>
+                  <strong style="font-size:12px; color:#8AA624; display:flex; align-items:center; gap:5px; margin-bottom:8px;"><span class="material-symbols-outlined" style="font-size:16px;">history</span> Riwayat Saldo & Uang Masuk</strong>
                   <div style="max-height:200px; overflow-y:auto;">`;
                 d.riwayat.forEach((byr, idxRw) => {
                     let bParts = byr.tgl.split('-'); let bTglStr = bParts.length === 3 ? `${bParts[2]}/${bParts[1]}/${bParts[0].substring(2)}` : byr.tgl;
+                    
+                    // FIX NOMINAL NAN & LOGIKA TARIK DEPOSIT
+                    let totalNominalAsli = byr.nominal !== undefined ? byr.nominal : 0;
+                    if (byr.nominal === undefined) {
+                        totalNominalAsli = byr.sisaBayar;
+                        byr.detailPotongan.forEach(pot => { totalNominalAsli += pot.jumlah; });
+                    }
+
                     let ketText = ``;
-                    if (byr.detailPotongan.length > 0) {
+                    if (byr.detailPotongan && byr.detailPotongan.length > 0) {
                         ketText += `Potong:<br>`;
                         byr.detailPotongan.forEach(pot => {
                             let nParts = pot.tglNota.split('-'); let nTglStr = nParts.length === 3 ? `${nParts[2]}/${nParts[1]}/${nParts[0].substring(2)}` : pot.tglNota;
                             ketText += `• ${nTglStr}: (Rp ${nf.format(pot.hutangSblm)}) - Rp ${nf.format(pot.jumlah)} = Sisa Rp ${nf.format(pot.sisaAkhir)}<br>`;
                         });
                     }
-                    if (byr.sisaBayar > 0) ketText += `Sisa DP: Rp ${nf.format(byr.sisaBayar)}<br>`;
-                    if (ketText === '') ketText = `<i>Belum digunakan.</i>`;
+                    if (byr.sisaBayar > 0 && !byr.isTarikDeposit) ketText += `Sisa DP: Rp ${nf.format(byr.sisaBayar)}<br>`;
+                    
+                    if (byr.isTarikDeposit) {
+                        ketText = `<i style="color:#c62828;">Penarikan Deposit / Pembulatan Tagihan</i>`;
+                    } else if (ketText === '') {
+                        ketText = `<i>Belum digunakan.</i>`;
+                    }
 
                     let linkBukti = (byr.bukti_url && byr.bukti_url.length > 5 && byr.bukti_url !== "-") ? `<a href="${byr.bukti_url}" target="_blank" onclick="event.stopPropagation();" style="margin-left:8px; background:#e3f2fd; padding:2px 6px; border-radius:8px; color:#1565c0; text-decoration:none; display:inline-flex; align-items:center; gap:3px; font-size:9px; font-weight:600; line-height:1;"><span class="material-symbols-outlined" style="font-size:11px;">receipt_long</span> Bukti TF</a>` : "";
 
-                    riwayatHtml += `<div style="background:#f8fdf4; border:1px solid #DBE4C9; border-radius:6px; padding:8px; margin-bottom:6px; cursor:pointer;" onclick="document.getElementById('det_rw_${safeClass}_${idxRw}').classList.toggle('hidden')">
+                    let warnaNominal = totalNominalAsli < 0 ? '#c62828' : '#8AA624';
+                    let tandaNominal = totalNominalAsli < 0 ? '-' : '+';
+                    let bgWarna = totalNominalAsli < 0 ? '#fff3e0' : '#f8fdf4';
+                    let borderWarna = totalNominalAsli < 0 ? '#ffe0b2' : '#DBE4C9';
+
+                    riwayatHtml += `<div style="background:${bgWarna}; border:1px solid ${borderWarna}; border-radius:6px; padding:8px; margin-bottom:6px; cursor:pointer;" onclick="document.getElementById('det_rw_${safeClass}_${idxRw}').classList.toggle('hidden')">
                       <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:4px;">
-                          <div><span style="font-weight:bold; font-size:11px;">Tgl Bayar: ${bTglStr}</span> ${linkBukti}</div>
-                          <span style="color:#8AA624; font-weight:bold; font-size:11px;">+ Rp ${nf.format(byr.nominal)}</span>
+                          <div><span style="font-weight:bold; font-size:11px;">Tgl: ${bTglStr}</span> ${linkBukti}</div>
+                          <span style="color:${warnaNominal}; font-weight:bold; font-size:11px;">${tandaNominal} Rp ${nf.format(Math.abs(totalNominalAsli))}</span>
                       </div>
                       <div id="det_rw_${safeClass}_${idxRw}" class="hidden" style="margin-top:6px; font-size:10px; color:#555; line-height:1.4;">${ketText}</div>
                   </div>`;
