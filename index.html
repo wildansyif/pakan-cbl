@@ -5866,7 +5866,8 @@ async function prosesAntreanBackground() {
             let html = "";
             let tSisa = 0, tSehat = 0, t15 = 0, t30 = 0, t60 = 0;
 
-            let keys = Object.keys(dataPiutangLokal).filter(k => dataPiutangLokal[k].total_sisa > 0);
+            // KODE BARU: Munculkan SEMUA, dan Sort dari Terbesar ke Terkecil
+            let keys = Object.keys(dataPiutangLokal);
             keys.sort((a,b) => dataPiutangLokal[b].total_sisa - dataPiutangLokal[a].total_sisa);
 
             keys.forEach(k => {
@@ -5875,9 +5876,12 @@ async function prosesAntreanBackground() {
 
                 let btnRemind = d.total_telat > 0 ? `<button onclick="reminderCepatWA('${k.replace(/'/g, "\\'")}')" style="background:#2196F3; color:white; border:none; padding:4px 8px; border-radius:4px; font-size:10px; font-weight:bold; cursor:pointer; display:flex; align-items:center; gap:2px; margin:auto;"><span class="material-symbols-outlined" style="font-size:12px;">send_to_mobile</span> WA</button>` : `<span style="color:#8AA624; font-size:10px; font-weight:bold;">Aman</span>`;
 
+                let warnaSisa = d.total_sisa < 0 ? '#8AA624' : (d.total_sisa === 0 ? '#888' : '#000');
+                let displaySisa = d.total_sisa < 0 ? `- Rp ${nf.format(Math.abs(d.total_sisa))}` : `Rp ${nf.format(d.total_sisa)}`;
+
                 html += `<tr style="border-bottom:1px solid #eee; background:#fff;">
                     <td style="padding:8px 10px; font-weight:bold; color:#333;">${k}</td>
-                    <td style="padding:8px 10px; text-align:right; font-weight:bold;">Rp ${nf.format(d.total_sisa)}</td>
+                    <td style="padding:8px 10px; text-align:right; font-weight:bold; color:${warnaSisa};">${displaySisa}</td>
                     <td style="padding:8px 10px; text-align:right; color:#2e7d32;">Rp ${nf.format(d.aging.sehat)}</td>
                     <td style="padding:8px 10px; text-align:right; color:#f57c00;">Rp ${nf.format(d.aging.t15)}</td>
                     <td style="padding:8px 10px; text-align:right; color:#e65100;">Rp ${nf.format(d.aging.t30)}</td>
@@ -5948,18 +5952,46 @@ async function prosesAntreanBackground() {
             let nf = new Intl.NumberFormat('id-ID'); let html = "";
             let keys = Object.keys(dataPiutangLokal);
             
-            // Render Card Utama Saja
+            // KODE BARU: Sorting Terbesar ke Terkecil
+            keys.sort((a,b) => dataPiutangLokal[b].total_sisa - dataPiutangLokal[a].total_sisa);
+            
+            let globalSehat = 0;
+            let globalTelat = 0;
+            let listTelatHtml = "";
+            
             keys.forEach(namaKey => {
                 let d = dataPiutangLokal[namaKey];
                 let safeClass = namaKey.replace(/[\s\W]/g, '');
                 
                 let isDeposit = d.total_sisa < 0;
-                let warnaBorder = isDeposit ? "#8AA624" : (d.total_telat > 0 ? "#c62828" : "#8AA624");
+                let isLunas = d.total_sisa === 0;
+                let warnaBorder = isDeposit ? "#8AA624" : (isLunas ? "#888" : (d.total_telat > 0 ? "#c62828" : "#8AA624"));
                 let displayTotal = isDeposit ? `- Rp ${nf.format(Math.abs(d.total_sisa))}` : `Rp ${nf.format(d.total_sisa)}`;
                 
+                // KALKULASI REKAP GLOBAL & LIST JATUH TEMPO
+                if (d.total_sisa > 0) {
+                    globalSehat += d.total_sehat || 0;
+                    globalTelat += d.total_telat || 0;
+                    
+                    if (d.total_telat > 0) {
+                        listTelatHtml += `
+                        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding:8px 0;">
+                            <div>
+                                <div style="font-size:12px; font-weight:bold; color:#333;">${namaKey}</div>
+                                <div style="font-size:10px; color:#c62828; font-weight:bold;">Telat: Rp ${nf.format(d.total_telat)}</div>
+                            </div>
+                            <button onclick="reminderCepatWA('${namaKey.replace(/'/g, "\\'")}')" style="background:#2196F3; color:white; border:none; padding:5px 10px; border-radius:4px; font-size:10px; font-weight:bold; cursor:pointer; display:flex; align-items:center; gap:3px;">
+                                <span class="material-symbols-outlined" style="font-size:12px;">send_to_mobile</span> WA
+                            </button>
+                        </div>`;
+                    }
+                }
+
                 let teksStatus = "";
                 if (isDeposit) {
                     teksStatus = `<div style="margin-top:4px;"><small style="color:#8AA624; font-weight:bold;"><span class="material-symbols-outlined" style="font-size:12px; vertical-align:middle;">account_balance_wallet</span> Deposit / Lebih Bayar</small></div>`;
+                } else if (isLunas) {
+                    teksStatus = `<div style="margin-top:4px;"><small style="color:#888; font-weight:bold;"><span class="material-symbols-outlined" style="font-size:12px; vertical-align:middle;">check_circle</span> Lunas (Tidak Ada Tagihan)</small></div>`;
                 } else {
                     if (d.total_telat > 0 && d.total_sehat > 0) {
                         teksStatus = `<div style="line-height:1.4; margin-top:4px;"><small style="color:#c62828; font-weight:bold;"><span class="material-symbols-outlined" style="font-size:12px; vertical-align:middle;">warning</span> Telat: Rp ${nf.format(d.total_telat)}</small><br><small style="color:#8AA624; font-weight:bold;"><span class="material-symbols-outlined" style="font-size:12px; vertical-align:middle;">task_alt</span> Sehat: Rp ${nf.format(d.total_sehat)}</small></div>`;
@@ -5970,19 +6002,29 @@ async function prosesAntreanBackground() {
                     }
                 }
 
-                html += `<div class="rekap-card card-piutang-item" data-nama="${namaKey.toLowerCase()}" style="border-left: 4px solid ${warnaBorder}; margin-bottom: 12px; background: ${isDeposit ? '#f8fdf4' : '#fff'};">
-                      <div style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="bukaDetailPiutang('${namaKey.replace(/'/g, "\\'")}', '${safeClass}')">
+                html += `<div class="rekap-card card-piutang-item" data-nama="${namaKey.toLowerCase()}" style="border-left: 4px solid ${warnaBorder}; margin-bottom: 12px; background: ${isDeposit ? '#f8fdf4' : (isLunas ? '#f5f5f5' : '#fff')}; opacity: ${isLunas ? '0.7' : '1'};">
+                      <div style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="bukaDetailPiutang('${namaKey.replace(/'/g, "\\'")}', '${safeClass}', ${d.total_sisa})">
                           <div style="flex:1;"><strong style="font-size:14px; display:block;">${namaKey}</strong>${teksStatus}</div>
-                          <div style="font-size:16px; font-weight:bold; text-align:right; color: ${isDeposit ? '#8AA624' : '#333'}">${displayTotal}</div>
+                          <div style="font-size:16px; font-weight:bold; text-align:right; color: ${isDeposit ? '#8AA624' : (isLunas ? '#888' : '#333')}">${displayTotal}</div>
                       </div>
                       
                       <div id="det_piutang_${safeClass}" class="hidden" style="margin-top:15px; border-top:1px dashed #DBE4C9; padding-top:10px;">
-                          <div id="content_det_${safeClass}"></div>
+                          <div id="loader_det_${safeClass}" style="text-align:center; font-size:11px; color:#FEA405;"><span class="material-symbols-outlined icon-spin" style="font-size:14px; vertical-align:middle;">sync</span> Menarik rincian nota & bayar...</div>
+                          <div id="content_det_${safeClass}" class="hidden"></div>
                       </div>
                   </div>`;
             });
             
             document.getElementById('piutang-list').innerHTML = html || "<div style='text-align:center; padding:20px;'>Tidak ada piutang/deposit aktif.</div>";
+            
+            // INJEKSI HASIL HITUNGAN KE KOTAK DASHBOARD
+            let elSehat = document.getElementById('piutang_global_sehat');
+            let elTelat = document.getElementById('piutang_global_telat');
+            let elListTelat = document.getElementById('list_jatuh_tempo_global');
+            
+            if (elSehat) elSehat.innerText = "Sehat: Rp " + nf.format(globalSehat);
+            if (elTelat) elTelat.innerText = "Rp " + nf.format(globalTelat);
+            if (elListTelat) elListTelat.innerHTML = listTelatHtml || "<div style='text-align:center; font-size:11px; color:#888; padding:10px;'>Alhamdulillah, semua piutang sehat/lancar! 🎉</div>";
         }
 
         function bukaDetailPiutang(namaRelasi, safeClass) {
