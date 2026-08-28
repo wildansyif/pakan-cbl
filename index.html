@@ -6970,14 +6970,31 @@ async function prosesAntreanBackground() {
 
         function formatOngkir(input) {
             let val = input.value;
-            // Jika isinya hanya angka dan titik, format sebagai rupiah
-            if (/^[0-9.,]+$/.test(val)) {
+            let statusPilihan = document.getElementById('status').value;
+
+            // JIKA BARANG KELUAR: Wajib Angka (Tolak Huruf)
+            if (statusPilihan === 'Keluar') {
+                if (/[^0-9.,]/.test(val)) {
+                    alert("⚠️ Peringatan: Untuk Barang Keluar, kolom Ongkir hanya boleh diisi dengan format Angka!");
+                }
+                
                 let numStr = val.replace(/[^0-9]/g, '');
                 if (numStr !== "") {
                     input.value = new Intl.NumberFormat('id-ID').format(numStr);
+                } else {
+                    input.value = "";
                 }
+            } 
+            // JIKA BARANG MASUK: Bebas Huruf (Untuk Supplier)
+            else {
+                if (/^[0-9.,]+$/.test(val)) {
+                    let numStr = val.replace(/[^0-9]/g, '');
+                    if (numStr !== "") {
+                        input.value = new Intl.NumberFormat('id-ID').format(numStr);
+                    }
+                }
+                // Jika ada hurufnya, sistem membiarkannya sebagai teks (Supplier)
             }
-            // Jika ada hurufnya, biarkan saja (sebagai teks keterangan)
         }
 
         function previewBukti(input) {
