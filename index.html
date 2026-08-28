@@ -4966,7 +4966,30 @@ async function prosesAntreanBackground() {
                 });
 
                 let waktuSekarang = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-                localStorage.setItem(cacheKey, JSON.stringify({ rawMaster: serverMaster, rawCashflow: serverCF, waktuTarik: waktuSekarang }));
+                
+                // 🔥 LOGIKA AUTO-SAPU BERSIH MEMORI SAAT PENUH (QUOTA EXCEEDED FIX) 🔥
+                let payloadData = { rawMaster: serverMaster, rawCashflow: serverCF, waktuTarik: waktuSekarang };
+                try {
+                    localStorage.setItem(cacheKey, JSON.stringify(payloadData));
+                } catch (e) {
+                    console.warn("Memori Penuh! Sedang menghapus cache bulan-bulan lama...");
+                    // Cari dan hapus semua cache rekap_cbl_ yang BUKAN bulan ini
+                    let keysToTrash = [];
+                    for (let i = 0; i < localStorage.length; i++) {
+                        let k = localStorage.key(i);
+                        if (k && k.startsWith('rekap_cbl_') && k !== cacheKey) {
+                            keysToTrash.push(k);
+                        }
+                    }
+                    keysToTrash.forEach(k => localStorage.removeItem(k));
+                    
+                    // Coba simpan lagi setelah dibersihkan
+                    try {
+                        localStorage.setItem(cacheKey, JSON.stringify(payloadData));
+                    } catch (err) {
+                        console.error("Gagal nyimpan meski memori udah dikuras. Data terlalu besar.");
+                    }
+                }
                 
                 currentBulan = bulan; currentTahun = tahun; rawCashflowGlobal = serverCF; rawMasterGlobal = serverMaster;
 
