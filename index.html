@@ -5830,47 +5830,46 @@ async function prosesAntreanBackground() {
                         });
                         let arrNota = Object.values(groupedNota).sort((a,b) => new Date(a.tgl) - new Date(b.tgl));
 
-                        // ==========================================
-                // FASE 1: EXACT MATCHING (BAYAR TUNAI LUNAS)
-                // ==========================================
-                for (let i = 0; i < bayarArr.length; i++) {
-                    let uangMasuk = bayarArr[i];
-                    if (uangMasuk.sisaBayar > 0 && String(uangMasuk.kategori || "").toLowerCase().includes("bayar tunai")) {
-                        let matchedNota = arrNota.find(n => n.tgl === uangMasuk.tgl && n.terbayar === 0);
-                        if (matchedNota) {
-                            let dipotong = Math.min(matchedNota.totalTagihan, uangMasuk.sisaBayar);
-                            uangMasuk.detailPotongan.push({ 
-                                tglNota: matchedNota.tgl, hutangSblm: matchedNota.totalTagihan, jumlah: dipotong, sisaAkhir: matchedNota.totalTagihan - dipotong, isTunai: true 
-                            });
-                            matchedNota.terbayar += dipotong;
-                            uangMasuk.sisaBayar -= dipotong;
-                        }
-                    }
-                }
-
-                // ==========================================
-                // FASE 2: PURE FIFO LOOP UNTUK SISA HUTANG
-                // ==========================================
-                let indexBayar = 0;
-                for (let i = 0; i < arrNota.length; i++) {
-                    let nota = arrNota[i];
-                    let sisaHutangNota = nota.totalTagihan - nota.terbayar;
-
-                    while (sisaHutangNota > 0 && indexBayar < bayarArr.length) {
-                        let uangMasuk = bayarArr[indexBayar];
-                        if (uangMasuk.sisaBayar <= 0) { indexBayar++; continue; }
-                        let dipotong = Math.min(sisaHutangNota, uangMasuk.sisaBayar);
+                        // FASE 1: EXACT MATCHING (BAYAR TUNAI LUNAS)
+for (let i = 0; i < listBayar.length; i++) {
+    let uangMasuk = listBayar[i];
+                
+                // 👇 SYARATNYA SEKARANG HARUS KATEGORI 'BAYAR TUNAI'
+                if (uangMasuk.sisaBayar > 0 && uangMasuk.isTunaiLangsung) { 
+                    let matchedNota = arrNota.find(n => n.tgl === uangMasuk.tgl && n.terbayar === 0);
+                    if (matchedNota) {
+                        let tglParts = matchedNota.tgl.split('-');
+                        let tglIndo = tglParts.length === 3 ? `${tglParts[2]}/${tglParts[1]}/${tglParts[0]}` : matchedNota.tgl;
                         
-                        if (dipotong > 0) {
-                            uangMasuk.detailPotongan.push({ 
-                                tglNota: nota.tgl, hutangSblm: sisaHutangNota, jumlah: dipotong, sisaAkhir: sisaHutangNota - dipotong 
-                            });
-                        }
-
-                        nota.terbayar += dipotong; uangMasuk.sisaBayar -= dipotong; sisaHutangNota -= dipotong;
-                        if (uangMasuk.sisaBayar <= 0) indexBayar++;
+                        let dipotong = Math.min(matchedNota.totalTagihan, uangMasuk.sisaBayar);
+                        uangMasuk.detailPotongan.push({ tglNota: tglIndo, hutangSblm: matchedNota.totalTagihan, jumlah: dipotong, sisaAkhir: matchedNota.totalTagihan - dipotong, isTunai: true });
+                        matchedNota.terbayar += dipotong;
+                        uangMasuk.sisaBayar -= dipotong;
                     }
                 }
+            }
+
+                        // ==========================================
+                        // FASE 2: PURE FIFO LOOP UNTUK SISA HUTANG
+                        // ==========================================
+                        let indexBayar = 0;
+                        for (let i = 0; i < arrNota.length; i++) {
+                            let nota = arrNota[i];
+                            let sisaHutangNota = nota.totalTagihan - nota.terbayar;
+                            
+                            while (sisaHutangNota > 0 && indexBayar < listBayar.length) {
+                                let uangMasuk = listBayar[indexBayar];
+                                if (uangMasuk.sisaBayar <= 0) { indexBayar++; continue; }
+                                let jumlahDipotong = Math.min(sisaHutangNota, uangMasuk.sisaBayar);
+                                
+                                if (jumlahDipotong > 0) { 
+                                    uangMasuk.detailPotongan.push({ 
+                                        tglNota: nota.tgl, hutangSblm: sisaHutangNota, jumlah: jumlahDipotong, sisaAkhir: sisaHutangNota - jumlahDipotong 
+                                    }); 
+                                }
+                                nota.terbayar += jumlahDipotong; uangMasuk.sisaBayar -= jumlahDipotong; sisaHutangNota -= jumlahDipotong;
+                                if (uangMasuk.sisaBayar <= 0) indexBayar++;
+                            }
                             
                             // Langsung catat sisa nyatanya, tidak butuh Reverse FIFO lagi
                             nota.sisaNyata = nota.totalTagihan - nota.terbayar;
@@ -8282,7 +8281,7 @@ async function prosesAntreanBackground() {
                     let tglObj = new Date(row.tanggal);
                     
                     if (row.jenis_mutasi === "Pembayaran" || String(row.pakan_kategori).toLowerCase().includes("bayar")) {
-                        bayarArr.push({ tgl: row.tanggal, nominal: nominal, sisaBayar: nominal, detailPotongan: [], kategori: row.pakan_kategori });
+                        bayarArr.push({ tgl: row.tanggal, nominal: nominal, sisaBayar: nominal, detailPotongan: [] });
                     } else {
                         let pakan = row.pakan_kategori || 'Pakan';
                         let isSisaPiutang = pakan.toLowerCase().includes("sisa piutang");
