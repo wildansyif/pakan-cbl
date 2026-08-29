@@ -3541,7 +3541,7 @@
     </div>
 
     <script>
-        const APP_VERSION = "v4.3";
+        const APP_VERSION = "v5.7";
         if (localStorage.getItem('cbl_app_version') !== APP_VERSION) {
             localStorage.setItem('cbl_app_version', APP_VERSION);
             if ('caches' in window) {
@@ -4280,13 +4280,14 @@ async function prosesAntreanBackground() {
                     status: pl.status || 'Keluar',
                     relasi: pl.relasi || '-',
                     alamat: pl.alamat || '-',
-                    ekor: pl.ekor || 0,       // <--- INI DIA YANG KELUPAAN BANG! 🔥
+                    ekor: pl.ekor || 0,       
                     pakan: pakanName,
                     qty: itemQty,
                     satuan: satuan,
                     harga_satuan: harga,
                     catatan: extraCatatan.trim(),
-                    hash_str: pl.hashStr + '_' + pakanName
+                    hash_str: pl.hashStr + '_' + pakanName,
+                    device_id: pl.device_id    // <--- TAMBAHKAN BARIS INI
                 });
             }
 
@@ -4303,13 +4304,14 @@ async function prosesAntreanBackground() {
                     status: pl.status || 'Keluar',
                     relasi: pl.relasi || '-',
                     alamat: pl.alamat || '-',
-                    ekor: 0,                           // <--- CUKUP TULIS 0 DI SINI UNTUK ONGKIR
-                    pakan: 'Ongkir Pengiriman',        // <--- KEMBALIKAN JADI TEKS 'Ongkir Pengiriman'
-                    qty: 1,                            // <--- QTY NYA 1
-                    satuan: 'Rit',                     // <--- SATUANNYA RIT
-                    harga_satuan: ongkirVal,           // <--- HARGA SATUANNYA DARI INPUT ONGKIR
+                    ekor: 0,                           
+                    pakan: 'Ongkir Pengiriman',        
+                    qty: 1,                            
+                    satuan: 'Rit',                     
+                    harga_satuan: ongkirVal,           
                     catatan: 'Biaya Pengiriman',
-                    hash_str: (pl.hashStr || '') + '_ONGKIR'
+                    hash_str: (pl.hashStr || '') + '_ONGKIR',
+                    device_id: pl.device_id    // <--- DAN TAMBAHKAN JUGA DI SINI
                 });
             }
 
@@ -5759,42 +5761,44 @@ async function prosesAntreanBackground() {
                     let jenisMutasi = String(row.jenis_mutasi || "").toLowerCase();
                     let ketMutasi = String(row.keterangan || "").toLowerCase();
                     
-                    let isTarikDeposit = namaPkn.toLowerCase().includes('tarik deposit') || jenisMutasi.includes('tarik deposit') || statusMutasi.includes('tarik deposit') || ketMutasi.includes('tarik deposit');
-
-                    let isBayar = jenisMutasi === "pembayaran";
+                    let isBayar = jenisMutasi === "pembayaran" || namaPkn.toLowerCase().includes("bayar");
                     let qtyFisik = parseFloat(row.qty) || 0;
-                    let isReturBarang = (jenisMutasi === "retur barang") || statusMutasi.includes('retur') || (isBayar && qtyFisik > 0);
+                    let isReturBarang = (jenisMutasi === "retur barang") || statusMutasi.includes('retur') || (isBayar && qtyFisik > 0 && !namaPkn.toLowerCase().includes("bayar"));
 
-                    // 1. TANGKAP TARIK DEPOSIT SEBAGAI PENYESUAIAN KAS (TIDAK MASUK INVOICE)
-                    if (isTarikDeposit) {
-                        let nomTarik = parseFloat(row.tagihan) || parseFloat(row.pembayaran) || parseFloat(row.nominal) || 0;
-                        mutasiGrouped[r].bayar.push({ 
-                            tgl: row.tanggal, 
-                            sisaBayar: 0, // Set 0 agar tidak dipakai memotong tagihan lainnya
-                            nominal: -Math.abs(nomTarik), // Angka negatif karena uang ditarik
-                            detailPotongan: [], 
-                            bukti_url: row.bukti_url,
-                            isTarikDeposit: true
-                        });
-                    } 
-                    // 2. TANGKAP PEMBAYARAN NORMAL
-                    else if (isBayar && !isReturBarang) {
+                    if (isBayar && !isReturBarang) {
                         let nomCF = parseFloat(row.pembayaran) || parseFloat(row.nominal) || 0;
+                        let isTunaiLangsung = namaPkn.toLowerCase().includes('bayar tunai'); 
+                        
                         mutasiGrouped[r].bayar.push({ 
                             tgl: row.tanggal, 
                             sisaBayar: nomCF, 
-                            nominal: nomCF, // FIX Rp NaN: Pastikan nominal asli terbawa
+                            nominal: nomCF, 
                             detailPotongan: [], 
-                            bukti_url: row.bukti_url 
+                            bukti_url: row.bukti_url,
+                            isTunaiLangsung: isTunaiLangsung,
+                            metode: row.metode || "Cash",
+                            raw: row
                         });
                     } 
-                    // 3. TANGKAP TRANSAKSI PAKAN MURNI
                     else {
                         let nominalTagihan = parseFloat(row.tagihan) || parseFloat(row.pembayaran) || parseFloat(row.nominal) || 0;
                         let qtyTagihan = qtyFisik;
-                        if (isReturBarang) { nominalTagihan = -Math.abs(nominalTagihan); qtyTagihan = -Math.abs(qtyTagihan); }
-                        let namaPakanInvoice = isReturBarang && !String(namaPkn).toUpperCase().includes('RETUR') ? `[RETUR] ${namaPkn}` : namaPkn;
-                        mutasiGrouped[r].tagihan.push({ tgl: row.tanggal, pakan: namaPakanInvoice, qty: qtyTagihan, satuan: row.satuan || 'Kg', nominal: nominalTagihan, terbayar: 0 });
+                        if (isReturBarang) { 
+                            nominalTagihan = -Math.abs(nominalTagihan); 
+                            qtyTagihan = -Math.abs(qtyTagihan); 
+                        }
+                        
+                        let namaPakanInvoice = isReturBarang && !namaPkn.toUpperCase().includes('RETUR') ? `[RETUR] ${namaPkn}` : namaPkn;
+                        
+                        let isTarikDeposit = namaPkn.toLowerCase().includes('tarik deposit') || jenisMutasi.includes('tarik deposit') || statusMutasi.includes('tarik deposit') || ketMutasi.includes('tarik deposit');
+                        if (isTarikDeposit) {
+                            namaPakanInvoice = "Tarik Deposit / Penyesuaian Kas";
+                            qtyTagihan = 0;
+                            row.satuan = "-";
+                            nominalTagihan = Math.abs(nominalTagihan);
+                        }
+
+                        mutasiGrouped[r].tagihan.push({ tgl: row.tanggal, pakan: namaPakanInvoice, qty: qtyTagihan, satuan: row.satuan || 'Kg', nominal: nominalTagihan, terbayar: 0, raw: row });
                     }
                 });
 
@@ -5823,37 +5827,49 @@ async function prosesAntreanBackground() {
                         });
                         let arrNota = Object.values(groupedNota).sort((a,b) => new Date(a.tgl) - new Date(b.tgl));
 
+                        // FASE 1: EXACT MATCHING (BAYAR TUNAI LUNAS)
+                        for (let i = 0; i < listBayar.length; i++) {
+                            let uangMasuk = listBayar[i];
+                            if (uangMasuk.sisaBayar > 0 && uangMasuk.isTunaiLangsung) { 
+                                let matchedNota = arrNota.find(n => n.tgl === uangMasuk.tgl && n.terbayar === 0);
+                                if (matchedNota) {
+                                    let dipotong = Math.min(matchedNota.totalTagihan, uangMasuk.sisaBayar);
+                                    let tglParts = matchedNota.tgl.split('-');
+                                    let tglIndo = tglParts.length === 3 ? `${tglParts[2]}/${tglParts[1]}/${tglParts[0]}` : matchedNota.tgl;
+                                    
+                                    uangMasuk.detailPotongan.push({ 
+                                        tglNota: tglIndo, hutangSblm: matchedNota.totalTagihan, jumlah: dipotong, sisaAkhir: matchedNota.totalTagihan - dipotong, isTunai: true 
+                                    });
+                                    matchedNota.terbayar += dipotong;
+                                    uangMasuk.sisaBayar -= dipotong;
+                                }
+                            }
+                        }
+
+                        // FASE 2: PURE FIFO LOOP UNTUK SISA HUTANG
                         let indexBayar = 0;
                         for (let i = 0; i < arrNota.length; i++) {
                             let nota = arrNota[i];
                             let sisaHutangNota = nota.totalTagihan - nota.terbayar;
+                            
                             while (sisaHutangNota > 0 && indexBayar < listBayar.length) {
                                 let uangMasuk = listBayar[indexBayar];
                                 if (uangMasuk.sisaBayar <= 0) { indexBayar++; continue; }
                                 let jumlahDipotong = Math.min(sisaHutangNota, uangMasuk.sisaBayar);
-                                if (jumlahDipotong > 0) { uangMasuk.detailPotongan.push({ tglNota: nota.tgl, hutangSblm: sisaHutangNota, jumlah: jumlahDipotong, sisaAkhir: sisaHutangNota - jumlahDipotong }); }
+                                
+                                if (jumlahDipotong > 0) { 
+                                    let tglParts = nota.tgl.split('-');
+                                    let tglIndo = tglParts.length === 3 ? `${tglParts[2]}/${tglParts[1]}/${tglParts[0]}` : nota.tgl;
+                                    uangMasuk.detailPotongan.push({ 
+                                        tglNota: tglIndo, hutangSblm: sisaHutangNota, jumlah: jumlahDipotong, sisaAkhir: sisaHutangNota - jumlahDipotong 
+                                    }); 
+                                }
                                 nota.terbayar += jumlahDipotong; uangMasuk.sisaBayar -= jumlahDipotong; sisaHutangNota -= jumlahDipotong;
                                 if (uangMasuk.sisaBayar <= 0) indexBayar++;
                             }
-                        }
-
-                        // REVERSE FIFO UNTUK AGING & INVOICE
-                        let sisaUnpaid = sisaPiutangDB;
-                        for (let i = arrNota.length - 1; i >= 0; i--) {
-                            let nota = arrNota[i];
-                            if (sisaUnpaid <= 0.01) {
-                                nota.sisaNyata = 0; nota.terbayar_display = nota.totalTagihan;
-                            } else {
-                                if (nota.totalTagihan >= 0) {
-                                    if (sisaUnpaid >= nota.totalTagihan) {
-                                        nota.sisaNyata = nota.totalTagihan; nota.terbayar_display = 0; sisaUnpaid -= nota.totalTagihan;
-                                    } else {
-                                        nota.sisaNyata = sisaUnpaid; nota.terbayar_display = nota.totalTagihan - sisaUnpaid; sisaUnpaid = 0;
-                                    }
-                                } else {
-                                    nota.sisaNyata = nota.totalTagihan; nota.terbayar_display = 0; sisaUnpaid -= nota.totalTagihan;
-                                }
-                            }
+                            
+                            nota.sisaNyata = nota.totalTagihan - nota.terbayar;
+                            nota.terbayar_display = nota.terbayar;
                         }
 
                         let hariIni = new Date(); hariIni.setHours(0,0,0,0);
@@ -5901,10 +5917,523 @@ async function prosesAntreanBackground() {
                 renderAgingDashboard();
                 renderListPiutang();
             }).catch(e => {
+                console.error(e); 
                 document.getElementById('piutang-loader').classList.add('hidden');
                 if (btn) btn.innerHTML = `<span class="material-symbols-outlined">sync</span>`;
                 alert("Gagal memuat rekap piutang: " + e.message);
             });
+        }
+
+        function tarikDataAnalytics() {
+            let namaRelasi = document.getElementById('analytics_relasi').value.trim();
+            if (!namaRelasi) { alert("Nama relasi harus diisi!"); return; }
+
+            window.isEStatementLoaded = false;
+            document.getElementById('tabel-preview-estatement').innerHTML = '<div style="text-align:center; padding:20px; font-size:12px; color:#888;">Memuat data mutasi 3 bulan terakhir...</div>';
+
+            let cacheKey = `analytics_relasi_cbl_v3_${namaRelasi.toLowerCase()}`;
+            let savedData = localStorage.getItem(cacheKey);
+            let nf = new Intl.NumberFormat('id-ID');
+
+            let renderAnalisaData = function (d) {
+                document.getElementById('an_profil').innerText = d.profil;
+                document.getElementById('an_qty').innerText = nf.format(d.qty) + " Kg";
+                document.getElementById('an_siklus').innerText = d.siklus;
+
+                let basePiutang = d.keuangan.totalPiutang;
+                if (basePiutang === 0) basePiutang = 1;
+                let pctSehat = (d.keuangan.piutangSehat / basePiutang) * 100, pctTelat = (d.keuangan.piutangTelat / basePiutang) * 100;
+
+                document.getElementById('bar_sehat').style.width = pctSehat + "%";
+                document.getElementById('lbl_sehat').innerText = Math.round(pctSehat) + "%";
+                document.getElementById('lbl_nm_sehat').innerText = "Rp " + nf.format(d.keuangan.piutangSehat);
+                document.getElementById('bar_telat').style.width = pctTelat + "%";
+                document.getElementById('lbl_telat').innerText = Math.round(pctTelat) + "%";
+                document.getElementById('lbl_nm_telat').innerText = "Rp " + nf.format(d.keuangan.piutangTelat);
+
+                let htmlPiutang = "";
+                if (d.piutangAktif && d.piutangAktif.length > 0) {
+                    d.piutangAktif.forEach((p, idx) => {
+                        let borderColor = String(p.status).toLowerCase().includes('terlambat') ? '#c62828' : '#FEA405';
+                        let isAdaDP = p.dp > 0;
+
+                        let totalItems = 0;
+                        let itemDetail = p.items.map(it => {
+                            totalItems += it.nominal;
+                            let safeSatuan = it.satuan || (it.pakan.toLowerCase().includes('ongkir') ? 'Rit' : 'Kg');
+                            return `<div style="display:flex; justify-content:space-between; margin-bottom:4px; font-size:11px;"><span>• ${it.pakan} (${it.qty} ${safeSatuan})</span><span style="font-weight:bold;">Rp ${nf.format(it.nominal)}</span></div>`;
+                        }).join('');
+
+                        let ongkir = p.tagihan - totalItems;
+                        if (ongkir > 0 && !isAdaDP) {
+                            itemDetail += `<div style="display:flex; justify-content:space-between; margin-bottom:4px; font-size:11px;"><span>• Ongkos Kirim / Lainnya</span><span style="font-weight:bold;">Rp ${nf.format(ongkir)}</span></div>`;
+                        }
+
+                        let ketDP = "";
+                        if (isAdaDP) {
+                            ketDP = `<div style="background:#fff8e1; border:1px dashed #FEA405; padding:8px; border-radius:6px; font-size:10px; color:#e65100; margin-bottom:10px; line-height:1.4;">
+                                      <div style="display:flex; justify-content:space-between;"><span>Total Bon Awal:</span> <b>Rp ${nf.format(p.tagihan)}</b></div>
+                                      <div style="display:flex; justify-content:space-between;"><span>Telah di-DP:</span> <b>- Rp ${nf.format(p.dp)}</b></div>
+                                      <div style="display:flex; justify-content:space-between; border-top:1px solid #ffe082; margin-top:4px; padding-top:4px;"><span>Sisa Saldo:</span> <b style="color:#c62828;">Rp ${nf.format(p.total)}</b></div>
+                                   </div>`;
+                        }
+
+                        htmlPiutang += `
+                      <div class="rekap-card" style="margin-bottom:10px; border-left:4px solid ${borderColor}; cursor:pointer;" onclick="document.getElementById('det-${idx}').classList.toggle('hidden')">
+                          <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                              <div>
+                                  <b style="font-size:13px;">${p.tgl}</b>
+                                  <div style="font-size:10px; color:${borderColor}; font-weight:bold;">${p.status}</div>
+                              </div>
+                              <div style="text-align:right;">
+                                  <div style="font-weight:bold; font-size:14px; color:#c62828;">Rp ${nf.format(p.total)}</div>
+                                  <div style="font-size:9px; color:#888;">Lihat Rincian ▾</div>
+                              </div>
+                          </div>
+                          <div id="det-${idx}" class="hidden" style="margin-top:10px; padding-top:10px; border-top:1px dashed #ccc;">
+                              ${ketDP}
+                              ${itemDetail}
+                          </div>
+                      </div>`;
+                    });
+                }
+                document.getElementById('an_piutang_aktif').innerHTML = htmlPiutang || "<div style='font-size:11px; color:#888; text-align:center;'>Tidak ada piutang aktif</div>";
+
+                let totalSemuaPiutang = (d.keuangan.piutangSehat || 0) + (d.keuangan.piutangTelat || 0);
+                let titlePiutang = document.getElementById('an_piutang_aktif').previousElementSibling;
+                titlePiutang.style.display = "flex";
+                titlePiutang.style.justifyContent = "space-between";
+                titlePiutang.innerHTML = `<div style="display:flex; align-items:center; gap:5px;"><span class="material-symbols-outlined" style="font-size:18px;">shopping_cart</span> Piutang Aktif</div> <div style="color:#c62828; font-size:15px;">Rp ${nf.format(totalSemuaPiutang)}</div>`;
+
+                let htmlBayar = "";
+                if (d.riwayatBayar && d.riwayatBayar.length > 0) {
+                    d.riwayatBayar.forEach((b, idx) => {
+                        htmlBayar += `
+                          <div class="rank-item" style="border-left-color:#8AA624; display:block;">
+                              <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px dashed #DBE4C9; padding-bottom:6px; margin-bottom:6px;">
+                                  <span style="font-weight:bold; color:#1a5c40;">Tgl Bayar: ${b.tgl} ${b.link}</span>
+                                  <strong style="color:#8AA624; font-size:13px;">+ Rp ${nf.format(b.nominal)}</strong>
+                              </div>
+                              <div style="font-size:11px; color:#555; line-height:1.5;">
+                                  ${b.ket}
+                              </div>
+                          </div>`;
+                    });
+                }
+                document.getElementById('an_riwayat_bayar').innerHTML = htmlBayar || "<div style='font-size:11px; color:#888; text-align:center;'>Belum ada riwayat pembayaran</div>";
+
+                let htmlRank = d.rankingProduk.slice(0, 5).map((str, index) => {
+                    let p = str.split(':');
+                    return p.length === 2 ? `<div class="rank-item" style="cursor:default;"><span><b>#${index + 1}</b> ${p[0]}</span> <strong>${nf.format(p[1])} Kg</strong></div>` : "";
+                }).join('');
+                document.getElementById('an_rank_produk').innerHTML = htmlRank || "<div style='font-size:11px; color:#888; text-align:center;'>Belum ada data pakan</div>";
+
+                if (d.chart) renderChartOmzetRelasi(d.chart);
+                document.getElementById('analytics-result').classList.remove('hidden');
+            };
+
+            if (savedData) { renderAnalisaData(JSON.parse(savedData)); }
+            else { document.getElementById('analytics-result').classList.add('hidden'); }
+
+            if (!navigator.onLine) { if (!savedData) alert("Fitur Analitik wajib menggunakan koneksi internet!"); return; }
+            document.getElementById('analytics-loader').classList.remove('hidden');
+
+            Promise.all([
+                fetchSupabaseAll(`${SUPA_URL}/rest/v1/master_relasi?nama=eq.${encodeURIComponent(namaRelasi)}&select=*`),
+                fetchSupabaseAll(`${SUPA_URL}/rest/v1/view_mutasi_piutang_detail?relasi=eq.${encodeURIComponent(namaRelasi)}&order=tanggal.asc`)
+            ])
+            .then(([profilData, mutasiData]) => {
+                document.getElementById('analytics-loader').classList.add('hidden');
+                if (mutasiData.error) throw new Error(mutasiData.message);
+
+                let profilText = "- - Umum";
+                if (profilData && profilData.length > 0) {
+                    let p = profilData[0];
+                    profilText = `${p.kategori || 'Umum'} ${p.alamat ? '- ' + p.alamat : ''}`;
+                }
+
+                let tagihanArr = [];
+                let bayarArr = [];
+                let totalQty = 0;
+                let produkGroup = {};
+                let chartGroup = {};
+                let lastTgl = null;
+                let totalHariSiklus = 0, hitunganSiklus = 0;
+
+                mutasiData.forEach(row => {
+                    let nominal = parseFloat(row.nominal) || parseFloat(row.tagihan) || parseFloat(row.pembayaran) || 0;
+                    let tglObj = new Date(row.tanggal);
+                    
+                    let namaPkn = row.pakan_kategori || 'Pakan';
+                    let statusMutasi = String(row.status || "").toLowerCase();
+                    let jenisMutasi = String(row.jenis_mutasi || "").toLowerCase();
+                    let ketMutasi = String(row.keterangan || "").toLowerCase();
+                    
+                    let isBayar = jenisMutasi === "pembayaran" || namaPkn.toLowerCase().includes("bayar");
+                    let qtyFisik = parseFloat(row.qty) || 0;
+                    let isReturBarang = (jenisMutasi === "retur barang") || statusMutasi.includes('retur') || (isBayar && qtyFisik > 0 && !namaPkn.toLowerCase().includes("bayar"));
+
+                    if (isBayar && !isReturBarang) {
+                        let isTunaiLangsung = namaPkn.toLowerCase().includes('bayar tunai'); 
+                        bayarArr.push({ 
+                            tgl: row.tanggal, nominal: nominal, sisaBayar: nominal, detailPotongan: [], isTunaiLangsung: isTunaiLangsung,
+                            metode: row.metode || "Cash", bukti_url: row.bukti_url, raw: row 
+                        });
+                    } else {
+                        let nominalTagihan = nominal;
+                        let qtyTagihan = qtyFisik;
+                        if (isReturBarang) { 
+                            nominalTagihan = -Math.abs(nominalTagihan); 
+                            qtyTagihan = -Math.abs(qtyTagihan); 
+                        }
+                        
+                        let isTarikDeposit = namaPkn.toLowerCase().includes('tarik deposit') || jenisMutasi.includes('tarik deposit') || statusMutasi.includes('tarik deposit') || ketMutasi.includes('tarik deposit');
+                        
+                        if (!isTarikDeposit && !isReturBarang) {
+                            totalQty += qtyTagihan;
+                            produkGroup[namaPkn] = (produkGroup[namaPkn] || 0) + qtyTagihan;
+
+                            let blnKey = row.tanggal.substring(0, 7); 
+                            if (!chartGroup[blnKey]) chartGroup[blnKey] = { o: 0, q: 0 };
+                            chartGroup[blnKey].o += nominalTagihan;
+                            chartGroup[blnKey].q += qtyTagihan;
+
+                            if (lastTgl) {
+                                let diffDays = (tglObj - lastTgl) / (1000 * 60 * 60 * 24);
+                                if (diffDays > 0) { totalHariSiklus += diffDays; hitunganSiklus++; }
+                            }
+                            lastTgl = tglObj;
+                        }
+                        
+                        let namaPakanInvoice = isReturBarang && !namaPkn.toUpperCase().includes('RETUR') ? `[RETUR] ${namaPkn}` : namaPkn;
+                        if (isTarikDeposit) {
+                            namaPakanInvoice = "Tarik Deposit / Penyesuaian Kas";
+                            qtyTagihan = 0;
+                            row.satuan = "-";
+                            nominalTagihan = Math.abs(nominalTagihan);
+                        }
+
+                        tagihanArr.push({ tgl: row.tanggal, pakan: namaPakanInvoice, qty: qtyTagihan, satuan: row.satuan || '-', nominal: nominalTagihan, terbayar: 0, raw: row });
+                    }
+                });
+
+                let keuangan = { totalPiutang: 0, piutangSehat: 0, piutangTelat: 0 };
+                let piutangAktif = [];
+                let riwayatBayar = [];
+                let groupedNota = {};
+
+                tagihanArr.forEach(item => {
+                    if (!groupedNota[item.tgl]) groupedNota[item.tgl] = { tgl: item.tgl, totalTagihan: 0, terbayar: 0, items: [] };
+                    groupedNota[item.tgl].totalTagihan += item.nominal;
+                    groupedNota[item.tgl].items.push(item);
+                });
+                let arrNota = Object.values(groupedNota).sort((a,b) => new Date(a.tgl) - new Date(b.tgl));
+
+                // FASE 1: EXACT MATCHING (BAYAR TUNAI LUNAS)
+                for (let i = 0; i < bayarArr.length; i++) {
+                    let uangMasuk = bayarArr[i];
+                    if (uangMasuk.sisaBayar > 0 && uangMasuk.isTunaiLangsung) {
+                        let matchedNota = arrNota.find(n => n.tgl === uangMasuk.tgl && n.terbayar === 0);
+                        if (matchedNota) {
+                            let dipotong = Math.min(matchedNota.totalTagihan, uangMasuk.sisaBayar);
+                            let tglParts = matchedNota.tgl.split('-');
+                            let tglIndo = tglParts.length === 3 ? `${tglParts[2]}/${tglParts[1]}/${tglParts[0]}` : matchedNota.tgl;
+                            
+                            uangMasuk.detailPotongan.push({ 
+                                tglNota: tglIndo, hutangSblm: matchedNota.totalTagihan, jumlah: dipotong, sisaAkhir: matchedNota.totalTagihan - dipotong, isTunai: true 
+                            });
+                            matchedNota.terbayar += dipotong;
+                            uangMasuk.sisaBayar -= dipotong;
+                        }
+                    }
+                }
+
+                // FASE 2: PURE FIFO LOOP UNTUK SISA HUTANG
+                let indexBayar = 0;
+                for (let i = 0; i < arrNota.length; i++) {
+                    let nota = arrNota[i];
+                    let sisaHutangNota = nota.totalTagihan - nota.terbayar;
+
+                    while (sisaHutangNota > 0 && indexBayar < bayarArr.length) {
+                        let uangMasuk = bayarArr[indexBayar];
+                        if (uangMasuk.sisaBayar <= 0) { indexBayar++; continue; }
+                        let dipotong = Math.min(sisaHutangNota, uangMasuk.sisaBayar);
+                        
+                        if (dipotong > 0) {
+                            let tglParts = nota.tgl.split('-');
+                            let tglIndo = tglParts.length === 3 ? `${tglParts[2]}/${tglParts[1]}/${tglParts[0]}` : nota.tgl;
+                            uangMasuk.detailPotongan.push({ 
+                                tglNota: tglIndo, hutangSblm: sisaHutangNota, jumlah: dipotong, sisaAkhir: sisaHutangNota - dipotong 
+                            });
+                        }
+
+                        nota.terbayar += dipotong; uangMasuk.sisaBayar -= dipotong; sisaHutangNota -= dipotong;
+                        if (uangMasuk.sisaBayar <= 0) indexBayar++;
+                    }
+                    
+                    nota.sisaNyata = nota.totalTagihan - nota.terbayar;
+                    nota.terbayar_display = nota.terbayar;
+                }
+
+                let hariIni = new Date(); hariIni.setHours(0,0,0,0);
+                
+                arrNota.forEach(nota => {
+                    let sisaNyata = nota.sisaNyata;
+                    if (Math.abs(sisaNyata) > 0.01) {
+                        let parts = nota.tgl.split('-');
+                        let tglFormated = parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : nota.tgl;
+                        let dTrx = parts.length === 3 ? new Date(parts[0], parts[1] - 1, parts[2]) : new Date();
+                        dTrx.setHours(0, 0, 0, 0);
+                        let jtDate = new Date(dTrx); jtDate.setDate(jtDate.getDate() + 15);
+                        
+                        let selisihHari = Math.ceil((jtDate.getTime() - hariIni.getTime()) / (1000 * 60 * 60 * 24));
+                        let telatNih = selisihHari < 0;
+                        
+                        let statusTxt = "";
+                        if (selisihHari < 0) {
+                            statusTxt = `Terlambat ${Math.abs(selisihHari)} Hari`;
+                        } else if (selisihHari === 0) {
+                            statusTxt = "Jatuh Tempo Hari Ini";
+                        } else {
+                            statusTxt = `Jatuh Tempo H-${selisihHari}`;
+                        }
+
+                        piutangAktif.push({
+                            tgl: tglFormated, status: statusTxt, total: sisaNyata, tagihan: nota.totalTagihan, dp: nota.terbayar_display, items: nota.items
+                        });
+
+                        keuangan.totalPiutang += sisaNyata;
+                        if (telatNih) keuangan.piutangTelat += sisaNyata;
+                        else keuangan.piutangSehat += sisaNyata;
+                    }
+                });
+
+                let riwayatTerbalik = [...bayarArr].reverse().slice(0, 10);
+                riwayatTerbalik.forEach(byr => {
+                    let bParts = byr.tgl.split('-');
+                    let bTglStr = bParts.length === 3 ? `${bParts[2]}/${bParts[1]}/${bParts[0]}` : byr.tgl;
+                    let ketText = ``;
+                    if (byr.detailPotongan.length > 0) {
+                        ketText += `<i style="color:#888;">Uang ini memotong:</i><br>`;
+                        byr.detailPotongan.forEach(pot => {
+                            if (pot.isTunai) {
+                                ketText += `<span style="display:inline-block; margin-top:2px;">• <b style="color:#15803d;">[BAYAR TUNAI]</b> Lunas nota tgl ${pot.tglNota}</span><br>`;
+                            } else {
+                                let sisaHtml = pot.sisaAkhir <= 0 ? `<b style="color:#8AA624;">Rp 0 (LUNAS)</b>` : `<b style="color:#c62828;">Rp ${nf.format(pot.sisaAkhir)}</b>`;
+                                ketText += `<span style="color:#555; display:inline-block; margin-top:2px;">• Nota tgl ${pot.tglNota} : (Rp ${nf.format(pot.hutangSblm)}) - (Masuk Rp ${nf.format(pot.jumlah)}) = Sisa ${sisaHtml}</span><br>`;
+                            }
+                        });
+                    }
+                    if (byr.sisaBayar > 0) ketText += `<span style="color:#8AA624; font-weight:bold; display:inline-block; margin-top:4px;">• Sisa Uang / Deposit : Rp ${nf.format(byr.sisaBayar)}</span><br>`;
+                    if (ketText === '') ketText = `<i style="color:#888;">Belum digunakan untuk memotong nota manapun.</i>`;
+            
+                    let linkBukti = (byr.bukti_url && byr.bukti_url.length > 5 && byr.bukti_url !== "-") ? `<a href="${byr.bukti_url}" target="_blank" style="margin-left:5px; color:#4A90E2; text-decoration:none;"><span class="material-symbols-outlined" style="font-size:14px; vertical-align:middle;">receipt_long</span> Bukti</a>` : "";                     
+                    riwayatBayar.push({ tgl: bTglStr, nominal: byr.nominal, ket: ketText, link: linkBukti });
+                });
+
+                let siklusStr = hitunganSiklus > 0 ? `Rata-rata ${Math.round(totalHariSiklus / hitunganSiklus)} hari sekali` : "Belum ada pola";
+                
+                let rankingProduk = Object.keys(produkGroup)
+                    .map(k => `${k}:${produkGroup[k]}`)
+                    .sort((a, b) => parseFloat(b.split(':')[1]) - parseFloat(a.split(':')[1]));
+
+                let sortedBln = Object.keys(chartGroup).sort();
+                let chartLabels = []; let chartOmzet = []; let chartQty = [];
+                sortedBln.forEach(b => {
+                    let bParts = b.split('-');
+                    let mName = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Ags','Sep','Okt','Nov','Des'][parseInt(bParts[1])-1];
+                    chartLabels.push(`${mName} ${bParts[0].substring(2)}`);
+                    chartOmzet.push(chartGroup[b].o);
+                    chartQty.push(chartGroup[b].q);
+                });
+
+                // POTONG GRAFIK MENJADI 6 BULAN TERAKHIR SAJA!
+                chartLabels = chartLabels.slice(-6);
+                chartOmzet = chartOmzet.slice(-6);
+                chartQty = chartQty.slice(-6);
+
+                let finalData = {
+                    profil: profilText, qty: totalQty, siklus: siklusStr, keuangan: keuangan, piutangAktif: piutangAktif, riwayatBayar: riwayatBayar, rankingProduk: rankingProduk, chart: { labels: chartLabels, data: chartOmzet, qty: chartQty }
+                };
+                
+                localStorage.setItem(cacheKey, JSON.stringify(finalData));
+                renderAnalisaData(finalData);
+
+                setTimeout(() => { fetchPreviewEStatement(true); }, 1000);
+
+            })
+            .catch(e => {
+                document.getElementById('analytics-loader').classList.add('hidden');
+                alert("Error menarik data Analisa Supabase: " + e.message);
+            });
+        }
+
+        function olahDataEStatement(dataSupabase, tahunTarget) {
+            let tagihanArr = [];
+            let bayarArr = [];
+            
+            dataSupabase.forEach(row => {
+                let namaPkn = row.pakan_kategori || 'Pakan';
+                let statusMutasi = String(row.status || "").toLowerCase();
+                let jenisMutasi = String(row.jenis_mutasi || "").toLowerCase();
+                let ketMutasi = String(row.keterangan || "").toLowerCase();
+                
+                let isBayar = jenisMutasi === "pembayaran" || namaPkn.toLowerCase().includes("bayar");
+                let qtyFisik = parseFloat(row.qty) || 0;
+                let isReturBarang = (jenisMutasi === "retur barang") || statusMutasi.includes('retur') || (isBayar && qtyFisik > 0 && !namaPkn.toLowerCase().includes("bayar"));
+
+                if (isBayar && !isReturBarang) {
+                    let nomCF = parseFloat(row.pembayaran) || parseFloat(row.nominal) || 0;
+                    let isTunaiLangsung = namaPkn.toLowerCase().includes('bayar tunai'); 
+                    
+                    bayarArr.push({ 
+                        tgl: row.tanggal, nominal: nomCF, sisaBayar: nomCF, detailPotongan: [], 
+                        metode: row.metode || "Cash", bukti_url: row.bukti_url, raw: row, isTunaiLangsung: isTunaiLangsung
+                    });
+                } else {
+                    let nominalTagihan = parseFloat(row.tagihan) || parseFloat(row.pembayaran) || parseFloat(row.nominal) || 0;
+                    let qtyTagihan = qtyFisik;
+                    if (isReturBarang) { 
+                        nominalTagihan = -Math.abs(nominalTagihan); 
+                        qtyTagihan = -Math.abs(qtyTagihan); 
+                    }
+                    
+                    let namaPakanInvoice = isReturBarang && !namaPkn.toUpperCase().includes('RETUR') ? `[RETUR] ${namaPkn}` : namaPkn;
+                    
+                    let isTarikDeposit = namaPkn.toLowerCase().includes('tarik deposit') || jenisMutasi.includes('tarik deposit') || statusMutasi.includes('tarik deposit') || ketMutasi.includes('tarik deposit');
+                    if (isTarikDeposit) {
+                        namaPakanInvoice = "Tarik Deposit / Penyesuaian Kas";
+                        qtyTagihan = 0;
+                        row.satuan = "-";
+                        nominalTagihan = Math.abs(nominalTagihan);
+                        row.tagihan = nominalTagihan; // override the raw for E-Statement
+                        row.pakan_kategori = namaPakanInvoice;
+                    }
+
+                    tagihanArr.push({ tgl: row.tanggal, pakan: namaPakanInvoice, qty: qtyTagihan, satuan: row.satuan || 'Kg', nominal: nominalTagihan, terbayar: 0, raw: row });
+                }
+            });
+
+            // FASE 1: EXACT MATCHING (BAYAR TUNAI LUNAS)
+            let groupedNota = {};
+            tagihanArr.forEach(item => {
+                if (!groupedNota[item.tgl]) groupedNota[item.tgl] = { tgl: item.tgl, totalTagihan: 0, terbayar: 0, items: [] };
+                groupedNota[item.tgl].totalTagihan += item.nominal;
+                groupedNota[item.tgl].items.push(item);
+            });
+            let arrNota = Object.values(groupedNota).sort((a,b) => new Date(a.tgl) - new Date(b.tgl));
+
+            for (let i = 0; i < bayarArr.length; i++) {
+                let uangMasuk = bayarArr[i];
+                if (uangMasuk.sisaBayar > 0 && uangMasuk.isTunaiLangsung) {
+                    let matchedNota = arrNota.find(n => n.tgl === uangMasuk.tgl && n.terbayar === 0);
+                    if (matchedNota) {
+                        let dipotong = Math.min(matchedNota.totalTagihan, uangMasuk.sisaBayar);
+                        let tglParts = matchedNota.tgl.split('-');
+                        let tglIndo = tglParts.length === 3 ? `${tglParts[2]}/${tglParts[1]}/${tglParts[0]}` : matchedNota.tgl;
+                        
+                        uangMasuk.detailPotongan.push({ 
+                            tglNota: tglIndo, hutangSblm: matchedNota.totalTagihan, jumlah: dipotong, sisaAkhir: matchedNota.totalTagihan - dipotong, isTunai: true 
+                        });
+                        matchedNota.terbayar += dipotong;
+                        uangMasuk.sisaBayar -= dipotong;
+                    }
+                }
+            }
+
+            // FASE 2: PURE FIFO LOOP UNTUK SISA HUTANG
+            let indexBayar = 0;
+            for (let i = 0; i < arrNota.length; i++) {
+                let nota = arrNota[i];
+                let sisaHutangNota = nota.totalTagihan - nota.terbayar;
+
+                while (sisaHutangNota > 0 && indexBayar < bayarArr.length) {
+                    let uangMasuk = bayarArr[indexBayar];
+                    if (uangMasuk.sisaBayar <= 0) { indexBayar++; continue; }
+                    let dipotong = Math.min(sisaHutangNota, uangMasuk.sisaBayar);
+                    
+                    if (dipotong > 0) {
+                        let tglParts = nota.tgl.split('-');
+                        let tglIndo = tglParts.length === 3 ? `${tglParts[2]}/${tglParts[1]}/${tglParts[0]}` : nota.tgl;
+                        uangMasuk.detailPotongan.push({ 
+                            tglNota: tglIndo, hutangSblm: sisaHutangNota, jumlah: dipotong, sisaAkhir: sisaHutangNota - dipotong 
+                        });
+                    }
+
+                    nota.terbayar += dipotong; uangMasuk.sisaBayar -= dipotong; sisaHutangNota -= dipotong;
+                    if (uangMasuk.sisaBayar <= 0) indexBayar++;
+                }
+                
+                nota.sisaNyata = nota.totalTagihan - nota.terbayar;
+                nota.terbayar_display = nota.terbayar;
+            }
+
+            let saldoAwal = 0, totalTagihan = 0, totalBayar = 0;
+            let groupBulanTgl = {};
+            
+            let prosesRow = (row, detailPotongan = [], sisaDeposit = 0, tagihanTerbayar = 0) => {
+                let tglObj = new Date(row.tanggal);
+                let rTahun = tglObj.getFullYear();
+                let namaPkn = row.pakan_kategori || 'Pakan';
+                let jenisMutasi = String(row.jenis_mutasi || "").toLowerCase();
+                let isBayar = jenisMutasi === "pembayaran" || namaPkn.toLowerCase().includes("bayar");
+                let nom = parseFloat(row.tagihan) || parseFloat(row.pembayaran) || parseFloat(row.nominal) || 0;
+                
+                if (rTahun < tahunTarget) {
+                    saldoAwal += isBayar ? -nom : nom;
+                } else if (rTahun === parseInt(tahunTarget)) {
+                    let key = row.tanggal + "_" + (isBayar ? "BAYAR" : "DO");
+                    if(!groupBulanTgl[key]) {
+                        let infoNota = arrNota.find(n => n.tgl === row.tanggal) || { totalTagihan: 0, terbayar: 0 };
+                        
+                        groupBulanTgl[key] = {
+                            tglObj: tglObj,
+                            bulan: tglObj.getMonth(),
+                            tglStr: ("0" + tglObj.getDate()).slice(-2) + "/" + ("0" + (tglObj.getMonth() + 1)).slice(-2) + "/" + rTahun.toString().substring(2),
+                            jenis: isBayar ? "BAYAR" : "DO",
+                            tagihan: 0, bayar: 0, items: [], ongkir: 0,
+                            metode: isBayar ? (row.metode || "Cash") : "",
+                            detailPotongan: [],
+                            sisaDeposit: 0,
+                            totalTagihanNota: infoNota.totalTagihan,
+                            terbayarNota: infoNota.terbayar
+                        };
+                    }
+                    
+                    if(isBayar) {
+                        groupBulanTgl[key].bayar += nom;
+                        if (detailPotongan.length > 0) groupBulanTgl[key].detailPotongan.push(...detailPotongan);
+                        if (sisaDeposit > 0) groupBulanTgl[key].sisaDeposit += sisaDeposit;
+                    } else {
+                        groupBulanTgl[key].tagihan += nom;
+                        if (namaPkn.toLowerCase().includes("ongkir")) {
+                            groupBulanTgl[key].ongkir += nom;
+                        } else {
+                            groupBulanTgl[key].items.push({ pakan: namaPkn, qty: parseFloat(row.qty)||0, harga: parseFloat(row.harga_satuan)||0 });
+                        }
+                    }
+                }
+            };
+
+            tagihanArr.forEach(t => prosesRow(t.raw, [], 0, t.terbayar));
+            bayarArr.forEach(b => prosesRow(b.raw, b.detailPotongan, b.sisaBayar, 0));
+
+            let mutasiAkhir = [];
+            let runningSaldo = saldoAwal;
+            let sortedKeys = Object.values(groupBulanTgl).sort((a,b) => {
+                if (a.tglObj.getTime() !== b.tglObj.getTime()) return a.tglObj - b.tglObj;
+                return a.jenis === "DO" ? -1 : 1; 
+            });
+            
+            sortedKeys.forEach(g => {
+                totalTagihan += g.tagihan;
+                totalBayar += g.bayar;
+                runningSaldo += (g.tagihan - g.bayar);
+                g.saldo = runningSaldo;
+                mutasiAkhir.push(g);
+            });
+
+            return { saldoAwal: saldoAwal, totalTagihan: totalTagihan, totalBayar: totalBayar, saldoAkhir: runningSaldo, mutasi: mutasiAkhir };
         }
 
         function renderAgingDashboard() {
@@ -6155,7 +6684,11 @@ async function prosesAntreanBackground() {
                         ketText += `Potong:<br>`;
                         byr.detailPotongan.forEach(pot => {
                             let nParts = pot.tglNota.split('-'); let nTglStr = nParts.length === 3 ? `${nParts[2]}/${nParts[1]}/${nParts[0].substring(2)}` : pot.tglNota;
-                            ketText += `• ${nTglStr}: (Rp ${nf.format(pot.hutangSblm)}) - Rp ${nf.format(pot.jumlah)} = Sisa Rp ${nf.format(pot.sisaAkhir)}<br>`;
+                            if (pot.isTunai) {
+                                ketText += `• <b style="color:#15803d;">[BAYAR TUNAI]</b> Nota ${nTglStr}<br>`;
+                            } else {
+                                ketText += `• ${nTglStr}: (Rp ${nf.format(pot.hutangSblm)}) - Rp ${nf.format(pot.jumlah)} = Sisa Rp ${nf.format(pot.sisaAkhir)}<br>`;
+                            }
                         });
                     }
                     if (byr.sisaBayar > 0 && !byr.isTarikDeposit) ketText += `Sisa DP: Rp ${nf.format(byr.sisaBayar)}<br>`;
@@ -6509,11 +7042,18 @@ async function prosesAntreanBackground() {
                     }
 
                     await navigator.share({ title: 'Invoice Pakan CBL', text: pesanWA, files: [filePdf] });
-                    statusLabel.innerText = "Berhasil dibagikan!"; setTimeout(() => { document.getElementById('modal-invoice').classList.add('hidden'); }, 2000);
-                } else { alert("Browser tidak mendukung share file langsung."); }
+                    statusLabel.innerText = "Berhasil dibagikan!"; 
+                    setTimeout(() => { document.getElementById('modal-invoice').classList.add('hidden'); }, 2000);
+                } else { 
+                    alert("Browser tidak mendukung share file langsung."); 
+                }
             } catch (e) {
                 modal.style.position = oriModalPos; wrapper.style.overflowX = oriWrapperOverflow; wrapper.style.WebkitOverflowScrolling = oriWrapperScrolling;
                 statusLabel.innerText = "⚠️ Gagal mencetak dokumen."; console.log(e);
+            } finally {
+                // 👇 BLOK INI YANG DITAMBAHKAN UNTUK MERESET TOMBOL SETELAH SELESAI / ERROR
+                btn.innerHTML = `<span class="material-symbols-outlined" style="font-size:18px;">share</span> SHARE PDF WA`;
+                btn.disabled = false;
             }
         }
 
@@ -7922,10 +8462,13 @@ async function prosesAntreanBackground() {
                         document.body.removeChild(tempInput);
                         alert("✅ Laporan berhasil di-copy! Silakan teruskan/paste manual ke grup WhatsApp.");
                     } else {
-                        let waUrl = `https://wa.me/${NOMOR_WA_ADMIN}?text=${encodeURIComponent(allWatext.trim())}`;
-                        window.open(waUrl, '_blank') || (window.location.href = waUrl);
-                    }
-                }
+        let waUrl = `https://wa.me/${NOMOR_WA_ADMIN}?text=${encodeURIComponent(allWatext.trim())}`;
+        // Terapkan delay yang sama di sini
+        setTimeout(() => {
+            window.open(waUrl, '_blank') || (window.location.href = waUrl);
+        }, 1500);
+    }
+}
 
                 // Kosongkan keranjang
                 keranjangLaporan = [];
@@ -7983,19 +8526,26 @@ async function prosesAntreanBackground() {
             simpanKeAntrianLokal(payload);
 
             if (isLaporWA && pendingTeksWA) {
-                if (currentLoggedPin === "1234") {
-                    let tempInput = document.createElement("textarea");
-                    tempInput.value = pendingTeksWA;
-                    document.body.appendChild(tempInput);
-                    tempInput.select();
-                    document.execCommand("copy");
-                    document.body.removeChild(tempInput);
-                    alert("✅ Laporan berhasil di-copy! Silakan teruskan/paste manual ke grup WhatsApp.");
-                } else {
-                    let waUrl = `https://wa.me/${NOMOR_WA_ADMIN}?text=${encodeURIComponent(pendingTeksWA)}`;
-                    window.open(waUrl, '_blank') || (window.location.href = waUrl);
-                }
-            }
+    if (currentLoggedPin === "1234") {
+        // ... (kode copy text admin tetap biarkan seperti semula)
+        let tempInput = document.createElement("textarea");
+        tempInput.value = pendingTeksWA;
+        document.body.appendChild(tempInput);
+        tempInput.select();
+        document.execCommand("copy");
+        document.body.removeChild(tempInput);
+        alert("✅ Laporan berhasil di-copy! Silakan teruskan/paste manual ke grup WhatsApp.");
+    } else {
+        let waUrl = `https://wa.me/${NOMOR_WA_ADMIN}?text=${encodeURIComponent(pendingTeksWA)}`;
+        
+        // FIX: Beri jeda 1.5 detik sebelum melempar ke WA agar Supabase kebagian waktu upload
+        btn.innerHTML = `<span class="material-symbols-outlined icon-spin" style="font-size:16px;">sync</span> Mengirim Laporan...`;
+        
+        setTimeout(() => {
+            window.open(waUrl, '_blank') || (window.location.href = waUrl);
+        }, 1500); 
+    }
+}
 
             if (payload.lokasi !== '/kandang') document.getElementById('relasi').value = "";
             document.getElementById('ekor').value = ""; document.getElementById('ongkir').value = ""; document.getElementById('catatan').value = "";
@@ -8093,307 +8643,7 @@ async function prosesAntreanBackground() {
                 });
             }, 800);
         }
-
-        function tarikDataAnalytics() {
-            let namaRelasi = document.getElementById('analytics_relasi').value.trim();
-            if (!namaRelasi) { alert("Nama relasi harus diisi!"); return; }
-
-            // RESET MEMORI PRELOAD SAAT CARI NAMA BARU
-            window.isEStatementLoaded = false;
-            document.getElementById('tabel-preview-estatement').innerHTML = '<div style="text-align:center; padding:20px; font-size:12px; color:#888;">Memuat data mutasi 3 bulan terakhir...</div>';
-
-            let cacheKey = `analytics_relasi_cbl_v3_${namaRelasi.toLowerCase()}`;
-            let savedData = localStorage.getItem(cacheKey);
-            let nf = new Intl.NumberFormat('id-ID');
-
-            let renderAnalisaData = function (d) {
-                document.getElementById('an_profil').innerText = d.profil;
-                document.getElementById('an_qty').innerText = nf.format(d.qty) + " Kg";
-                document.getElementById('an_siklus').innerText = d.siklus;
-
-                let basePiutang = d.keuangan.totalPiutang;
-                if (basePiutang === 0) basePiutang = 1;
-                let pctSehat = (d.keuangan.piutangSehat / basePiutang) * 100, pctTelat = (d.keuangan.piutangTelat / basePiutang) * 100;
-
-                document.getElementById('bar_sehat').style.width = pctSehat + "%";
-                document.getElementById('lbl_sehat').innerText = Math.round(pctSehat) + "%";
-                document.getElementById('lbl_nm_sehat').innerText = "Rp " + nf.format(d.keuangan.piutangSehat);
-                document.getElementById('bar_telat').style.width = pctTelat + "%";
-                document.getElementById('lbl_telat').innerText = Math.round(pctTelat) + "%";
-                document.getElementById('lbl_nm_telat').innerText = "Rp " + nf.format(d.keuangan.piutangTelat);
-
-                // PIUTANG AKTIF DENGAN KETERANGAN DP & ONGKIR
-                let htmlPiutang = "";
-                if (d.piutangAktif && d.piutangAktif.length > 0) {
-                    d.piutangAktif.forEach((p, idx) => {
-                        let borderColor = String(p.status).toLowerCase().includes('terlambat') ? '#c62828' : '#FEA405';
-                        let isAdaDP = p.dp > 0;
-
-                        let totalItems = 0;
-                        let itemDetail = p.items.map(it => {
-                            totalItems += it.nominal;
-                            let safeSatuan = it.satuan || (it.pakan.toLowerCase().includes('ongkir') ? 'Rit' : 'Kg');
-                            let teksPakan = it.pakan;
-                            return `<div style="display:flex; justify-content:space-between; margin-bottom:4px; font-size:11px;"><span>• ${teksPakan} (${it.qty} ${safeSatuan})</span><span style="font-weight:bold;">Rp ${nf.format(it.nominal)}</span></div>`;
-                        }).join('');
-
-                        let ongkir = p.tagihan - totalItems;
-                        if (ongkir > 0 && !isAdaDP) {
-                            itemDetail += `<div style="display:flex; justify-content:space-between; margin-bottom:4px; font-size:11px;"><span>• Ongkos Kirim / Lainnya</span><span style="font-weight:bold;">Rp ${nf.format(ongkir)}</span></div>`;
-                        }
-
-                        let ketDP = "";
-                        if (isAdaDP) {
-                            ketDP = `<div style="background:#fff8e1; border:1px dashed #FEA405; padding:8px; border-radius:6px; font-size:10px; color:#e65100; margin-bottom:10px; line-height:1.4;">
-                                      <div style="display:flex; justify-content:space-between;"><span>Total Bon Awal:</span> <b>Rp ${nf.format(p.tagihan)}</b></div>
-                                      <div style="display:flex; justify-content:space-between;"><span>Telah di-DP:</span> <b>- Rp ${nf.format(p.dp)}</b></div>
-                                      <div style="display:flex; justify-content:space-between; border-top:1px solid #ffe082; margin-top:4px; padding-top:4px;"><span>Sisa Saldo:</span> <b style="color:#c62828;">Rp ${nf.format(p.total)}</b></div>
-                                   </div>`;
-                        }
-
-                        htmlPiutang += `
-                      <div class="rekap-card" style="margin-bottom:10px; border-left:4px solid ${borderColor}; cursor:pointer;" onclick="document.getElementById('det-${idx}').classList.toggle('hidden')">
-                          <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-                              <div>
-                                  <b style="font-size:13px;">${p.tgl}</b>
-                                  <div style="font-size:10px; color:${borderColor}; font-weight:bold;">${p.status}</div>
-                              </div>
-                              <div style="text-align:right;">
-                                  <div style="font-weight:bold; font-size:14px; color:#c62828;">Rp ${nf.format(p.total)}</div>
-                                  <div style="font-size:9px; color:#888;">Lihat Rincian ▾</div>
-                              </div>
-                          </div>
-                          <div id="det-${idx}" class="hidden" style="margin-top:10px; padding-top:10px; border-top:1px dashed #ccc;">
-                              ${ketDP}
-                              ${itemDetail}
-                          </div>
-                      </div>`;
-                    });
-                }
-                document.getElementById('an_piutang_aktif').innerHTML = htmlPiutang || "<div style='font-size:11px; color:#888; text-align:center;'>Tidak ada piutang aktif</div>";
-
-                let totalSemuaPiutang = (d.keuangan.piutangSehat || 0) + (d.keuangan.piutangTelat || 0);
-                let titlePiutang = document.getElementById('an_piutang_aktif').previousElementSibling;
-                titlePiutang.style.display = "flex";
-                titlePiutang.style.justifyContent = "space-between";
-                titlePiutang.innerHTML = `<div style="display:flex; align-items:center; gap:5px;"><span class="material-symbols-outlined" style="font-size:18px;">shopping_cart</span> Piutang Aktif</div> <div style="color:#c62828; font-size:15px;">Rp ${nf.format(totalSemuaPiutang)}</div>`;
-
-                // 🔥 PERUBAHAN: Riwayat Pembayaran Selalu Terbuka & Jelas!
-                let htmlBayar = "";
-                if (d.riwayatBayar && d.riwayatBayar.length > 0) {
-                    d.riwayatBayar.forEach((b, idx) => {
-                        htmlBayar += `
-                          <div class="rank-item" style="border-left-color:#8AA624; display:block;">
-                              <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px dashed #DBE4C9; padding-bottom:6px; margin-bottom:6px;">
-                                  <span style="font-weight:bold; color:#1a5c40;">Tgl Bayar: ${b.tgl} ${b.link}</span>
-                                  <strong style="color:#8AA624; font-size:13px;">+ Rp ${nf.format(b.nominal)}</strong>
-                              </div>
-                              <div style="font-size:11px; color:#555; line-height:1.5;">
-                                  ${b.ket}
-                              </div>
-                          </div>`;
-                    });
-                }
-                document.getElementById('an_riwayat_bayar').innerHTML = htmlBayar || "<div style='font-size:11px; color:#888; text-align:center;'>Belum ada riwayat pembayaran</div>";
-
-                let htmlRank = d.rankingProduk.slice(0, 5).map((str, index) => {
-                    let p = str.split(':');
-                    return p.length === 2 ? `<div class="rank-item" style="cursor:default;"><span><b>#${index + 1}</b> ${p[0]}</span> <strong>${nf.format(p[1])} Kg</strong></div>` : "";
-                }).join('');
-                document.getElementById('an_rank_produk').innerHTML = htmlRank || "<div style='font-size:11px; color:#888; text-align:center;'>Belum ada data pakan</div>";
-
-                if (d.chart) renderChartOmzetRelasi(d.chart);
-                document.getElementById('analytics-result').classList.remove('hidden');
-            };
-
-            if (savedData) { renderAnalisaData(JSON.parse(savedData)); }
-            else { document.getElementById('analytics-result').classList.add('hidden'); }
-
-            if (!navigator.onLine) { if (!savedData) alert("Fitur Analitik wajib menggunakan koneksi internet!"); return; }
-            document.getElementById('analytics-loader').classList.remove('hidden');
-
-            Promise.all([
-                fetchSupabaseAll(`${SUPA_URL}/rest/v1/master_relasi?nama=eq.${encodeURIComponent(namaRelasi)}&select=*`),
-                fetchSupabaseAll(`${SUPA_URL}/rest/v1/view_mutasi_piutang_detail?relasi=eq.${encodeURIComponent(namaRelasi)}&order=tanggal.asc`)
-            ])
-            .then(([profilData, mutasiData]) => {
-                document.getElementById('analytics-loader').classList.add('hidden');
-                if (mutasiData.error) throw new Error(mutasiData.message);
-
-                let profilText = "- - Umum";
-                if (profilData && profilData.length > 0) {
-                    let p = profilData[0];
-                    profilText = `${p.kategori || 'Umum'} ${p.alamat ? '- ' + p.alamat : ''}`;
-                }
-
-                let tagihanArr = [];
-                let bayarArr = [];
-                let totalQty = 0;
-                let produkGroup = {};
-                let chartGroup = {};
-                let lastTgl = null;
-                let totalHariSiklus = 0, hitunganSiklus = 0;
-
-                mutasiData.forEach(row => {
-                    let nominal = parseFloat(row.nominal) || parseFloat(row.tagihan) || parseFloat(row.pembayaran) || 0;
-                    let tglObj = new Date(row.tanggal);
-                    
-                    if (row.jenis_mutasi === "Pembayaran" || String(row.pakan_kategori).toLowerCase().includes("bayar")) {
-                        bayarArr.push({ tgl: row.tanggal, nominal: nominal, sisaBayar: nominal, detailPotongan: [] });
-                    } else {
-                        let pakan = row.pakan_kategori || 'Pakan';
-                        let isSisaPiutang = pakan.toLowerCase().includes("sisa piutang");
-                        
-                        // SULAP: Nol-kan Qty agar tidak merusak Top Pakan
-                        let qty = isSisaPiutang ? 0 : (parseFloat(row.qty) || 0);
-                        
-                        if (!isSisaPiutang) {
-                            totalQty += qty;
-                            produkGroup[pakan] = (produkGroup[pakan] || 0) + qty;
-
-                            let blnKey = row.tanggal.substring(0, 7); 
-                            if (!chartGroup[blnKey]) chartGroup[blnKey] = { o: 0, q: 0 };
-                            chartGroup[blnKey].o += nominal;
-                            chartGroup[blnKey].q += qty;
-
-                            if (lastTgl) {
-                                let diffDays = (tglObj - lastTgl) / (1000 * 60 * 60 * 24);
-                                if (diffDays > 0) { totalHariSiklus += diffDays; hitunganSiklus++; }
-                            }
-                            lastTgl = tglObj;
-                        }
-
-                        // Tetap masukkan ke daftar tagihan (dengan qty 0) agar E-Statement piutangnya tetap valid!
-                        tagihanArr.push({ tgl: row.tanggal, pakan: pakan, qty: qty, satuan: row.satuan || '-', nominal: nominal, terbayar: 0 });
-                    }
-                });
-
-                let keuangan = { totalPiutang: 0, piutangSehat: 0, piutangTelat: 0 };
-                let piutangAktif = [];
-                let riwayatBayar = [];
-                let groupedNota = {};
-
-                tagihanArr.forEach(item => {
-                    if (!groupedNota[item.tgl]) groupedNota[item.tgl] = { tgl: item.tgl, totalTagihan: 0, terbayar: 0, items: [] };
-                    groupedNota[item.tgl].totalTagihan += item.nominal;
-                    groupedNota[item.tgl].items.push(item);
-                });
-                let arrNota = Object.values(groupedNota).sort((a,b) => new Date(a.tgl) - new Date(b.tgl));
-
-                let indexBayar = 0;
-                for (let i = 0; i < arrNota.length; i++) {
-                    let nota = arrNota[i];
-                    let sisaHutangNota = nota.totalTagihan - nota.terbayar;
-
-                    while (sisaHutangNota > 0 && indexBayar < bayarArr.length) {
-                        let uangMasuk = bayarArr[indexBayar];
-                        if (uangMasuk.sisaBayar <= 0) { indexBayar++; continue; }
-                        let dipotong = Math.min(sisaHutangNota, uangMasuk.sisaBayar);
-                        
-                        if (dipotong > 0) {
-                            uangMasuk.detailPotongan.push({ 
-                                tglNota: nota.tgl, hutangSblm: sisaHutangNota, jumlah: dipotong, sisaAkhir: sisaHutangNota - dipotong 
-                            });
-                        }
-
-                        nota.terbayar += dipotong; uangMasuk.sisaBayar -= dipotong; sisaHutangNota -= dipotong;
-                        if (uangMasuk.sisaBayar <= 0) indexBayar++;
-                    }
-                }
-
-                let hariIni = new Date(); hariIni.setHours(0,0,0,0);
-                
-                arrNota.forEach(nota => {
-                    let sisaNyata = nota.totalTagihan - nota.terbayar;
-                    if (sisaNyata > 0) {
-                        let parts = nota.tgl.split('-');
-                        let tglFormated = parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : nota.tgl;
-                        let dTrx = parts.length === 3 ? new Date(parts[0], parts[1] - 1, parts[2]) : new Date();
-                        dTrx.setHours(0, 0, 0, 0);
-                        let jtDate = new Date(dTrx); jtDate.setDate(jtDate.getDate() + 15);
-                        
-                        // 🔥 PERUBAHAN: Logika H-x & Jatuh Tempo
-                        let selisihHari = Math.ceil((jtDate.getTime() - hariIni.getTime()) / (1000 * 60 * 60 * 24));
-                        let telatNih = selisihHari < 0;
-                        
-                        let statusTxt = "";
-                        if (selisihHari < 0) {
-                            statusTxt = `Terlambat ${Math.abs(selisihHari)} Hari`;
-                        } else if (selisihHari === 0) {
-                            statusTxt = "Jatuh Tempo Hari Ini";
-                        } else {
-                            statusTxt = `Jatuh Tempo H-${selisihHari}`;
-                        }
-
-                        piutangAktif.push({
-                            tgl: tglFormated, status: statusTxt, total: sisaNyata, tagihan: nota.totalTagihan, dp: nota.terbayar, items: nota.items
-                        });
-
-                        keuangan.totalPiutang += sisaNyata;
-                        if (telatNih) keuangan.piutangTelat += sisaNyata;
-                        else keuangan.piutangSehat += sisaNyata;
-                    }
-                });
-
-                let riwayatTerbalik = [...bayarArr].reverse().slice(0, 10);
-                riwayatTerbalik.forEach(byr => {
-                    let bParts = byr.tgl.split('-');
-                    let bTglStr = bParts.length === 3 ? `${bParts[2]}/${bParts[1]}/${bParts[0]}` : byr.tgl;
-                    let ketText = ``;
-                    if (byr.detailPotongan.length > 0) {
-                        ketText += `<i style="color:#888;">Uang ini dipakai untuk memotong:</i><br>`;
-                        byr.detailPotongan.forEach(pot => {
-                            let nParts = pot.tglNota.split('-');
-                            let nTglStr = nParts.length === 3 ? `${nParts[2]}/${nParts[1]}/${nParts[0]}` : pot.tglNota;
-                            let sisaHtml = pot.sisaAkhir <= 0 ? `<b style="color:#8AA624;">Rp 0 (LUNAS)</b>` : `<b style="color:#c62828;">Rp ${nf.format(pot.sisaAkhir)}</b>`;
-                            ketText += `<span style="color:#555; display:inline-block; margin-top:2px;">• Nota tgl ${nTglStr} : (Rp ${nf.format(pot.hutangSblm)}) - (Masuk Rp ${nf.format(pot.jumlah)}) = Sisa ${sisaHtml}</span><br>`;
-                        });
-                    }
-                    if (byr.sisaBayar > 0) {
-                        ketText += `<span style="color:#8AA624; font-weight:bold; display:inline-block; margin-top:4px;">• Sisa Uang / Deposit : Rp ${nf.format(byr.sisaBayar)}</span><br>`;
-                    }
-                    if (ketText === '') ketText = `<i style="color:#888;">Belum digunakan untuk memotong nota manapun.</i>`;
-                    
-                    let linkBukti = (byr.bukti_url && byr.bukti_url.length > 5 && byr.bukti_url !== "-") ? `<a href="${byr.bukti_url}" target="_blank" style="margin-left:5px; color:#4A90E2; text-decoration:none;"><span class="material-symbols-outlined" style="font-size:14px; vertical-align:middle;">receipt_long</span> Bukti</a>` : "";                     riwayatBayar.push({ tgl: bTglStr, nominal: byr.nominal, ket: ketText, link: linkBukti });
-                });
-
-                let siklusStr = hitunganSiklus > 0 ? `Rata-rata ${Math.round(totalHariSiklus / hitunganSiklus)} hari sekali` : "Belum ada pola";
-                
-                let rankingProduk = Object.keys(produkGroup)
-                    .map(k => `${k}:${produkGroup[k]}`)
-                    .sort((a, b) => parseFloat(b.split(':')[1]) - parseFloat(a.split(':')[1]));
-
-                let sortedBln = Object.keys(chartGroup).sort();
-                let chartLabels = []; let chartOmzet = []; let chartQty = [];
-                sortedBln.forEach(b => {
-                    let bParts = b.split('-');
-                    let mName = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Ags','Sep','Okt','Nov','Des'][parseInt(bParts[1])-1];
-                    chartLabels.push(`${mName} ${bParts[0].substring(2)}`);
-                    chartOmzet.push(chartGroup[b].o);
-                    chartQty.push(chartGroup[b].q);
-                });
-
-                // POTONG GRAFIK MENJADI 6 BULAN TERAKHIR SAJA!
-                chartLabels = chartLabels.slice(-6);
-                chartOmzet = chartOmzet.slice(-6);
-                chartQty = chartQty.slice(-6);
-
-                let finalData = {
-                    profil: profilText, qty: totalQty, siklus: siklusStr, keuangan: keuangan, piutangAktif: piutangAktif, riwayatBayar: riwayatBayar, rankingProduk: rankingProduk, chart: { labels: chartLabels, data: chartOmzet, qty: chartQty }
-                };
-                
-                localStorage.setItem(cacheKey, JSON.stringify(finalData));
-                renderAnalisaData(finalData);
-
-                setTimeout(() => { fetchPreviewEStatement(true); }, 1000);
-
-            })
-            .catch(e => {
-                document.getElementById('analytics-loader').classList.add('hidden');
-                alert("Error menarik data Analisa Supabase: " + e.message);
-            });
-        }
-
+        
         function renderChartOmzetRelasi(chartData) {
             const ctx = document.getElementById('chartOmzetRelasi').getContext('2d');
             if (chartKonsumen) chartKonsumen.destroy();
@@ -8713,152 +8963,6 @@ async function prosesAntreanBackground() {
 
         window.isEStatementLoaded = false;
         window.isFetchingEStatement = false;
-
-        // ============================================
-        // MESIN PENGOLAH DATA E-STATEMENT DARI SUPABASE
-        // ============================================
-        function olahDataEStatement(dataSupabase, tahunTarget) {
-            let tagihanArr = [];
-            let bayarArr = [];
-            
-            // 1. PISAHKAN DATA & SIAPKAN UNTUK FIFO
-            dataSupabase.forEach(row => {
-                let qtyFisik = parseFloat(row.qty) || 0;
-                let isSupabaseBayar = row.jenis_mutasi === "Pembayaran" || String(row.pakan_kategori).toLowerCase().includes("bayar");
-                
-                let isReturBarang = (row.jenis_mutasi === "Retur Barang") || 
-                                    (row.status && String(row.status).toLowerCase().includes('retur')) ||
-                                    (isSupabaseBayar && qtyFisik > 0 && !String(row.pakan_kategori).toLowerCase().includes("bayar"));
-
-                if (isSupabaseBayar && !isReturBarang) {
-                    let nom = parseFloat(row.nominal) || parseFloat(row.pembayaran) || 0;
-                    bayarArr.push({ tgl: row.tanggal, nominal: nom, sisaBayar: nom, detailPotongan: [], metode: row.metode || "Cash", raw: row });
-                } else {
-                    let nom = parseFloat(row.tagihan) || parseFloat(row.pembayaran) || parseFloat(row.nominal) || 0;
-                    
-                    if (isReturBarang) {
-                        nom = -Math.abs(nom);
-                        row.tagihan = nom; // Timpa raw data agar prosesRow gak bingung
-                        row.qty = -Math.abs(qtyFisik);
-                        row.jenis_mutasi = "Tagihan"; // Paksa sistem menganggapnya Barang (DO)
-                        if (!String(row.pakan_kategori).toUpperCase().includes('RETUR')) {
-                            row.pakan_kategori = `[RETUR] ${row.pakan_kategori || 'Pakan'}`;
-                        }
-                    } else {
-                        row.tagihan = nom; // Pastikan terisi
-                    }
-                    tagihanArr.push({ tgl: row.tanggal, nominal: nom, terbayar: 0, raw: row });
-                }
-            });
-
-            // 2. JALANKAN MESIN FIFO UNTUK MELACAK JEJAK UANG
-            let groupedNota = {};
-            tagihanArr.forEach(item => {
-                if (!groupedNota[item.tgl]) groupedNota[item.tgl] = { tgl: item.tgl, totalTagihan: 0, terbayar: 0 };
-                groupedNota[item.tgl].totalTagihan += item.nominal;
-            });
-            let arrNota = Object.values(groupedNota).sort((a,b) => new Date(a.tgl) - new Date(b.tgl));
-
-            let indexBayar = 0;
-            for (let i = 0; i < arrNota.length; i++) {
-                let nota = arrNota[i];
-                let sisaHutangNota = nota.totalTagihan - nota.terbayar;
-                while (sisaHutangNota > 0 && indexBayar < bayarArr.length) {
-                    let uangMasuk = bayarArr[indexBayar];
-                    if (uangMasuk.sisaBayar <= 0) { indexBayar++; continue; }
-                    let dipotong = Math.min(sisaHutangNota, uangMasuk.sisaBayar);
-                    
-                    // 🔥 PERBAIKAN: OTAMATIS MENGHITUNG JEJAK MATEMATIKA
-                    if (dipotong > 0) {
-                        let tglParts = nota.tgl.split('-');
-                        let tglIndo = tglParts.length === 3 ? `${tglParts[2]}/${tglParts[1]}/${tglParts[0]}` : nota.tgl;
-                        
-                        let sisaSetelahDipotong = sisaHutangNota - dipotong;
-                        let sisaSebelumDipotong = sisaHutangNota;
-                        
-                        uangMasuk.detailPotongan.push({ 
-                            tglNota: tglIndo, 
-                            hutangSblm: sisaSebelumDipotong, 
-                            jumlah: dipotong, 
-                            sisaAkhir: sisaSetelahDipotong 
-                        });
-                    }
-                    
-                    nota.terbayar += dipotong;
-                    uangMasuk.sisaBayar -= dipotong;
-                    sisaHutangNota -= dipotong;
-                    if (uangMasuk.sisaBayar <= 0) indexBayar++;
-                }
-            }
-
-            // 3. GROUPING BULANAN UNTUK E-STATEMENT
-            let saldoAwal = 0, totalTagihan = 0, totalBayar = 0;
-            let groupBulanTgl = {};
-            
-            let prosesRow = (row, detailPotongan = [], sisaDeposit = 0) => {
-                let tglObj = new Date(row.tanggal);
-                let rTahun = tglObj.getFullYear();
-                let isBayar = row.jenis_mutasi === "Pembayaran" || String(row.pakan_kategori).toLowerCase().includes("bayar");
-                let nom = parseFloat(row.nominal) || parseFloat(row.tagihan) || parseFloat(row.pembayaran) || 0;
-                
-                if (rTahun < tahunTarget) {
-                    saldoAwal += isBayar ? -nom : nom;
-                } else if (rTahun === parseInt(tahunTarget)) {
-                    let key = row.tanggal + "_" + (isBayar ? "BAYAR" : "DO");
-                    if(!groupBulanTgl[key]) {
-                        // SULAP: Ambil informasi lunas/belum dari mesin FIFO sebelumnya
-                        let infoNota = groupedNota[row.tanggal] || { totalTagihan: 0, terbayar: 0 };
-                        
-                        groupBulanTgl[key] = {
-                            tglObj: tglObj,
-                            bulan: tglObj.getMonth(),
-                            tglStr: ("0" + tglObj.getDate()).slice(-2) + "/" + ("0" + (tglObj.getMonth() + 1)).slice(-2) + "/" + rTahun.toString().substring(2),
-                            jenis: isBayar ? "BAYAR" : "DO",
-                            tagihan: 0, bayar: 0, items: [], ongkir: 0,
-                            metode: isBayar ? (row.metode || "Cash") : "",
-                            detailPotongan: [],
-                            sisaDeposit: 0,
-                            totalTagihanNota: infoNota.totalTagihan,
-                            terbayarNota: infoNota.terbayar
-                        };
-                    }
-                    
-                    if(isBayar) {
-                        groupBulanTgl[key].bayar += nom;
-                        if (detailPotongan.length > 0) groupBulanTgl[key].detailPotongan.push(...detailPotongan);
-                        if (sisaDeposit > 0) groupBulanTgl[key].sisaDeposit += sisaDeposit;
-                    } else {
-                        groupBulanTgl[key].tagihan += nom;
-                        let pkn = row.pakan_kategori || 'Pakan';
-                        if (pkn.toLowerCase().includes("ongkir")) {
-                            groupBulanTgl[key].ongkir += nom;
-                        } else {
-                            groupBulanTgl[key].items.push({ pakan: pkn, qty: parseFloat(row.qty)||0, harga: parseFloat(row.harga_satuan)||0 });
-                        }
-                    }
-                }
-            };
-
-            tagihanArr.forEach(t => prosesRow(t.raw));
-            bayarArr.forEach(b => prosesRow(b.raw, b.detailPotongan, b.sisaBayar));
-
-            let mutasiAkhir = [];
-            let runningSaldo = saldoAwal;
-            let sortedKeys = Object.values(groupBulanTgl).sort((a,b) => {
-                if (a.tglObj.getTime() !== b.tglObj.getTime()) return a.tglObj - b.tglObj;
-                return a.jenis === "DO" ? -1 : 1; 
-            });
-            
-            sortedKeys.forEach(g => {
-                totalTagihan += g.tagihan;
-                totalBayar += g.bayar;
-                runningSaldo += (g.tagihan - g.bayar);
-                g.saldo = runningSaldo;
-                mutasiAkhir.push(g);
-            });
-
-            return { saldoAwal: saldoAwal, totalTagihan: totalTagihan, totalBayar: totalBayar, saldoAkhir: runningSaldo, mutasi: mutasiAkhir };
-        }
 
         function fetchPreviewEStatement(isPreload = false) {
             let namaKonsumen = document.getElementById('analytics_relasi').value.trim();
@@ -9800,10 +9904,26 @@ async function prosesAntreanBackground() {
                     try { res = JSON.parse(res); } catch (e) { }
                 }
 
-                // Abaikan jika ini adalah HP/Device kita sendiri yang baru aja ngirim
+                // 1. Abaikan jika ini adalah HP kita sendiri yang baru aja ngirim
                 if (res.device_id === window.myDeviceId) return;
 
                 let payloadData = res.data_payload;
+
+                // 2. ADAPTER UNTUK FLAT ROW DARI SUPABASE WEBHOOK
+                // Ubah format eceran tabel menjadi format keranjang agar PWA tidak crash
+                if (payloadData && payloadData.pakan && payloadData.qty !== undefined) {
+                    let locReal = payloadData.cabang === 'SPN' ? '/spn' : (payloadData.cabang === 'RPH' ? '/rph' : '/pm');
+                    if (String(payloadData.relasi).toLowerCase().includes('kandang')) {
+                        locReal = payloadData.cabang === 'SPN' ? '/spn_kandang' : '/kandang';
+                    }
+                    payloadData = {
+                        lokasi: locReal,
+                        status: payloadData.status,
+                        relasi: payloadData.relasi,
+                        items: { [payloadData.pakan]: payloadData.qty },
+                        tanggal: payloadData.tanggal || new Date().toISOString().split('T')[0]
+                    };
+                }
 
                 // =========================================
                 // BIKIN POP-UP MENGAMBANG (TOAST NOTIFICATION)
@@ -9817,15 +9937,18 @@ async function prosesAntreanBackground() {
                     notifSound.play().catch(e => console.log("Browser memblokir suara otomatis"));
                 } catch (err) { }
 
-                // Desain popup-nya melayang di tengah atas
+                // Agar pop-up tidak numpuk jadi satu jika ada banyak item bersamaan (Bulk Insert)
+                let existingToasts = document.querySelectorAll('[id^="toast-"]').length;
+                popup.id = 'toast-' + Math.floor(Math.random() * 1000);
                 popup.style.cssText = "position:fixed; top:-60px; left:50%; transform:translateX(-50%); background:#4A90E2; color:white; padding:10px 25px; border-radius:25px; font-weight:bold; font-size:12px; display:flex; align-items:center; gap:8px; box-shadow:0 5px 15px rgba(0,0,0,0.3); z-index:999999; transition: top 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);";
 
                 document.body.appendChild(popup);
 
-                // Animasi turun (Muncul)
-                setTimeout(() => { popup.style.top = "20px"; }, 50);
+                // Animasi turun berjejer rapi
+                let topPosition = 20 + (existingToasts * 45); 
+                setTimeout(() => { popup.style.top = topPosition + "px"; }, 50);
 
-                // Animasi naik (Hilang) lalu dihapus setelah 4 detik
+                // Animasi naik lalu dihapus setelah 4 detik
                 setTimeout(() => {
                     popup.style.top = "-60px";
                     setTimeout(() => { if (popup.parentNode) popup.remove(); }, 500);
@@ -9846,7 +9969,7 @@ async function prosesAntreanBackground() {
                     }
                     localStorage.setItem('stok_kandang_ptcbl', JSON.stringify(globalStokKandang));
                     let ind = document.getElementById('stok-kandang-indicator');
-                    if (ind) ind.innerHTML = ICON_CLOUD;
+                    if (ind) ind.innerHTML = `<span class="material-symbols-outlined" style="font-size:18px; vertical-align:middle; color:#FEA405;" title="Data Lokal (Belum Tersinkron)">cloud</span>`;
                     if (typeof renderMiniDashboardKandang === 'function') {
                         renderMiniDashboardKandang();
                     }
