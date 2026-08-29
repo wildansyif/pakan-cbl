@@ -3541,7 +3541,7 @@
     </div>
 
     <script>
-        const APP_VERSION = "v5.5";
+        const APP_VERSION = "v5.7";
         if (localStorage.getItem('cbl_app_version') !== APP_VERSION) {
             localStorage.setItem('cbl_app_version', APP_VERSION);
             if ('caches' in window) {
@@ -5782,14 +5782,19 @@ async function prosesAntreanBackground() {
                     // 2. TANGKAP PEMBAYARAN NORMAL
                     else if (isBayar && !isReturBarang) {
                         let nomCF = parseFloat(row.pembayaran) || parseFloat(row.nominal) || 0;
+                        
+                        // 👇 TAMBAHAN BARU: Tangkap kata "Bayar Tunai" dari database
+                        let isTunaiLangsung = String(row.pakan_kategori).toLowerCase().includes('bayar tunai'); 
+                        
                         mutasiGrouped[r].bayar.push({ 
                             tgl: row.tanggal, 
                             sisaBayar: nomCF, 
-                            nominal: nomCF, // FIX Rp NaN: Pastikan nominal asli terbawa
+                            nominal: nomCF, 
                             detailPotongan: [], 
-                            bukti_url: row.bukti_url 
+                            bukti_url: row.bukti_url,
+                            isTunaiLangsung: isTunaiLangsung // 👇 TAMBAHKAN FLAG INI
                         });
-                    } 
+                    }
                     // 3. TANGKAP TRANSAKSI PAKAN MURNI
                     else {
                         let nominalTagihan = parseFloat(row.tagihan) || parseFloat(row.pembayaran) || parseFloat(row.nominal) || 0;
@@ -5825,24 +5830,24 @@ async function prosesAntreanBackground() {
                         });
                         let arrNota = Object.values(groupedNota).sort((a,b) => new Date(a.tgl) - new Date(b.tgl));
 
-                        // ==========================================
                         // FASE 1: EXACT MATCHING (BAYAR TUNAI LUNAS)
-                        // ==========================================
-                        for (let i = 0; i < listBayar.length; i++) {
-                            let uangMasuk = listBayar[i];
-                            if (uangMasuk.sisaBayar > 0) {
-                                // Cari nota di tanggal yg sama, nominal persis sama, dan belum terbayar
-                                let matchedNota = arrNota.find(n => n.tgl === uangMasuk.tgl && Math.abs(n.totalTagihan - uangMasuk.nominal) < 1 && n.terbayar === 0);
-                                
-                                if (matchedNota) {
-                                    uangMasuk.detailPotongan.push({ 
-                                        tglNota: matchedNota.tgl, hutangSblm: matchedNota.totalTagihan, jumlah: uangMasuk.sisaBayar, sisaAkhir: 0, isTunai: true
-                                    });
-                                    matchedNota.terbayar = matchedNota.totalTagihan;
-                                    uangMasuk.sisaBayar = 0;
-                                }
-                            }
-                        }
+            for (let i = 0; i < bayarArr.length; i++) {
+                let uangMasuk = bayarArr[i];
+                
+                // 👇 SYARATNYA SEKARANG HARUS KATEGORI 'BAYAR TUNAI'
+                if (uangMasuk.sisaBayar > 0 && uangMasuk.isTunaiLangsung) { 
+                    let matchedNota = arrNota.find(n => n.tgl === uangMasuk.tgl && n.terbayar === 0);
+                    if (matchedNota) {
+                        let tglParts = matchedNota.tgl.split('-');
+                        let tglIndo = tglParts.length === 3 ? `${tglParts[2]}/${tglParts[1]}/${tglParts[0]}` : matchedNota.tgl;
+                        
+                        let dipotong = Math.min(matchedNota.totalTagihan, uangMasuk.sisaBayar);
+                        uangMasuk.detailPotongan.push({ tglNota: tglIndo, hutangSblm: matchedNota.totalTagihan, jumlah: dipotong, sisaAkhir: matchedNota.totalTagihan - dipotong, isTunai: true });
+                        matchedNota.terbayar += dipotong;
+                        uangMasuk.sisaBayar -= dipotong;
+                    }
+                }
+            }
 
                         // ==========================================
                         // FASE 2: PURE FIFO LOOP UNTUK SISA HUTANG
@@ -8771,7 +8776,14 @@ async function prosesAntreanBackground() {
 
                 if (isSupabaseBayar && !isReturBarang) {
                     let nom = parseFloat(row.nominal) || parseFloat(row.pembayaran) || 0;
-                    bayarArr.push({ tgl: row.tanggal, nominal: nom, sisaBayar: nom, detailPotongan: [], metode: row.metode || "Cash", raw: row });
+                    
+                    // 👇 TAMBAHAN BARU: Tangkap kata "Bayar Tunai"
+                    let isTunaiLangsung = String(row.pakan_kategori).toLowerCase().includes('bayar tunai'); 
+                    
+                    bayarArr.push({ 
+                        tgl: row.tanggal, nominal: nom, sisaBayar: nom, detailPotongan: [], 
+                        metode: row.metode || "Cash", raw: row, isTunaiLangsung: isTunaiLangsung // 👇 TAMBAH INI
+                    });
                 } else {
                     let nom = parseFloat(row.tagihan) || parseFloat(row.pembayaran) || parseFloat(row.nominal) || 0;
                     
