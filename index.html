@@ -8377,7 +8377,7 @@ for (let i = 0; i < listBayar.length; i++) {
                     }
                 });
 
-                let riwayatTerbalik = [...listBayar].reverse().slice(0, 10);
+                let riwayatTerbalik = [...bayarArr].reverse().slice(0, 10);
                         riwayatTerbalik.forEach(byr => {
                             let bParts = byr.tgl.split('-');
                             let bTglStr = bParts.length === 3 ? `${bParts[2]}/${bParts[1]}/${bParts[0]}` : byr.tgl;
