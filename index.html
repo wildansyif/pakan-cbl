@@ -5831,8 +5831,8 @@ async function prosesAntreanBackground() {
                         let arrNota = Object.values(groupedNota).sort((a,b) => new Date(a.tgl) - new Date(b.tgl));
 
                         // FASE 1: EXACT MATCHING (BAYAR TUNAI LUNAS)
-            for (let i = 0; i < bayarArr.length; i++) {
-                let uangMasuk = bayarArr[i];
+for (let i = 0; i < listBayar.length; i++) {
+    let uangMasuk = listBayar[i];
                 
                 // 👇 SYARATNYA SEKARANG HARUS KATEGORI 'BAYAR TUNAI'
                 if (uangMasuk.sisaBayar > 0 && uangMasuk.isTunaiLangsung) { 
@@ -5921,10 +5921,11 @@ async function prosesAntreanBackground() {
                 renderAgingDashboard();
                 renderListPiutang();
             }).catch(e => {
-                document.getElementById('piutang-loader').classList.add('hidden');
-                if (btn) btn.innerHTML = `<span class="material-symbols-outlined">sync</span>`;
-                alert("Gagal memuat rekap piutang: " + e.message);
-            });
+    console.error(e); // 👈 Tambahkan baris ini
+    document.getElementById('piutang-loader').classList.add('hidden');
+    if (btn) btn.innerHTML = `<span class="material-symbols-outlined">sync</span>`;
+    alert("Gagal memuat rekap piutang: " + e.message);
+});
         }
 
         function renderAgingDashboard() {
