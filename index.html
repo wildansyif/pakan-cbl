@@ -1679,7 +1679,7 @@
                 <span class="material-symbols-outlined" style="font-size:26px;">edit_document</span> Laporan Harian
             </h2>
 
-            <div id="koneksi-badge"></div>
+            <div id="koneksi-badge" onclick="hapusAntreanMacet()" style="cursor:pointer;"></div>
 
     <div class="form-group" style="margin-top: 15px;">
                 <div class="mode-toggle">
@@ -10868,5 +10868,34 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
                 document.getElementById('ap-loader').classList.add('hidden');
                 alert("Gagal menarik data analisa pakan: " + e.message);
             });
+        }
+
+        // ==========================================
+        // FITUR DARURAT: HAPUS ANTREAN MACET
+        // ==========================================
+        function hapusAntreanMacet() {
+            let antrian = JSON.parse(localStorage.getItem('antrian_pakan') || "[]");
+            
+            if (antrian.length > 0) {
+                let pesan = `⚠️ PERINGATAN DARURAT!\n\nAda ${antrian.length} laporan yang sedang nyangkut di memori HP Anda.\n\nApakah Anda yakin ingin MENGHAPUS SEMUA antrean ini secara paksa?\n(Data yang belum masuk ke server akan hilang).`;
+                
+                if (confirm(pesan)) {
+                    // Eksekusi sapu bersih
+                    localStorage.removeItem('antrian_pakan');
+                    
+                    // Reset indikator status upload
+                    isProsesUploadPWA = false;
+                    if (uploadAbortController) {
+                        uploadAbortController.abort();
+                    }
+                    
+                    // Segarkan badge koneksi
+                    updateStatusKoneksi();
+                    
+                    alert("✅ Antrean berhasil dibersihkan dari 0! Silakan lanjutkan pekerjaan Anda.");
+                }
+            } else {
+                alert("✅ Sistem lancar. Tidak ada antrean data yang nyangkut di HP ini.");
+            }
         }
     </script>
