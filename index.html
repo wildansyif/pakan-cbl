@@ -8322,6 +8322,27 @@ for (let i = 0; i < listBayar.length; i++) {
                 });
                 let arrNota = Object.values(groupedNota).sort((a,b) => new Date(a.tgl) - new Date(b.tgl));
 
+                // ==========================================
+                // FASE 1: EXACT MATCHING (BAYAR TUNAI LUNAS)
+                // ==========================================
+                for (let i = 0; i < bayarArr.length; i++) {
+                    let uangMasuk = bayarArr[i];
+                    if (uangMasuk.sisaBayar > 0 && String(uangMasuk.kategori || "").toLowerCase().includes("bayar tunai")) {
+                        let matchedNota = arrNota.find(n => n.tgl === uangMasuk.tgl && n.terbayar === 0);
+                        if (matchedNota) {
+                            let dipotong = Math.min(matchedNota.totalTagihan, uangMasuk.sisaBayar);
+                            uangMasuk.detailPotongan.push({ 
+                                tglNota: matchedNota.tgl, hutangSblm: matchedNota.totalTagihan, jumlah: dipotong, sisaAkhir: matchedNota.totalTagihan - dipotong, isTunai: true 
+                            });
+                            matchedNota.terbayar += dipotong;
+                            uangMasuk.sisaBayar -= dipotong;
+                        }
+                    }
+                }
+
+                // ==========================================
+                // FASE 2: PURE FIFO LOOP UNTUK SISA HUTANG
+                // ==========================================
                 let indexBayar = 0;
                 for (let i = 0; i < arrNota.length; i++) {
                     let nota = arrNota[i];
