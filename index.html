@@ -5761,28 +5761,13 @@ async function prosesAntreanBackground() {
                     let jenisMutasi = String(row.jenis_mutasi || "").toLowerCase();
                     let ketMutasi = String(row.keterangan || "").toLowerCase();
                     
-                    let isTarikDeposit = namaPkn.toLowerCase().includes('tarik deposit') || jenisMutasi.includes('tarik deposit') || statusMutasi.includes('tarik deposit') || ketMutasi.includes('tarik deposit');
-
-                    let isBayar = jenisMutasi === "pembayaran";
+                    let isBayar = jenisMutasi === "pembayaran" || namaPkn.toLowerCase().includes("bayar");
                     let qtyFisik = parseFloat(row.qty) || 0;
-                    let isReturBarang = (jenisMutasi === "retur barang") || statusMutasi.includes('retur') || (isBayar && qtyFisik > 0);
+                    let isReturBarang = (jenisMutasi === "retur barang") || statusMutasi.includes('retur') || (isBayar && qtyFisik > 0 && !namaPkn.toLowerCase().includes("bayar"));
 
-                    // 1. TANGKAP TARIK DEPOSIT SEBAGAI PENYESUAIAN KAS (TIDAK MASUK INVOICE)
-                    if (isTarikDeposit) {
-                        let nomTarik = parseFloat(row.tagihan) || parseFloat(row.pembayaran) || parseFloat(row.nominal) || 0;
-                        mutasiGrouped[r].bayar.push({ 
-                            tgl: row.tanggal, 
-                            sisaBayar: 0, 
-                            nominal: -Math.abs(nomTarik),
-                            detailPotongan: [], 
-                            bukti_url: row.bukti_url,
-                            isTarikDeposit: true
-                        });
-                    } 
-                    // 2. TANGKAP PEMBAYARAN NORMAL
-                    else if (isBayar && !isReturBarang) {
+                    if (isBayar && !isReturBarang) {
                         let nomCF = parseFloat(row.pembayaran) || parseFloat(row.nominal) || 0;
-                        let isTunaiLangsung = String(row.pakan_kategori).toLowerCase().includes('bayar tunai'); 
+                        let isTunaiLangsung = namaPkn.toLowerCase().includes('bayar tunai'); 
                         
                         mutasiGrouped[r].bayar.push({ 
                             tgl: row.tanggal, 
@@ -5790,16 +5775,30 @@ async function prosesAntreanBackground() {
                             nominal: nomCF, 
                             detailPotongan: [], 
                             bukti_url: row.bukti_url,
-                            isTunaiLangsung: isTunaiLangsung 
+                            isTunaiLangsung: isTunaiLangsung,
+                            metode: row.metode || "Cash",
+                            raw: row
                         });
-                    }
-                    // 3. TANGKAP TRANSAKSI PAKAN MURNI
+                    } 
                     else {
                         let nominalTagihan = parseFloat(row.tagihan) || parseFloat(row.pembayaran) || parseFloat(row.nominal) || 0;
                         let qtyTagihan = qtyFisik;
-                        if (isReturBarang) { nominalTagihan = -Math.abs(nominalTagihan); qtyTagihan = -Math.abs(qtyTagihan); }
-                        let namaPakanInvoice = isReturBarang && !String(namaPkn).toUpperCase().includes('RETUR') ? `[RETUR] ${namaPkn}` : namaPkn;
-                        mutasiGrouped[r].tagihan.push({ tgl: row.tanggal, pakan: namaPakanInvoice, qty: qtyTagihan, satuan: row.satuan || 'Kg', nominal: nominalTagihan, terbayar: 0 });
+                        if (isReturBarang) { 
+                            nominalTagihan = -Math.abs(nominalTagihan); 
+                            qtyTagihan = -Math.abs(qtyTagihan); 
+                        }
+                        
+                        let namaPakanInvoice = isReturBarang && !namaPkn.toUpperCase().includes('RETUR') ? `[RETUR] ${namaPkn}` : namaPkn;
+                        
+                        let isTarikDeposit = namaPkn.toLowerCase().includes('tarik deposit') || jenisMutasi.includes('tarik deposit') || statusMutasi.includes('tarik deposit') || ketMutasi.includes('tarik deposit');
+                        if (isTarikDeposit) {
+                            namaPakanInvoice = "Tarik Deposit / Penyesuaian Kas";
+                            qtyTagihan = 0;
+                            row.satuan = "-";
+                            nominalTagihan = Math.abs(nominalTagihan);
+                        }
+
+                        mutasiGrouped[r].tagihan.push({ tgl: row.tanggal, pakan: namaPakanInvoice, qty: qtyTagihan, satuan: row.satuan || 'Kg', nominal: nominalTagihan, terbayar: 0, raw: row });
                     }
                 });
 
@@ -6065,22 +6064,39 @@ async function prosesAntreanBackground() {
                     let nominal = parseFloat(row.nominal) || parseFloat(row.tagihan) || parseFloat(row.pembayaran) || 0;
                     let tglObj = new Date(row.tanggal);
                     
-                    if (row.jenis_mutasi === "Pembayaran" || String(row.pakan_kategori).toLowerCase().includes("bayar")) {
-                        let isTunaiLangsung = String(row.pakan_kategori).toLowerCase().includes('bayar tunai'); 
-                        bayarArr.push({ tgl: row.tanggal, nominal: nominal, sisaBayar: nominal, detailPotongan: [], isTunaiLangsung: isTunaiLangsung });
+                    let namaPkn = row.pakan_kategori || 'Pakan';
+                    let statusMutasi = String(row.status || "").toLowerCase();
+                    let jenisMutasi = String(row.jenis_mutasi || "").toLowerCase();
+                    let ketMutasi = String(row.keterangan || "").toLowerCase();
+                    
+                    let isBayar = jenisMutasi === "pembayaran" || namaPkn.toLowerCase().includes("bayar");
+                    let qtyFisik = parseFloat(row.qty) || 0;
+                    let isReturBarang = (jenisMutasi === "retur barang") || statusMutasi.includes('retur') || (isBayar && qtyFisik > 0 && !namaPkn.toLowerCase().includes("bayar"));
+
+                    if (isBayar && !isReturBarang) {
+                        let isTunaiLangsung = namaPkn.toLowerCase().includes('bayar tunai'); 
+                        bayarArr.push({ 
+                            tgl: row.tanggal, nominal: nominal, sisaBayar: nominal, detailPotongan: [], isTunaiLangsung: isTunaiLangsung,
+                            metode: row.metode || "Cash", bukti_url: row.bukti_url, raw: row 
+                        });
                     } else {
-                        let pakan = row.pakan_kategori || 'Pakan';
-                        let isSisaPiutang = pakan.toLowerCase().includes("sisa piutang");
-                        let qty = isSisaPiutang ? 0 : (parseFloat(row.qty) || 0);
+                        let nominalTagihan = nominal;
+                        let qtyTagihan = qtyFisik;
+                        if (isReturBarang) { 
+                            nominalTagihan = -Math.abs(nominalTagihan); 
+                            qtyTagihan = -Math.abs(qtyTagihan); 
+                        }
                         
-                        if (!isSisaPiutang) {
-                            totalQty += qty;
-                            produkGroup[pakan] = (produkGroup[pakan] || 0) + qty;
+                        let isTarikDeposit = namaPkn.toLowerCase().includes('tarik deposit') || jenisMutasi.includes('tarik deposit') || statusMutasi.includes('tarik deposit') || ketMutasi.includes('tarik deposit');
+                        
+                        if (!isTarikDeposit && !isReturBarang) {
+                            totalQty += qtyTagihan;
+                            produkGroup[namaPkn] = (produkGroup[namaPkn] || 0) + qtyTagihan;
 
                             let blnKey = row.tanggal.substring(0, 7); 
                             if (!chartGroup[blnKey]) chartGroup[blnKey] = { o: 0, q: 0 };
-                            chartGroup[blnKey].o += nominal;
-                            chartGroup[blnKey].q += qty;
+                            chartGroup[blnKey].o += nominalTagihan;
+                            chartGroup[blnKey].q += qtyTagihan;
 
                             if (lastTgl) {
                                 let diffDays = (tglObj - lastTgl) / (1000 * 60 * 60 * 24);
@@ -6088,8 +6104,16 @@ async function prosesAntreanBackground() {
                             }
                             lastTgl = tglObj;
                         }
+                        
+                        let namaPakanInvoice = isReturBarang && !namaPkn.toUpperCase().includes('RETUR') ? `[RETUR] ${namaPkn}` : namaPkn;
+                        if (isTarikDeposit) {
+                            namaPakanInvoice = "Tarik Deposit / Penyesuaian Kas";
+                            qtyTagihan = 0;
+                            row.satuan = "-";
+                            nominalTagihan = Math.abs(nominalTagihan);
+                        }
 
-                        tagihanArr.push({ tgl: row.tanggal, pakan: pakan, qty: qty, satuan: row.satuan || '-', nominal: nominal, terbayar: 0 });
+                        tagihanArr.push({ tgl: row.tanggal, pakan: namaPakanInvoice, qty: qtyTagihan, satuan: row.satuan || '-', nominal: nominalTagihan, terbayar: 0, raw: row });
                     }
                 });
 
@@ -6242,6 +6266,174 @@ async function prosesAntreanBackground() {
                 document.getElementById('analytics-loader').classList.add('hidden');
                 alert("Error menarik data Analisa Supabase: " + e.message);
             });
+        }
+
+        function olahDataEStatement(dataSupabase, tahunTarget) {
+            let tagihanArr = [];
+            let bayarArr = [];
+            
+            dataSupabase.forEach(row => {
+                let namaPkn = row.pakan_kategori || 'Pakan';
+                let statusMutasi = String(row.status || "").toLowerCase();
+                let jenisMutasi = String(row.jenis_mutasi || "").toLowerCase();
+                let ketMutasi = String(row.keterangan || "").toLowerCase();
+                
+                let isBayar = jenisMutasi === "pembayaran" || namaPkn.toLowerCase().includes("bayar");
+                let qtyFisik = parseFloat(row.qty) || 0;
+                let isReturBarang = (jenisMutasi === "retur barang") || statusMutasi.includes('retur') || (isBayar && qtyFisik > 0 && !namaPkn.toLowerCase().includes("bayar"));
+
+                if (isBayar && !isReturBarang) {
+                    let nomCF = parseFloat(row.pembayaran) || parseFloat(row.nominal) || 0;
+                    let isTunaiLangsung = namaPkn.toLowerCase().includes('bayar tunai'); 
+                    
+                    bayarArr.push({ 
+                        tgl: row.tanggal, nominal: nomCF, sisaBayar: nomCF, detailPotongan: [], 
+                        metode: row.metode || "Cash", bukti_url: row.bukti_url, raw: row, isTunaiLangsung: isTunaiLangsung
+                    });
+                } else {
+                    let nominalTagihan = parseFloat(row.tagihan) || parseFloat(row.pembayaran) || parseFloat(row.nominal) || 0;
+                    let qtyTagihan = qtyFisik;
+                    if (isReturBarang) { 
+                        nominalTagihan = -Math.abs(nominalTagihan); 
+                        qtyTagihan = -Math.abs(qtyTagihan); 
+                    }
+                    
+                    let namaPakanInvoice = isReturBarang && !namaPkn.toUpperCase().includes('RETUR') ? `[RETUR] ${namaPkn}` : namaPkn;
+                    
+                    let isTarikDeposit = namaPkn.toLowerCase().includes('tarik deposit') || jenisMutasi.includes('tarik deposit') || statusMutasi.includes('tarik deposit') || ketMutasi.includes('tarik deposit');
+                    if (isTarikDeposit) {
+                        namaPakanInvoice = "Tarik Deposit / Penyesuaian Kas";
+                        qtyTagihan = 0;
+                        row.satuan = "-";
+                        nominalTagihan = Math.abs(nominalTagihan);
+                        row.tagihan = nominalTagihan; // override the raw for E-Statement
+                        row.pakan_kategori = namaPakanInvoice;
+                    }
+
+                    tagihanArr.push({ tgl: row.tanggal, pakan: namaPakanInvoice, qty: qtyTagihan, satuan: row.satuan || 'Kg', nominal: nominalTagihan, terbayar: 0, raw: row });
+                }
+            });
+
+            // FASE 1: EXACT MATCHING (BAYAR TUNAI LUNAS)
+            let groupedNota = {};
+            tagihanArr.forEach(item => {
+                if (!groupedNota[item.tgl]) groupedNota[item.tgl] = { tgl: item.tgl, totalTagihan: 0, terbayar: 0, items: [] };
+                groupedNota[item.tgl].totalTagihan += item.nominal;
+                groupedNota[item.tgl].items.push(item);
+            });
+            let arrNota = Object.values(groupedNota).sort((a,b) => new Date(a.tgl) - new Date(b.tgl));
+
+            for (let i = 0; i < bayarArr.length; i++) {
+                let uangMasuk = bayarArr[i];
+                if (uangMasuk.sisaBayar > 0 && uangMasuk.isTunaiLangsung) {
+                    let matchedNota = arrNota.find(n => n.tgl === uangMasuk.tgl && n.terbayar === 0);
+                    if (matchedNota) {
+                        let dipotong = Math.min(matchedNota.totalTagihan, uangMasuk.sisaBayar);
+                        let tglParts = matchedNota.tgl.split('-');
+                        let tglIndo = tglParts.length === 3 ? `${tglParts[2]}/${tglParts[1]}/${tglParts[0]}` : matchedNota.tgl;
+                        
+                        uangMasuk.detailPotongan.push({ 
+                            tglNota: tglIndo, hutangSblm: matchedNota.totalTagihan, jumlah: dipotong, sisaAkhir: matchedNota.totalTagihan - dipotong, isTunai: true 
+                        });
+                        matchedNota.terbayar += dipotong;
+                        uangMasuk.sisaBayar -= dipotong;
+                    }
+                }
+            }
+
+            // FASE 2: PURE FIFO LOOP UNTUK SISA HUTANG
+            let indexBayar = 0;
+            for (let i = 0; i < arrNota.length; i++) {
+                let nota = arrNota[i];
+                let sisaHutangNota = nota.totalTagihan - nota.terbayar;
+
+                while (sisaHutangNota > 0 && indexBayar < bayarArr.length) {
+                    let uangMasuk = bayarArr[indexBayar];
+                    if (uangMasuk.sisaBayar <= 0) { indexBayar++; continue; }
+                    let dipotong = Math.min(sisaHutangNota, uangMasuk.sisaBayar);
+                    
+                    if (dipotong > 0) {
+                        let tglParts = nota.tgl.split('-');
+                        let tglIndo = tglParts.length === 3 ? `${tglParts[2]}/${tglParts[1]}/${tglParts[0]}` : nota.tgl;
+                        uangMasuk.detailPotongan.push({ 
+                            tglNota: tglIndo, hutangSblm: sisaHutangNota, jumlah: dipotong, sisaAkhir: sisaHutangNota - dipotong 
+                        });
+                    }
+
+                    nota.terbayar += dipotong; uangMasuk.sisaBayar -= dipotong; sisaHutangNota -= dipotong;
+                    if (uangMasuk.sisaBayar <= 0) indexBayar++;
+                }
+                
+                nota.sisaNyata = nota.totalTagihan - nota.terbayar;
+                nota.terbayar_display = nota.terbayar;
+            }
+
+            let saldoAwal = 0, totalTagihan = 0, totalBayar = 0;
+            let groupBulanTgl = {};
+            
+            let prosesRow = (row, detailPotongan = [], sisaDeposit = 0, tagihanTerbayar = 0) => {
+                let tglObj = new Date(row.tanggal);
+                let rTahun = tglObj.getFullYear();
+                let namaPkn = row.pakan_kategori || 'Pakan';
+                let jenisMutasi = String(row.jenis_mutasi || "").toLowerCase();
+                let isBayar = jenisMutasi === "pembayaran" || namaPkn.toLowerCase().includes("bayar");
+                let nom = parseFloat(row.tagihan) || parseFloat(row.pembayaran) || parseFloat(row.nominal) || 0;
+                
+                if (rTahun < tahunTarget) {
+                    saldoAwal += isBayar ? -nom : nom;
+                } else if (rTahun === parseInt(tahunTarget)) {
+                    let key = row.tanggal + "_" + (isBayar ? "BAYAR" : "DO");
+                    if(!groupBulanTgl[key]) {
+                        let infoNota = arrNota.find(n => n.tgl === row.tanggal) || { totalTagihan: 0, terbayar: 0 };
+                        
+                        groupBulanTgl[key] = {
+                            tglObj: tglObj,
+                            bulan: tglObj.getMonth(),
+                            tglStr: ("0" + tglObj.getDate()).slice(-2) + "/" + ("0" + (tglObj.getMonth() + 1)).slice(-2) + "/" + rTahun.toString().substring(2),
+                            jenis: isBayar ? "BAYAR" : "DO",
+                            tagihan: 0, bayar: 0, items: [], ongkir: 0,
+                            metode: isBayar ? (row.metode || "Cash") : "",
+                            detailPotongan: [],
+                            sisaDeposit: 0,
+                            totalTagihanNota: infoNota.totalTagihan,
+                            terbayarNota: infoNota.terbayar
+                        };
+                    }
+                    
+                    if(isBayar) {
+                        groupBulanTgl[key].bayar += nom;
+                        if (detailPotongan.length > 0) groupBulanTgl[key].detailPotongan.push(...detailPotongan);
+                        if (sisaDeposit > 0) groupBulanTgl[key].sisaDeposit += sisaDeposit;
+                    } else {
+                        groupBulanTgl[key].tagihan += nom;
+                        if (namaPkn.toLowerCase().includes("ongkir")) {
+                            groupBulanTgl[key].ongkir += nom;
+                        } else {
+                            groupBulanTgl[key].items.push({ pakan: namaPkn, qty: parseFloat(row.qty)||0, harga: parseFloat(row.harga_satuan)||0 });
+                        }
+                    }
+                }
+            };
+
+            tagihanArr.forEach(t => prosesRow(t.raw, [], 0, t.terbayar));
+            bayarArr.forEach(b => prosesRow(b.raw, b.detailPotongan, b.sisaBayar, 0));
+
+            let mutasiAkhir = [];
+            let runningSaldo = saldoAwal;
+            let sortedKeys = Object.values(groupBulanTgl).sort((a,b) => {
+                if (a.tglObj.getTime() !== b.tglObj.getTime()) return a.tglObj - b.tglObj;
+                return a.jenis === "DO" ? -1 : 1; 
+            });
+            
+            sortedKeys.forEach(g => {
+                totalTagihan += g.tagihan;
+                totalBayar += g.bayar;
+                runningSaldo += (g.tagihan - g.bayar);
+                g.saldo = runningSaldo;
+                mutasiAkhir.push(g);
+            });
+
+            return { saldoAwal: saldoAwal, totalTagihan: totalTagihan, totalBayar: totalBayar, saldoAkhir: runningSaldo, mutasi: mutasiAkhir };
         }
 
         function renderAgingDashboard() {
@@ -8771,159 +8963,6 @@ async function prosesAntreanBackground() {
 
         window.isEStatementLoaded = false;
         window.isFetchingEStatement = false;
-
-        // ============================================
-        // MESIN PENGOLAH DATA E-STATEMENT DARI SUPABASE
-        // ============================================
-        function olahDataEStatement(dataSupabase, tahunTarget) {
-            let tagihanArr = [];
-            let bayarArr = [];
-            
-            // 1. PISAHKAN DATA & SIAPKAN UNTUK FIFO
-            dataSupabase.forEach(row => {
-                let qtyFisik = parseFloat(row.qty) || 0;
-                let isSupabaseBayar = row.jenis_mutasi === "Pembayaran" || String(row.pakan_kategori).toLowerCase().includes("bayar");
-                
-                let isReturBarang = (row.jenis_mutasi === "Retur Barang") || 
-                                    (row.status && String(row.status).toLowerCase().includes('retur')) ||
-                                    (isSupabaseBayar && qtyFisik > 0 && !String(row.pakan_kategori).toLowerCase().includes("bayar"));
-
-                if (isSupabaseBayar && !isReturBarang) {
-                    let nom = parseFloat(row.nominal) || parseFloat(row.pembayaran) || 0;
-                    
-                    // 👇 TAMBAHAN BARU: Tangkap kata "Bayar Tunai"
-                    let isTunaiLangsung = String(row.pakan_kategori).toLowerCase().includes('bayar tunai'); 
-                    
-                    bayarArr.push({ 
-                        tgl: row.tanggal, nominal: nom, sisaBayar: nom, detailPotongan: [], 
-                        metode: row.metode || "Cash", raw: row, isTunaiLangsung: isTunaiLangsung // 👇 TAMBAH INI
-                    });
-                } else {
-                    let nom = parseFloat(row.tagihan) || parseFloat(row.pembayaran) || parseFloat(row.nominal) || 0;
-                    
-                    if (isReturBarang) {
-                        nom = -Math.abs(nom);
-                        row.tagihan = nom; // Timpa raw data agar prosesRow gak bingung
-                        row.qty = -Math.abs(qtyFisik);
-                        row.jenis_mutasi = "Tagihan"; // Paksa sistem menganggapnya Barang (DO)
-                        if (!String(row.pakan_kategori).toUpperCase().includes('RETUR')) {
-                            row.pakan_kategori = `[RETUR] ${row.pakan_kategori || 'Pakan'}`;
-                        }
-                    } else {
-                        row.tagihan = nom; // Pastikan terisi
-                    }
-                    tagihanArr.push({ tgl: row.tanggal, nominal: nom, terbayar: 0, raw: row });
-                }
-            });
-
-            // 2. JALANKAN MESIN FIFO UNTUK MELACAK JEJAK UANG
-            let groupedNota = {};
-            tagihanArr.forEach(item => {
-                if (!groupedNota[item.tgl]) groupedNota[item.tgl] = { tgl: item.tgl, totalTagihan: 0, terbayar: 0 };
-                groupedNota[item.tgl].totalTagihan += item.nominal;
-            });
-            let arrNota = Object.values(groupedNota).sort((a,b) => new Date(a.tgl) - new Date(b.tgl));
-
-            let indexBayar = 0;
-            for (let i = 0; i < arrNota.length; i++) {
-                let nota = arrNota[i];
-                let sisaHutangNota = nota.totalTagihan - nota.terbayar;
-                while (sisaHutangNota > 0 && indexBayar < bayarArr.length) {
-                    let uangMasuk = bayarArr[indexBayar];
-                    if (uangMasuk.sisaBayar <= 0) { indexBayar++; continue; }
-                    let dipotong = Math.min(sisaHutangNota, uangMasuk.sisaBayar);
-                    
-                    // 🔥 PERBAIKAN: OTAMATIS MENGHITUNG JEJAK MATEMATIKA
-                    if (dipotong > 0) {
-                        let tglParts = nota.tgl.split('-');
-                        let tglIndo = tglParts.length === 3 ? `${tglParts[2]}/${tglParts[1]}/${tglParts[0]}` : nota.tgl;
-                        
-                        let sisaSetelahDipotong = sisaHutangNota - dipotong;
-                        let sisaSebelumDipotong = sisaHutangNota;
-                        
-                        uangMasuk.detailPotongan.push({ 
-                            tglNota: tglIndo, 
-                            hutangSblm: sisaSebelumDipotong, 
-                            jumlah: dipotong, 
-                            sisaAkhir: sisaSetelahDipotong 
-                        });
-                    }
-                    
-                    nota.terbayar += dipotong;
-                    uangMasuk.sisaBayar -= dipotong;
-                    sisaHutangNota -= dipotong;
-                    if (uangMasuk.sisaBayar <= 0) indexBayar++;
-                }
-            }
-
-            // 3. GROUPING BULANAN UNTUK E-STATEMENT
-            let saldoAwal = 0, totalTagihan = 0, totalBayar = 0;
-            let groupBulanTgl = {};
-            
-            let prosesRow = (row, detailPotongan = [], sisaDeposit = 0) => {
-                let tglObj = new Date(row.tanggal);
-                let rTahun = tglObj.getFullYear();
-                let isBayar = row.jenis_mutasi === "Pembayaran" || String(row.pakan_kategori).toLowerCase().includes("bayar");
-                let nom = parseFloat(row.nominal) || parseFloat(row.tagihan) || parseFloat(row.pembayaran) || 0;
-                
-                if (rTahun < tahunTarget) {
-                    saldoAwal += isBayar ? -nom : nom;
-                } else if (rTahun === parseInt(tahunTarget)) {
-                    let key = row.tanggal + "_" + (isBayar ? "BAYAR" : "DO");
-                    if(!groupBulanTgl[key]) {
-                        // SULAP: Ambil informasi lunas/belum dari mesin FIFO sebelumnya
-                        let infoNota = groupedNota[row.tanggal] || { totalTagihan: 0, terbayar: 0 };
-                        
-                        groupBulanTgl[key] = {
-                            tglObj: tglObj,
-                            bulan: tglObj.getMonth(),
-                            tglStr: ("0" + tglObj.getDate()).slice(-2) + "/" + ("0" + (tglObj.getMonth() + 1)).slice(-2) + "/" + rTahun.toString().substring(2),
-                            jenis: isBayar ? "BAYAR" : "DO",
-                            tagihan: 0, bayar: 0, items: [], ongkir: 0,
-                            metode: isBayar ? (row.metode || "Cash") : "",
-                            detailPotongan: [],
-                            sisaDeposit: 0,
-                            totalTagihanNota: infoNota.totalTagihan,
-                            terbayarNota: infoNota.terbayar
-                        };
-                    }
-                    
-                    if(isBayar) {
-                        groupBulanTgl[key].bayar += nom;
-                        if (detailPotongan.length > 0) groupBulanTgl[key].detailPotongan.push(...detailPotongan);
-                        if (sisaDeposit > 0) groupBulanTgl[key].sisaDeposit += sisaDeposit;
-                    } else {
-                        groupBulanTgl[key].tagihan += nom;
-                        let pkn = row.pakan_kategori || 'Pakan';
-                        if (pkn.toLowerCase().includes("ongkir")) {
-                            groupBulanTgl[key].ongkir += nom;
-                        } else {
-                            groupBulanTgl[key].items.push({ pakan: pkn, qty: parseFloat(row.qty)||0, harga: parseFloat(row.harga_satuan)||0 });
-                        }
-                    }
-                }
-            };
-
-            tagihanArr.forEach(t => prosesRow(t.raw));
-            bayarArr.forEach(b => prosesRow(b.raw, b.detailPotongan, b.sisaBayar));
-
-            let mutasiAkhir = [];
-            let runningSaldo = saldoAwal;
-            let sortedKeys = Object.values(groupBulanTgl).sort((a,b) => {
-                if (a.tglObj.getTime() !== b.tglObj.getTime()) return a.tglObj - b.tglObj;
-                return a.jenis === "DO" ? -1 : 1; 
-            });
-            
-            sortedKeys.forEach(g => {
-                totalTagihan += g.tagihan;
-                totalBayar += g.bayar;
-                runningSaldo += (g.tagihan - g.bayar);
-                g.saldo = runningSaldo;
-                mutasiAkhir.push(g);
-            });
-
-            return { saldoAwal: saldoAwal, totalTagihan: totalTagihan, totalBayar: totalBayar, saldoAkhir: runningSaldo, mutasi: mutasiAkhir };
-        }
 
         function fetchPreviewEStatement(isPreload = false) {
             let namaKonsumen = document.getElementById('analytics_relasi').value.trim();
