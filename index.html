@@ -5830,11 +5830,11 @@ async function prosesAntreanBackground() {
                         });
                         let arrNota = Object.values(groupedNota).sort((a,b) => new Date(a.tgl) - new Date(b.tgl));
 
-                        // FASE 1: Exact Matching Bayar Tunai Hari H
+                        // FASE 1: EXACT MATCHING (Bayar Tunai Langsung Hari H)
                         for (let i = 0; i < listBayar.length; i++) {
                             let uangMasuk = listBayar[i];
                             if (uangMasuk.sisaBayar > 0 && uangMasuk.isTunaiLangsung) { 
-                                let matchedNota = arrNota.find(n => n.tgl === uangMasuk.tgl && n.totalTagihan > 0 && n.terbayar === 0);
+                                let matchedNota = arrNota.find(n => n.tgl === uangMasuk.tgl && n.totalTagihan > 0 && n.terbayar === 0 && !n.isExactMatched);
                                 if (matchedNota) {
                                     let dipotong = Math.min(matchedNota.totalTagihan, uangMasuk.sisaBayar);
                                     let tglParts = matchedNota.tgl.split('-');
@@ -5845,16 +5845,22 @@ async function prosesAntreanBackground() {
                                     });
                                     matchedNota.terbayar += dipotong;
                                     uangMasuk.sisaBayar -= dipotong;
+                                    
+                                    // 🔥 GEMBOK NOTA AGAR TIDAK DIHIDUPKAN LAGI OLEH FASE 3
+                                    if (matchedNota.terbayar >= matchedNota.totalTagihan) {
+                                        matchedNota.isExactMatched = true; 
+                                    }
                                 }
                             }
                         }
 
-                        // FASE 2: Pure FIFO Penghabis Sisa Hutang
+                        // FASE 2: PURE FIFO PENGHABIS SISA HUTANG (Untuk merapikan teks 'Riwayat Uang Masuk')
                         let indexBayar = 0;
                         for (let i = 0; i < arrNota.length; i++) {
                             let nota = arrNota[i];
+                            if (nota.totalTagihan < 0) continue; // Nota retur tidak dibayar pakai uang
+
                             let sisaHutangNota = nota.totalTagihan - nota.terbayar;
-                            
                             while (sisaHutangNota > 0 && indexBayar < listBayar.length) {
                                 let uangMasuk = listBayar[indexBayar];
                                 if (uangMasuk.sisaBayar <= 0) { indexBayar++; continue; }
@@ -5870,11 +5876,19 @@ async function prosesAntreanBackground() {
                             }
                         }
 
-                        // FASE 3: Reverse FIFO (Presisi Sisa Layar dengan Database)
+                        // FASE 3: REVERSE FIFO (Yang menentukan angka aktual di layar agar presisi dengan Database)
                         let sisaUnpaid = sisaPiutangDB;
                         for (let i = arrNota.length - 1; i >= 0; i--) {
                             let nota = arrNota[i];
-                            if (sisaUnpaid <= 0.01) {
+                            
+                            // 🔥 LEWATI NOTA YANG SUDAH DIGEMBOK (LUNAS DI FASE 1)
+                            if (nota.isExactMatched) {
+                                nota.sisaNyata = 0;
+                                nota.terbayar_display = nota.totalTagihan;
+                                continue;
+                            }
+                            
+                            if (sisaUnpaid <= 0.01 && sisaUnpaid >= -0.01) {
                                 nota.sisaNyata = 0; 
                                 nota.terbayar_display = nota.totalTagihan;
                             } else {
@@ -6144,10 +6158,11 @@ async function prosesAntreanBackground() {
                 });
                 let arrNota = Object.values(groupedNota).sort((a,b) => new Date(a.tgl) - new Date(b.tgl));
 
+                // FASE 1: EXACT MATCHING
                 for (let i = 0; i < bayarArr.length; i++) {
                     let uangMasuk = bayarArr[i];
                     if (uangMasuk.sisaBayar > 0 && uangMasuk.isTunaiLangsung) {
-                        let matchedNota = arrNota.find(n => n.tgl === uangMasuk.tgl && n.terbayar === 0);
+                        let matchedNota = arrNota.find(n => n.tgl === uangMasuk.tgl && n.totalTagihan > 0 && n.terbayar === 0 && !n.isExactMatched);
                         if (matchedNota) {
                             let dipotong = Math.min(matchedNota.totalTagihan, uangMasuk.sisaBayar);
                             let tglParts = matchedNota.tgl.split('-');
@@ -6158,15 +6173,22 @@ async function prosesAntreanBackground() {
                             });
                             matchedNota.terbayar += dipotong;
                             uangMasuk.sisaBayar -= dipotong;
+                            
+                            // 🔥 GEMBOK NOTA
+                            if (matchedNota.terbayar >= matchedNota.totalTagihan) {
+                                matchedNota.isExactMatched = true; 
+                            }
                         }
                     }
                 }
 
+                // FASE 2: RIWAYAT POTONGAN KAS 
                 let indexBayar = 0;
                 for (let i = 0; i < arrNota.length; i++) {
                     let nota = arrNota[i];
-                    let sisaHutangNota = nota.totalTagihan - nota.terbayar;
+                    if (nota.totalTagihan < 0) continue; 
 
+                    let sisaHutangNota = nota.totalTagihan - nota.terbayar;
                     while (sisaHutangNota > 0 && indexBayar < bayarArr.length) {
                         let uangMasuk = bayarArr[indexBayar];
                         if (uangMasuk.sisaBayar <= 0) { indexBayar++; continue; }
@@ -6185,10 +6207,20 @@ async function prosesAntreanBackground() {
                     }
                 }
 
-                let sisaUnpaidGlobal = dataPiutangLokal[namaRelasi] ? dataPiutangLokal[namaRelasi].total_sisa : 0;
+                // FASE 3: REVERSE FIFO UNTUK ANALITIK
+                let sisaUnpaidGlobal = 0;
+                rekapData.forEach(d => { if (d.relasi === namaRelasi) sisaUnpaidGlobal = parseFloat(d.sisa_piutang); });
+
                 for (let i = arrNota.length - 1; i >= 0; i--) {
                     let nota = arrNota[i];
-                    if (sisaUnpaidGlobal <= 0.01) {
+                    
+                    if (nota.isExactMatched) {
+                        nota.sisaNyata = 0;
+                        nota.terbayar_display = nota.totalTagihan;
+                        continue;
+                    }
+                    
+                    if (sisaUnpaidGlobal <= 0.01 && sisaUnpaidGlobal >= -0.01) {
                         nota.sisaNyata = 0; 
                         nota.terbayar_display = nota.totalTagihan;
                     } else {
@@ -6356,10 +6388,11 @@ async function prosesAntreanBackground() {
             });
             let arrNota = Object.values(groupedNota).sort((a,b) => new Date(a.tgl) - new Date(b.tgl));
 
+            // FASE 1: EXACT MATCHING E-STATEMENT
             for (let i = 0; i < bayarArr.length; i++) {
                 let uangMasuk = bayarArr[i];
                 if (uangMasuk.sisaBayar > 0 && uangMasuk.isTunaiLangsung) {
-                    let matchedNota = arrNota.find(n => n.tgl === uangMasuk.tgl && n.terbayar === 0);
+                    let matchedNota = arrNota.find(n => n.tgl === uangMasuk.tgl && n.totalTagihan > 0 && n.terbayar === 0 && !n.isExactMatched);
                     if (matchedNota) {
                         let dipotong = Math.min(matchedNota.totalTagihan, uangMasuk.sisaBayar);
                         let tglParts = matchedNota.tgl.split('-');
@@ -6370,13 +6403,20 @@ async function prosesAntreanBackground() {
                         });
                         matchedNota.terbayar += dipotong;
                         uangMasuk.sisaBayar -= dipotong;
+                        
+                        if (matchedNota.terbayar >= matchedNota.totalTagihan) {
+                            matchedNota.isExactMatched = true; 
+                        }
                     }
                 }
             }
 
+            // FASE 2: PURE FIFO E-STATEMENT
             let indexBayar = 0;
             for (let i = 0; i < arrNota.length; i++) {
                 let nota = arrNota[i];
+                if (nota.totalTagihan < 0) continue; 
+
                 let sisaHutangNota = nota.totalTagihan - nota.terbayar;
 
                 while (sisaHutangNota > 0 && indexBayar < bayarArr.length) {
