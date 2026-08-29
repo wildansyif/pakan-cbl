@@ -7922,10 +7922,13 @@ async function prosesAntreanBackground() {
                         document.body.removeChild(tempInput);
                         alert("✅ Laporan berhasil di-copy! Silakan teruskan/paste manual ke grup WhatsApp.");
                     } else {
-                        let waUrl = `https://wa.me/${NOMOR_WA_ADMIN}?text=${encodeURIComponent(allWatext.trim())}`;
-                        window.open(waUrl, '_blank') || (window.location.href = waUrl);
-                    }
-                }
+        let waUrl = `https://wa.me/${NOMOR_WA_ADMIN}?text=${encodeURIComponent(allWatext.trim())}`;
+        // Terapkan delay yang sama di sini
+        setTimeout(() => {
+            window.open(waUrl, '_blank') || (window.location.href = waUrl);
+        }, 1500);
+    }
+}
 
                 // Kosongkan keranjang
                 keranjangLaporan = [];
@@ -7983,19 +7986,26 @@ async function prosesAntreanBackground() {
             simpanKeAntrianLokal(payload);
 
             if (isLaporWA && pendingTeksWA) {
-                if (currentLoggedPin === "1234") {
-                    let tempInput = document.createElement("textarea");
-                    tempInput.value = pendingTeksWA;
-                    document.body.appendChild(tempInput);
-                    tempInput.select();
-                    document.execCommand("copy");
-                    document.body.removeChild(tempInput);
-                    alert("✅ Laporan berhasil di-copy! Silakan teruskan/paste manual ke grup WhatsApp.");
-                } else {
-                    let waUrl = `https://wa.me/${NOMOR_WA_ADMIN}?text=${encodeURIComponent(pendingTeksWA)}`;
-                    window.open(waUrl, '_blank') || (window.location.href = waUrl);
-                }
-            }
+    if (currentLoggedPin === "1234") {
+        // ... (kode copy text admin tetap biarkan seperti semula)
+        let tempInput = document.createElement("textarea");
+        tempInput.value = pendingTeksWA;
+        document.body.appendChild(tempInput);
+        tempInput.select();
+        document.execCommand("copy");
+        document.body.removeChild(tempInput);
+        alert("✅ Laporan berhasil di-copy! Silakan teruskan/paste manual ke grup WhatsApp.");
+    } else {
+        let waUrl = `https://wa.me/${NOMOR_WA_ADMIN}?text=${encodeURIComponent(pendingTeksWA)}`;
+        
+        // FIX: Beri jeda 1.5 detik sebelum melempar ke WA agar Supabase kebagian waktu upload
+        btn.innerHTML = `<span class="material-symbols-outlined icon-spin" style="font-size:16px;">sync</span> Mengirim Laporan...`;
+        
+        setTimeout(() => {
+            window.open(waUrl, '_blank') || (window.location.href = waUrl);
+        }, 1500); 
+    }
+}
 
             if (payload.lokasi !== '/kandang') document.getElementById('relasi').value = "";
             document.getElementById('ekor').value = ""; document.getElementById('ongkir').value = ""; document.getElementById('catatan').value = "";
