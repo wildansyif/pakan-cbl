@@ -6919,37 +6919,66 @@ async function prosesAntreanBackground() {
                     parsed = JSON.parse(cb.value.replace(/&#39;/g, "'"));
                 }
 
-                if (parsed.dp !== undefined && parsed.dp > 0) {
+                // 1. SELALU Masukkan Rincian Item Pakan yang diambil
+                if (parsed.items) {
+                    parsed.items.forEach(i => { 
+                        i.tgl = parsed.tgl; 
+                        itemInvoiceTerpilih.push(i); 
+                    });
+                }
+
+                // 2. Masukkan Riwayat Potongan / Retur sebagai Baris Pengurang (Minus)
+                if (parsed.potonganMasuk && parsed.potonganMasuk.length > 0) {
+                    parsed.potonganMasuk.forEach(pot => {
+                        let textPotongan = pot.metode === "Retur Barang" ? `[RETUR] ${pot.pakanRetur || 'Pakan'}` : `[DP / ${pot.metode}]`;
+                        itemInvoiceTerpilih.push({
+                            tgl: pot.tglBayar || parsed.tgl,
+                            isPotongan: true, // Tanda khusus untuk pewarnaan merah di PDF
+                            pakan: textPotongan,
+                            qty: 0,
+                            satuan: '-',
+                            nominal: -Math.abs(pot.nominal) // Pastikan nilainya mengurangi subtotal
+                        });
+                    });
+                } else if (parsed.dp > 0) {
+                    // Fallback jika tidak ada data detail potongan tapi ada DP
                     itemInvoiceTerpilih.push({
                         tgl: parsed.tgl,
-                        isSisa: true,
-                        pakan: "Sisa Piutang",
-                        tagihan: parsed.tagihan,
-                        dp: parsed.dp,
-                        nominal: parsed.sisaNyata
+                        isPotongan: true,
+                        pakan: "[Telah di-DP / Dibayar Sebagian]",
+                        qty: 0,
+                        satuan: '-',
+                        nominal: -Math.abs(parsed.dp)
                     });
-                } else if (parsed.items) {
-                    parsed.items.forEach(i => { i.tgl = parsed.tgl; });
-                    itemInvoiceTerpilih.push(...parsed.items);
-                } else {
-                    itemInvoiceTerpilih.push(...parsed);
                 }
             });
 
+            // Urutkan: Pakan di atas, Ongkir di tengah, Potongan Retur/DP paling bawah
             itemInvoiceTerpilih.sort((a, b) => {
                 let tglA = a.tgl.split('/'); let dateA = new Date(tglA[2], tglA[1] - 1, tglA[0]).getTime();
                 let tglB = b.tgl.split('/'); let dateB = new Date(tglB[2], tglB[1] - 1, tglB[0]).getTime();
                 if (dateA !== dateB) return dateA - dateB;
 
+                let isPotA = a.isPotongan ? 1 : 0;
+                let isPotB = b.isPotongan ? 1 : 0;
+                if (isPotA !== isPotB) return isPotA - isPotB; // Potongan selalu dilempar ke bawah
+
                 let isOngkirA = a.pakan ? a.pakan.toLowerCase().includes('ongkir') : false;
                 let isOngkirB = b.pakan ? b.pakan.toLowerCase().includes('ongkir') : false;
-                if (isOngkirA && !isOngkirB) return 1; if (!isOngkirA && isOngkirB) return -1; return 0;
+                if (isOngkirA && !isOngkirB) return 1; 
+                if (!isOngkirA && isOngkirB) return -1; 
+                return 0;
             });
+            
             document.getElementById('inv_input_cash').checked = false;
             document.getElementById('wrap_inv_nominal').classList.add('hidden');
             document.getElementById('inv_nominal_cash').value = "";
-            document.getElementById('inv_input_diskon').checked = false; document.getElementById('inv_input_ket').value = ""; document.getElementById('inv_input_tgl').valueAsDate = new Date();
-            updatePreviewInvoice(); document.getElementById('modal-invoice').classList.remove('hidden');
+            document.getElementById('inv_input_diskon').checked = false; 
+            document.getElementById('inv_input_ket').value = ""; 
+            document.getElementById('inv_input_tgl').valueAsDate = new Date();
+            
+            updatePreviewInvoice(); 
+            document.getElementById('modal-invoice').classList.remove('hidden');
         }
 
         function terbilangRupiah(angka) {
@@ -7020,22 +7049,17 @@ async function prosesAntreanBackground() {
                 let dynamicNominal = it.nominal;
                 let hargaSatuanStr = "";
 
-                if (!it.isSisa) {
-                    // 🔥 DINAMISASI HARGA: Timpa harga cache jadul dengan harga LIVE dari memori HP
-                    if (!it.hargaSatuan && window.currentItems && window.currentItems.length > 0) {
-                        let matchPakan = window.currentItems.find(x => x.nama.toLowerCase() === it.pakan.toLowerCase());
-                        if (matchPakan && matchPakan.harga > 0) {
-                            let qty = parseFloat(it.qty) || 1;
-                            dynamicNominal = matchPakan.harga * qty;
-                            it.nominal = dynamicNominal; // Update nominal di keranjang invoice
-                            hargaSatuanStr = nf.format(matchPakan.harga);
-                        }
-                    }
-                }
-
-                subtotal += dynamicNominal;
-
-                if (it.isSisa) {
+                if (it.isPotongan) {
+                    subtotal += dynamicNominal; // Minus akan otomatis mengurangi subtotal
+                    return `<tr style="font-size:${fSize}; line-height:${lHeight}; color:#c62828; font-weight:500; font-style:italic;">
+                            <td style="padding:${pad}; border:0.5px solid #000; text-align:center;">${i + 1}</td>
+                            <td style="padding:${pad}; border:0.5px solid #000; text-align:center;">${it.tgl}</td>
+                            <td colspan="4" style="padding:${pad}; border:0.5px solid #000; text-align:left;">Potongan: ${it.pakan}</td>
+                            <td style="padding:${pad}; border:0.5px solid #000; text-align:right;">${nf.format(dynamicNominal)}</td>
+                        </tr>`;
+                } else if (it.isSisa) {
+                    // Fallback jadul (Abaikan saja jika tidak terpakai)
+                    subtotal += dynamicNominal;
                     let deskripsiSisa = `Sisa Piutang (Total Rp ${nf.format(it.tagihan)} - Ter-DP Rp ${nf.format(it.dp)})`;
                     return `<tr style="font-size:${fSize}; line-height:${lHeight}; color:#000000; font-weight:500;">
                             <td style="padding:${pad}; border:0.5px solid #000; text-align:center;">${i + 1}</td>
@@ -7043,11 +7067,24 @@ async function prosesAntreanBackground() {
                             <td colspan="4" style="padding:${pad}; border:0.5px solid #000; text-align:left; font-style:italic;">${deskripsiSisa}</td>
                             <td style="padding:${pad}; border:0.5px solid #000; text-align:right;">${nf.format(dynamicNominal)}</td>
                         </tr>`;
-                }
-                else {
+                } else {
+                    // Update Harga Live
+                    if (!it.hargaSatuan && window.currentItems && window.currentItems.length > 0) {
+                        let matchPakan = window.currentItems.find(x => x.nama.toLowerCase() === it.pakan.toLowerCase());
+                        if (matchPakan && matchPakan.harga > 0) {
+                            let qty = parseFloat(it.qty) || 1;
+                            dynamicNominal = matchPakan.harga * qty;
+                            it.nominal = dynamicNominal; 
+                            hargaSatuanStr = nf.format(matchPakan.harga);
+                        }
+                    }
+
                     if (hargaSatuanStr === "") {
                         hargaSatuanStr = it.hargaSatuan > 0 ? nf.format(it.hargaSatuan) : nf.format(dynamicNominal / (it.qty || 1));
                     }
+
+                    subtotal += dynamicNominal;
+
                     let safeSatuan = it.satuan || (it.pakan.toLowerCase().includes('ongkir') ? 'Rit' : 'Kg');
                     return `<tr style="font-size:${fSize}; line-height:${lHeight}; color:#000000; font-weight:500;">
                             <td style="padding:${pad}; border:0.5px solid #000; text-align:center;">${i + 1}</td>
