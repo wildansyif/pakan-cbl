@@ -5825,36 +5825,51 @@ async function prosesAntreanBackground() {
                         });
                         let arrNota = Object.values(groupedNota).sort((a,b) => new Date(a.tgl) - new Date(b.tgl));
 
+                        // ==========================================
+                        // FASE 1: EXACT MATCHING (BAYAR TUNAI LUNAS)
+                        // ==========================================
+                        for (let i = 0; i < listBayar.length; i++) {
+                            let uangMasuk = listBayar[i];
+                            if (uangMasuk.sisaBayar > 0) {
+                                // Cari nota di tanggal yg sama, nominal persis sama, dan belum terbayar
+                                let matchedNota = arrNota.find(n => n.tgl === uangMasuk.tgl && Math.abs(n.totalTagihan - uangMasuk.nominal) < 1 && n.terbayar === 0);
+                                
+                                if (matchedNota) {
+                                    uangMasuk.detailPotongan.push({ 
+                                        tglNota: matchedNota.tgl, hutangSblm: matchedNota.totalTagihan, jumlah: uangMasuk.sisaBayar, sisaAkhir: 0, isTunai: true
+                                    });
+                                    matchedNota.terbayar = matchedNota.totalTagihan;
+                                    uangMasuk.sisaBayar = 0;
+                                }
+                            }
+                        }
+
+                        // ==========================================
+                        // FASE 2: PURE FIFO LOOP UNTUK SISA HUTANG
+                        // ==========================================
                         let indexBayar = 0;
                         for (let i = 0; i < arrNota.length; i++) {
                             let nota = arrNota[i];
                             let sisaHutangNota = nota.totalTagihan - nota.terbayar;
+                            
                             while (sisaHutangNota > 0 && indexBayar < listBayar.length) {
                                 let uangMasuk = listBayar[indexBayar];
                                 if (uangMasuk.sisaBayar <= 0) { indexBayar++; continue; }
                                 let jumlahDipotong = Math.min(sisaHutangNota, uangMasuk.sisaBayar);
-                                if (jumlahDipotong > 0) { uangMasuk.detailPotongan.push({ tglNota: nota.tgl, hutangSblm: sisaHutangNota, jumlah: jumlahDipotong, sisaAkhir: sisaHutangNota - jumlahDipotong }); }
+                                
+                                if (jumlahDipotong > 0) { 
+                                    uangMasuk.detailPotongan.push({ 
+                                        tglNota: nota.tgl, hutangSblm: sisaHutangNota, jumlah: jumlahDipotong, sisaAkhir: sisaHutangNota - jumlahDipotong 
+                                    }); 
+                                }
                                 nota.terbayar += jumlahDipotong; uangMasuk.sisaBayar -= jumlahDipotong; sisaHutangNota -= jumlahDipotong;
                                 if (uangMasuk.sisaBayar <= 0) indexBayar++;
                             }
+                            
+                            // Langsung catat sisa nyatanya, tidak butuh Reverse FIFO lagi
+                            nota.sisaNyata = nota.totalTagihan - nota.terbayar;
+                            nota.terbayar_display = nota.terbayar;
                         }
-
-                        // REVERSE FIFO UNTUK AGING & INVOICE
-                        let sisaUnpaid = sisaPiutangDB;
-                        for (let i = arrNota.length - 1; i >= 0; i--) {
-                            let nota = arrNota[i];
-                            if (sisaUnpaid <= 0.01) {
-                                nota.sisaNyata = 0; nota.terbayar_display = nota.totalTagihan;
-                            } else {
-                                if (nota.totalTagihan >= 0) {
-                                    if (sisaUnpaid >= nota.totalTagihan) {
-                                        nota.sisaNyata = nota.totalTagihan; nota.terbayar_display = 0; sisaUnpaid -= nota.totalTagihan;
-                                    } else {
-                                        nota.sisaNyata = sisaUnpaid; nota.terbayar_display = nota.totalTagihan - sisaUnpaid; sisaUnpaid = 0;
-                                    }
-                                } else {
-                                    nota.sisaNyata = nota.totalTagihan; nota.terbayar_display = 0; sisaUnpaid -= nota.totalTagihan;
-                                }
                             }
                         }
 
@@ -6157,7 +6172,11 @@ async function prosesAntreanBackground() {
                         ketText += `Potong:<br>`;
                         byr.detailPotongan.forEach(pot => {
                             let nParts = pot.tglNota.split('-'); let nTglStr = nParts.length === 3 ? `${nParts[2]}/${nParts[1]}/${nParts[0].substring(2)}` : pot.tglNota;
-                            ketText += `• ${nTglStr}: (Rp ${nf.format(pot.hutangSblm)}) - Rp ${nf.format(pot.jumlah)} = Sisa Rp ${nf.format(pot.sisaAkhir)}<br>`;
+                            if (pot.isTunai) {
+                                ketText += `• <b style="color:#15803d;">[BAYAR TUNAI]</b> Nota ${nTglStr}<br>`;
+                            } else {
+                                ketText += `• ${nTglStr}: (Rp ${nf.format(pot.hutangSblm)}) - Rp ${nf.format(pot.jumlah)} = Sisa Rp ${nf.format(pot.sisaAkhir)}<br>`;
+                            }
                         });
                     }
                     if (byr.sisaBayar > 0 && !byr.isTarikDeposit) ketText += `Sisa DP: Rp ${nf.format(byr.sisaBayar)}<br>`;
@@ -8354,24 +8373,27 @@ async function prosesAntreanBackground() {
                     }
                 });
 
-                let riwayatTerbalik = [...bayarArr].reverse().slice(0, 10);
-                riwayatTerbalik.forEach(byr => {
-                    let bParts = byr.tgl.split('-');
-                    let bTglStr = bParts.length === 3 ? `${bParts[2]}/${bParts[1]}/${bParts[0]}` : byr.tgl;
-                    let ketText = ``;
-                    if (byr.detailPotongan.length > 0) {
-                        ketText += `<i style="color:#888;">Uang ini dipakai untuk memotong:</i><br>`;
-                        byr.detailPotongan.forEach(pot => {
-                            let nParts = pot.tglNota.split('-');
-                            let nTglStr = nParts.length === 3 ? `${nParts[2]}/${nParts[1]}/${nParts[0]}` : pot.tglNota;
-                            let sisaHtml = pot.sisaAkhir <= 0 ? `<b style="color:#8AA624;">Rp 0 (LUNAS)</b>` : `<b style="color:#c62828;">Rp ${nf.format(pot.sisaAkhir)}</b>`;
-                            ketText += `<span style="color:#555; display:inline-block; margin-top:2px;">• Nota tgl ${nTglStr} : (Rp ${nf.format(pot.hutangSblm)}) - (Masuk Rp ${nf.format(pot.jumlah)}) = Sisa ${sisaHtml}</span><br>`;
-                        });
-                    }
-                    if (byr.sisaBayar > 0) {
-                        ketText += `<span style="color:#8AA624; font-weight:bold; display:inline-block; margin-top:4px;">• Sisa Uang / Deposit : Rp ${nf.format(byr.sisaBayar)}</span><br>`;
-                    }
-                    if (ketText === '') ketText = `<i style="color:#888;">Belum digunakan untuk memotong nota manapun.</i>`;
+                let riwayatTerbalik = [...listBayar].reverse().slice(0, 10);
+                        riwayatTerbalik.forEach(byr => {
+                            let bParts = byr.tgl.split('-');
+                            let bTglStr = bParts.length === 3 ? `${bParts[2]}/${bParts[1]}/${bParts[0]}` : byr.tgl;
+                            let ketText = ``;
+                            if (byr.detailPotongan.length > 0) {
+                                ketText += `<i style="color:#888;">Uang ini memotong:</i><br>`;
+                                byr.detailPotongan.forEach(pot => {
+                                    let nParts = pot.tglNota.split('-');
+                                    let nTglStr = nParts.length === 3 ? `${nParts[2]}/${nParts[1]}/${nParts[0]}` : pot.tglNota;
+                                    
+                                    if (pot.isTunai) {
+                                        ketText += `<span style="display:inline-block; margin-top:2px;">• <b style="color:#15803d;">[BAYAR TUNAI]</b> Lunas nota tgl ${nTglStr}</span><br>`;
+                                    } else {
+                                        let sisaHtml = pot.sisaAkhir <= 0 ? `<b style="color:#8AA624;">Rp 0 (LUNAS)</b>` : `<b style="color:#c62828;">Rp ${nf.format(pot.sisaAkhir)}</b>`;
+                                        ketText += `<span style="color:#555; display:inline-block; margin-top:2px;">• Nota tgl ${nTglStr} : (Rp ${nf.format(pot.hutangSblm)}) - (Masuk Rp ${nf.format(pot.jumlah)}) = Sisa ${sisaHtml}</span><br>`;
+                                    }
+                                });
+                            }
+                            if (byr.sisaBayar > 0) ketText += `<span style="color:#8AA624; font-weight:bold; display:inline-block; margin-top:4px;">• Sisa Uang / Deposit : Rp ${nf.format(byr.sisaBayar)}</span><br>`;
+                            if (ketText === '') ketText = `<i style="color:#888;">Belum digunakan untuk memotong nota manapun.</i>`;
                     
                     let linkBukti = (byr.bukti_url && byr.bukti_url.length > 5 && byr.bukti_url !== "-") ? `<a href="${byr.bukti_url}" target="_blank" style="margin-left:5px; color:#4A90E2; text-decoration:none;"><span class="material-symbols-outlined" style="font-size:14px; vertical-align:middle;">receipt_long</span> Bukti</a>` : "";                     riwayatBayar.push({ tgl: bTglStr, nominal: byr.nominal, ket: ketText, link: linkBukti });
                 });
