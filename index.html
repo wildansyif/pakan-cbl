@@ -3541,7 +3541,7 @@
     </div>
 
     <script>
-        const APP_VERSION = "v5.3";
+        const APP_VERSION = "v5.5";
         if (localStorage.getItem('cbl_app_version') !== APP_VERSION) {
             localStorage.setItem('cbl_app_version', APP_VERSION);
             if ('caches' in window) {
@@ -9812,10 +9812,26 @@ async function prosesAntreanBackground() {
                     try { res = JSON.parse(res); } catch (e) { }
                 }
 
-                // Abaikan jika ini adalah HP/Device kita sendiri yang baru aja ngirim
+                // 1. Abaikan jika ini adalah HP kita sendiri yang baru aja ngirim
                 if (res.device_id === window.myDeviceId) return;
 
                 let payloadData = res.data_payload;
+
+                // 2. ADAPTER UNTUK FLAT ROW DARI SUPABASE WEBHOOK
+                // Ubah format eceran tabel menjadi format keranjang agar PWA tidak crash
+                if (payloadData && payloadData.pakan && payloadData.qty !== undefined) {
+                    let locReal = payloadData.cabang === 'SPN' ? '/spn' : (payloadData.cabang === 'RPH' ? '/rph' : '/pm');
+                    if (String(payloadData.relasi).toLowerCase().includes('kandang')) {
+                        locReal = payloadData.cabang === 'SPN' ? '/spn_kandang' : '/kandang';
+                    }
+                    payloadData = {
+                        lokasi: locReal,
+                        status: payloadData.status,
+                        relasi: payloadData.relasi,
+                        items: { [payloadData.pakan]: payloadData.qty },
+                        tanggal: payloadData.tanggal || new Date().toISOString().split('T')[0]
+                    };
+                }
 
                 // =========================================
                 // BIKIN POP-UP MENGAMBANG (TOAST NOTIFICATION)
@@ -9829,15 +9845,18 @@ async function prosesAntreanBackground() {
                     notifSound.play().catch(e => console.log("Browser memblokir suara otomatis"));
                 } catch (err) { }
 
-                // Desain popup-nya melayang di tengah atas
+                // Agar pop-up tidak numpuk jadi satu jika ada banyak item bersamaan (Bulk Insert)
+                let existingToasts = document.querySelectorAll('[id^="toast-"]').length;
+                popup.id = 'toast-' + Math.floor(Math.random() * 1000);
                 popup.style.cssText = "position:fixed; top:-60px; left:50%; transform:translateX(-50%); background:#4A90E2; color:white; padding:10px 25px; border-radius:25px; font-weight:bold; font-size:12px; display:flex; align-items:center; gap:8px; box-shadow:0 5px 15px rgba(0,0,0,0.3); z-index:999999; transition: top 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);";
 
                 document.body.appendChild(popup);
 
-                // Animasi turun (Muncul)
-                setTimeout(() => { popup.style.top = "20px"; }, 50);
+                // Animasi turun berjejer rapi
+                let topPosition = 20 + (existingToasts * 45); 
+                setTimeout(() => { popup.style.top = topPosition + "px"; }, 50);
 
-                // Animasi naik (Hilang) lalu dihapus setelah 4 detik
+                // Animasi naik lalu dihapus setelah 4 detik
                 setTimeout(() => {
                     popup.style.top = "-60px";
                     setTimeout(() => { if (popup.parentNode) popup.remove(); }, 500);
@@ -9858,7 +9877,7 @@ async function prosesAntreanBackground() {
                     }
                     localStorage.setItem('stok_kandang_ptcbl', JSON.stringify(globalStokKandang));
                     let ind = document.getElementById('stok-kandang-indicator');
-                    if (ind) ind.innerHTML = ICON_CLOUD;
+                    if (ind) ind.innerHTML = `<span class="material-symbols-outlined" style="font-size:18px; vertical-align:middle; color:#FEA405;" title="Data Lokal (Belum Tersinkron)">cloud</span>`;
                     if (typeof renderMiniDashboardKandang === 'function') {
                         renderMiniDashboardKandang();
                     }
