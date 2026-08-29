@@ -5756,6 +5756,9 @@ async function prosesAntreanBackground() {
                     let r = row.relasi;
                     if (!mutasiGrouped[r]) mutasiGrouped[r] = { tagihan: [], bayar: [] };
                     
+                    // PENYELARASAN 1: Ekstraksi nominal 100% sama dengan menu Analisa
+                    let nominalUniversal = parseFloat(row.nominal) || parseFloat(row.tagihan) || parseFloat(row.pembayaran) || 0;
+                    
                     let namaPkn = row.pakan_kategori || 'Pakan';
                     let statusMutasi = String(row.status || "").toLowerCase();
                     let jenisMutasi = String(row.jenis_mutasi || "").toLowerCase();
@@ -5766,13 +5769,12 @@ async function prosesAntreanBackground() {
                     let isReturBarang = (jenisMutasi === "retur barang") || statusMutasi.includes('retur') || (isBayar && qtyFisik > 0 && !namaPkn.toLowerCase().includes("bayar"));
 
                     if (isBayar && !isReturBarang) {
-                        let nomCF = parseFloat(row.pembayaran) || parseFloat(row.nominal) || 0;
                         let isTunaiLangsung = namaPkn.toLowerCase().includes('bayar tunai'); 
                         
                         mutasiGrouped[r].bayar.push({ 
                             tgl: row.tanggal, 
-                            sisaBayar: nomCF, 
-                            nominal: nomCF, 
+                            sisaBayar: nominalUniversal, 
+                            nominal: nominalUniversal, 
                             detailPotongan: [], 
                             bukti_url: row.bukti_url,
                             isTunaiLangsung: isTunaiLangsung,
@@ -5781,7 +5783,7 @@ async function prosesAntreanBackground() {
                         });
                     } 
                     else {
-                        let nominalTagihan = parseFloat(row.tagihan) || parseFloat(row.pembayaran) || parseFloat(row.nominal) || 0;
+                        let nominalTagihan = nominalUniversal;
                         let qtyTagihan = qtyFisik;
                         if (isReturBarang) { 
                             nominalTagihan = -Math.abs(nominalTagihan); 
@@ -5827,7 +5829,7 @@ async function prosesAntreanBackground() {
                         });
                         let arrNota = Object.values(groupedNota).sort((a,b) => new Date(a.tgl) - new Date(b.tgl));
 
-                        // FASE 1: EXACT MATCHING (BAYAR TUNAI LUNAS)
+                        // PENYELARASAN 2: FASE 1 (EXACT MATCHING BAYAR TUNAI LUNAS)
                         for (let i = 0; i < listBayar.length; i++) {
                             let uangMasuk = listBayar[i];
                             if (uangMasuk.sisaBayar > 0 && uangMasuk.isTunaiLangsung) { 
@@ -5846,7 +5848,7 @@ async function prosesAntreanBackground() {
                             }
                         }
 
-                        // FASE 2: PURE FIFO LOOP UNTUK SISA HUTANG
+                        // PENYELARASAN 3: FASE 2 (PURE FIFO PENGHABIS SISA BAYAR)
                         let indexBayar = 0;
                         for (let i = 0; i < arrNota.length; i++) {
                             let nota = arrNota[i];
@@ -5866,6 +5868,7 @@ async function prosesAntreanBackground() {
                                 if (uangMasuk.sisaBayar <= 0) indexBayar++;
                             }
                             
+                            // SET HASIL AKHIR (Tanpa diganggu kode REVERSE FIFO lawas)
                             nota.sisaNyata = nota.totalTagihan - nota.terbayar;
                             nota.terbayar_display = nota.terbayar;
                         }
