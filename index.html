@@ -5860,9 +5860,7 @@ async function prosesAntreanBackground() {
                                 if (jumlahDipotong > 0) { 
                                     let tglParts = nota.tgl.split('-');
                                     let tglIndo = tglParts.length === 3 ? `${tglParts[2]}/${tglParts[1]}/${tglParts[0]}` : nota.tgl;
-                                    uangMasuk.detailPotongan.push({ 
-                                        tglNota: tglIndo, hutangSblm: sisaHutangNota, jumlah: jumlahDipotong, sisaAkhir: sisaHutangNota - jumlahDipotong 
-                                    }); 
+                                    uangMasuk.detailPotongan.push({ tglNota: tglIndo, hutangSblm: sisaHutangNota, jumlah: jumlahDipotong, sisaAkhir: sisaHutangNota - jumlahDipotong }); 
                                 }
                                 nota.terbayar += jumlahDipotong; uangMasuk.sisaBayar -= jumlahDipotong; sisaHutangNota -= jumlahDipotong;
                                 if (uangMasuk.sisaBayar <= 0) indexBayar++;
