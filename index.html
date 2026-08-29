@@ -6511,11 +6511,18 @@ async function prosesAntreanBackground() {
                     }
 
                     await navigator.share({ title: 'Invoice Pakan CBL', text: pesanWA, files: [filePdf] });
-                    statusLabel.innerText = "Berhasil dibagikan!"; setTimeout(() => { document.getElementById('modal-invoice').classList.add('hidden'); }, 2000);
-                } else { alert("Browser tidak mendukung share file langsung."); }
+                    statusLabel.innerText = "Berhasil dibagikan!"; 
+                    setTimeout(() => { document.getElementById('modal-invoice').classList.add('hidden'); }, 2000);
+                } else { 
+                    alert("Browser tidak mendukung share file langsung."); 
+                }
             } catch (e) {
                 modal.style.position = oriModalPos; wrapper.style.overflowX = oriWrapperOverflow; wrapper.style.WebkitOverflowScrolling = oriWrapperScrolling;
                 statusLabel.innerText = "⚠️ Gagal mencetak dokumen."; console.log(e);
+            } finally {
+                // 👇 BLOK INI YANG DITAMBAHKAN UNTUK MERESET TOMBOL SETELAH SELESAI / ERROR
+                btn.innerHTML = `<span class="material-symbols-outlined" style="font-size:18px;">share</span> SHARE PDF WA`;
+                btn.disabled = false;
             }
         }
 
