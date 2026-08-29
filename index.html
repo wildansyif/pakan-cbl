@@ -4280,13 +4280,14 @@ async function prosesAntreanBackground() {
                     status: pl.status || 'Keluar',
                     relasi: pl.relasi || '-',
                     alamat: pl.alamat || '-',
-                    ekor: pl.ekor || 0,       // <--- INI DIA YANG KELUPAAN BANG! 🔥
+                    ekor: pl.ekor || 0,       
                     pakan: pakanName,
                     qty: itemQty,
                     satuan: satuan,
                     harga_satuan: harga,
                     catatan: extraCatatan.trim(),
-                    hash_str: pl.hashStr + '_' + pakanName
+                    hash_str: pl.hashStr + '_' + pakanName,
+                    device_id: pl.device_id    // <--- TAMBAHKAN BARIS INI
                 });
             }
 
@@ -4303,13 +4304,14 @@ async function prosesAntreanBackground() {
                     status: pl.status || 'Keluar',
                     relasi: pl.relasi || '-',
                     alamat: pl.alamat || '-',
-                    ekor: 0,                           // <--- CUKUP TULIS 0 DI SINI UNTUK ONGKIR
-                    pakan: 'Ongkir Pengiriman',        // <--- KEMBALIKAN JADI TEKS 'Ongkir Pengiriman'
-                    qty: 1,                            // <--- QTY NYA 1
-                    satuan: 'Rit',                     // <--- SATUANNYA RIT
-                    harga_satuan: ongkirVal,           // <--- HARGA SATUANNYA DARI INPUT ONGKIR
+                    ekor: 0,                           
+                    pakan: 'Ongkir Pengiriman',        
+                    qty: 1,                            
+                    satuan: 'Rit',                     
+                    harga_satuan: ongkirVal,           
                     catatan: 'Biaya Pengiriman',
-                    hash_str: (pl.hashStr || '') + '_ONGKIR'
+                    hash_str: (pl.hashStr || '') + '_ONGKIR',
+                    device_id: pl.device_id    // <--- DAN TAMBAHKAN JUGA DI SINI
                 });
             }
 
