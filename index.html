@@ -10806,6 +10806,14 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
                 let arrMsk = tglKeys.map(d => trendData[d].masuk);
                 let arrKlr = tglKeys.map(d => trendData[d].keluar);
 
+                // 🔥 KALKULASI SALDO BERJALAN (NET FLOW PERIODE TERSEBUT)
+                let arrStok = [];
+                let runningStok = 0;
+                tglKeys.forEach(d => {
+                    runningStok += (trendData[d].masuk - trendData[d].keluar);
+                    arrStok.push(runningStok);
+                });
+
                 let ctxTrend = document.getElementById('chartApTrend').getContext('2d');
                 if (window.chartApTrendObj) window.chartApTrendObj.destroy();
                 
@@ -10814,8 +10822,11 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
                     data: {
                         labels: arrLabels,
                         datasets: [
-                            { label: 'Keluar (Kg)', data: arrKlr, borderColor: '#1565c0', backgroundColor: '#1565c0', tension: 0.3, fill: false, borderWidth: 2, pointRadius: 3 },
-                            { label: 'Masuk (Kg)', data: arrMsk, borderColor: '#8AA624', backgroundColor: '#8AA624', tension: 0.3, fill: false, borderWidth: 2, pointRadius: 3 }
+                            { label: 'Masuk (Kg)', data: arrMsk, borderColor: '#8AA624', backgroundColor: '#8AA624', tension: 0.3, fill: false, borderWidth: 2, pointRadius: 3, yAxisID: 'yUtama', order: 2 },
+                            { label: 'Keluar (Kg)', data: arrKlr, borderColor: '#1565c0', backgroundColor: '#1565c0', tension: 0.3, fill: false, borderWidth: 2, pointRadius: 3, yAxisID: 'yUtama', order: 3 },
+                            
+                            // 🔥 DATASET STOK BARU (Garis Oranye Putus-Putus dengan background transparan)
+                            { label: 'Pertumbuhan Saldo (Kg)', data: arrStok, borderColor: '#FEA405', backgroundColor: 'rgba(254, 164, 5, 0.15)', tension: 0.3, fill: true, borderWidth: 2, pointRadius: 0, borderDash: [5, 5], yAxisID: 'yKanan', order: 1 }
                         ]
                     },
                     options: {
@@ -10825,7 +10836,16 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
                             legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } },
                             datalabels: { display: false } 
                         },
-                        scales: { y: { beginAtZero: true } }
+                        scales: { 
+                            yUtama: { 
+                                type: 'linear', position: 'left', beginAtZero: true, 
+                                ticks: { font: { size: 9 }, callback: val => val.toLocaleString('id-ID') }
+                            },
+                            yKanan: { 
+                                type: 'linear', position: 'right', grid: { drawOnChartArea: false },
+                                ticks: { font: { size: 9 }, color: '#FEA405', callback: val => (val > 0 ? '+' : '') + val.toLocaleString('id-ID') }
+                            }
+                        }
                     }
                 });
 
