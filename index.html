@@ -2378,14 +2378,6 @@
                         <div id="pdf-trend" class="pdf-only"></div> <!-- INI TEKS SILUMANNYA -->
                     </div>
 
-                    <!-- DIAGRAM ALOKASI KELUAR BARU -->
-                    <div class="rekap-card">
-                        <div class="rekap-title"><span class="material-symbols-outlined"
-                                style="font-size:18px;">stacked_line_chart</span> Tren Alokasi Keluar Per Bulan (Kg)</div>
-                        <div style="height: 250px; position: relative;"><canvas id="chartAlokasiBulan"></canvas></div>
-                        <div id="pdf-alokasi-bulan" class="pdf-only"></div> <!-- TEKS SILUMAN PDF -->
-                    </div>
-
                     <div class="rekap-card hidden" id="cardDailyGlobal" style="border-left: 4px solid #FEA405;">
                         <div class="rekap-title"><span class="material-symbols-outlined"
                                 style="font-size:18px;">ssid_chart</span> Tren Harian Volume vs Omzet</div>
@@ -5313,9 +5305,7 @@ async function prosesAntreanBackground() {
             let tOmzet = 0, tHPP = 0, tQty = 0, tOPR = 0, tMasuk = 0, tOngkir = 0;
             let tPiutangSehat = 0, tPiutangTelat = 0;
 
-            let chartBln = {}; 
-            for (let i = 1; i <= 12; i++) chartBln[("0" + i).slice(-2)] = { o: 0, q: 0, jual: 0, pakai: 0, giling: 0, mutasi: 0 };
-            
+            let chartBln = { '01': { o: 0, q: 0 }, '02': { o: 0, q: 0 }, '03': { o: 0, q: 0 }, '04': { o: 0, q: 0 }, '05': { o: 0, q: 0 }, '06': { o: 0, q: 0 }, '07': { o: 0, q: 0 }, '08': { o: 0, q: 0 }, '09': { o: 0, q: 0 }, '10': { o: 0, q: 0 }, '11': { o: 0, q: 0 }, '12': { o: 0, q: 0 } };
             let chartHari = {}; for (let d = 1; d <= 31; d++) chartHari[d] = { o: 0, q: 0 };
 
             let produkMap = {}, konsumenMap = {}, oprMap = {};
@@ -5338,16 +5328,7 @@ async function prosesAntreanBackground() {
                     let isKeluar = row.s === 0;
                     
                     // 🔥 CEGATAN ONGKIR: Deteksi pakan siluman
-                   let isOngkir = p.toLowerCase().includes('ongkir');
-
-                    // 🔥 PENARIK DATA ALOKASI BULANAN (BARU)
-                    if (isKeluar && !isOngkir) {
-                        let bKey = ("0" + row.b).slice(-2);
-                        if (row.k === "Penjualan") chartBln[bKey].jual += row.q;
-                        else if (row.k === "Pemakaian") chartBln[bKey].pakai += row.q;
-                        else if (row.k === "Giling") chartBln[bKey].giling += row.q;
-                        else if (row.k === "Mutasi") chartBln[bKey].mutasi += row.q;
-                    }
+                    let isOngkir = p.toLowerCase().includes('ongkir');
 
                     if (isKeluar && isPenjualan) {
                         if (!isOngkir) {
@@ -5422,16 +5403,7 @@ async function prosesAntreanBackground() {
             }
 
             let arrOmzet = [], arrQty = [];
-            let arrJual = [], arrPakai = [], arrGiling = [], arrMutasi = [];
-            for (let i = 1; i <= 12; i++) { 
-                let bKey = ("0" + i).slice(-2); 
-                arrOmzet.push(chartBln[bKey].o); 
-                arrQty.push(chartBln[bKey].q); 
-                arrJual.push(chartBln[bKey].jual);
-                arrPakai.push(chartBln[bKey].pakai);
-                arrGiling.push(chartBln[bKey].giling);
-                arrMutasi.push(chartBln[bKey].mutasi);
-            }
+            for (let i = 1; i <= 12; i++) { let bKey = ("0" + i).slice(-2); arrOmzet.push(chartBln[bKey].o); arrQty.push(chartBln[bKey].q); }
 
             let daysInMonth = 31; if (isFiltered) daysInMonth = new Date(fY, fM, 0).getDate();
             let dailyLabels = [], dailyOmzet = [], dailyQty = [];
@@ -5471,7 +5443,6 @@ async function prosesAntreanBackground() {
             return {
                 omzet: tOmzet, ongkir: tOngkir, hpp: tHPP, opr: tOPR, profit: tOmzet + tOngkir - tHPP - tOPR, masuk: tMasuk, qty: tQty, ptgSehat: tPiutangSehat, ptgTelat: tPiutangTelat,
                 chartMix: { label: ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Ags", "Sep", "Okt", "Nov", "Des"], omzet: arrOmzet, qty: arrQty },
-                chartAlokasiBulan: { jual: arrJual, pakai: arrPakai, giling: arrGiling, mutasi: arrMutasi }, // WADAH BARU
                 chartDaily: { label: dailyLabels, omzet: dailyOmzet, qty: dailyQty }, chartDonut: { label: dnLabel, data: dnData },
                 chartOpr: { label: Object.keys(oprMap), data: Object.values(oprMap) }, dailyCF: rincianCF.reverse().slice(0, 50),
                 topKonsumen: Object.keys(konsumenMap).map(k => ({ n: k, v: konsumenMap[k].o, q: konsumenMap[k].q })).sort((a, b) => b.v - a.v).slice(0, 5),
@@ -5597,31 +5568,6 @@ async function prosesAntreanBackground() {
             if (chOpr) chOpr.destroy();
             chOpr = new Chart(document.getElementById('chartOprGlobal').getContext('2d'), { type: 'doughnut', data: { labels: d.chartOpr.label, datasets: [{ data: d.chartOpr.data, backgroundColor: ['#FEA405', '#8AA624', '#DBE4C9', '#c62828', '#1a5c40'] }] }, plugins: [ChartDataLabels], options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: { size: 9 } } }, datalabels: { color: '#fff', font: { weight: 'bold', size: 10 }, formatter: (value, ctx) => { let sum = ctx.dataset.data.reduce((a, b) => a + b, 0); if (sum === 0) return "0%"; return (value * 100 / sum).toFixed(0) + "%"; } } } } });
 
-            if (window.chAlokasiBulan) window.chAlokasiBulan.destroy();
-            window.chAlokasiBulan = new Chart(document.getElementById('chartAlokasiBulan').getContext('2d'), {
-                type: 'line',
-                data: {
-                    labels: d.chartMix.label,
-                    datasets: [
-                        { label: 'Penjualan', data: d.chartAlokasiBulan.jual, borderColor: '#1565c0', backgroundColor: '#1565c0', tension: 0.3, fill: false, borderWidth: 2, pointRadius: 3 },
-                        { label: 'Pemakaian', data: d.chartAlokasiBulan.pakai, borderColor: '#4A90E2', backgroundColor: '#4A90E2', tension: 0.3, fill: false, borderWidth: 2, pointRadius: 3 },
-                        { label: 'Giling', data: d.chartAlokasiBulan.giling, borderColor: '#9C27B0', backgroundColor: '#9C27B0', tension: 0.3, fill: false, borderWidth: 2, pointRadius: 3 },
-                        { label: 'Mutasi', data: d.chartAlokasiBulan.mutasi, borderColor: '#FEA405', backgroundColor: '#FEA405', tension: 0.3, fill: false, borderWidth: 2, pointRadius: 3 }
-                    ]
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    interaction: { mode: 'index', intersect: false },
-                    plugins: { 
-                        legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } },
-                        datalabels: { display: false } 
-                    },
-                    scales: { 
-                        y: { beginAtZero: true, ticks: { font: { size: 9 }, callback: val => (val / 1000) + 't' } } 
-                    }
-                }
-            });
-        
             renderChartMix();
             renderLossGain(d.lossGainData, d.isFiltered);
             
