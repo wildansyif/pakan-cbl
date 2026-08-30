@@ -2710,6 +2710,11 @@
                 <!-- ALOKASI FISIK (LAMA) -->
                 <div class="rekap-title" style="margin-top:15px; margin-bottom:10px; color:#555;"><span class="material-symbols-outlined" style="font-size:18px;">dashboard</span> Rincian Alokasi Volume</div>
                 <div class="metrics-grid-desktop" id="ap-metrics-grid">
+                    <!-- DIAGRAM ALOKASI & GROWTH BULANAN (BARU) -->
+                <div class="rekap-card" style="margin-top:15px;">
+                    <div class="rekap-title"><span class="material-symbols-outlined" style="font-size:18px;">stacked_bar_chart</span> Tren Alokasi Keluar & Growth (Bulanan)</div>
+                    <div style="height: 250px; position: relative;"><canvas id="chartApAlokasiGrowth"></canvas></div>
+                </div>
                     <div class="m-card">
                         <div class="m-title">Penjualan <span class="material-symbols-outlined" style="float:right; font-size:16px; color:#1565c0;">shopping_cart</span></div>
                         <div id="ap_val_jual" class="m-val" style="color:#333;">0 Kg</div>
@@ -10769,6 +10774,7 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
                 let tOmzet = 0, tHpp = 0; // Variabel Keuangan
                 let topKonsumen = {};
                 let trendData = {}; // Variabel Tren Waktu
+                let apBulanGroup = {}; // WADAH BARU UNTUK GRAFIK TUMPUK
                 
                 let kelompokSapi = ['bx', 'domba', 'rd', 'rl', 'darbun', 'laktasi', 'kapalang', 'dewasa', 'jantan', 'pedet', 'kerbau', 'bunting'];
 
@@ -10805,6 +10811,19 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
                         
                         cKat = "Pemakaian";
                         if (namaRelasi.includes("rph") || namaRelasi.includes("spn") || namaRelasi.includes("cibulakan") || namaRelasi.includes("pembibitan") || namaRelasi.includes("mutasi")) cKat = "Mutasi";
+                    }
+
+                    // 🔥 TAMBAHAN BARU: Merekap Data Bulanan untuk Grafik Tumpuk
+                    if (isKeluar) {
+                        let blnKey = tgl.substring(0, 7); // Format: YYYY-MM
+                        if (!apBulanGroup[blnKey]) apBulanGroup[blnKey] = { jual: 0, pakai: 0, giling: 0, mutasi: 0, tot: 0 };
+                        
+                        if (cKat === "Penjualan") apBulanGroup[blnKey].jual += qty;
+                        else if (cKat === "Pemakaian") apBulanGroup[blnKey].pakai += qty;
+                        else if (cKat === "Giling") apBulanGroup[blnKey].giling += qty;
+                        else if (cKat === "Mutasi") apBulanGroup[blnKey].mutasi += qty;
+                        
+                        apBulanGroup[blnKey].tot += qty;
                     }
 
                     totalKeluar += qty;
@@ -10898,6 +10917,76 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
                             yKanan: { 
                                 type: 'linear', position: 'right', grid: { drawOnChartArea: false },
                                 ticks: { font: { size: 9 }, color: '#FEA405', callback: val => (val > 0 ? '+' : '') + val.toLocaleString('id-ID') }
+                            }
+                        }
+                    }
+                });
+                // ======================================
+                // RENDER CHART ALOKASI & GROWTH BULANAN (BARU)
+                // ======================================
+                let apBlnKeys = Object.keys(apBulanGroup).sort();
+                let blnLabels = [], dJual = [], dPakai = [], dGiling = [], dMutasi = [], dTot = [], dGrowth = [];
+                
+                apBlnKeys.forEach((k, i) => {
+                    let pts = k.split('-');
+                    let mName = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Ags','Sep','Okt','Nov','Des'][parseInt(pts[1])-1];
+                    blnLabels.push(`${mName} ${pts[0].substring(2)}`); // Contoh: Agu 26
+                    
+                    let dt = apBulanGroup[k];
+                    dJual.push(dt.jual);
+                    dPakai.push(dt.pakai);
+                    dGiling.push(dt.giling);
+                    dMutasi.push(dt.mutasi);
+                    dTot.push(dt.tot);
+                    
+                    // Hitung Growth (Bulan sebelumnya vs Bulan ini)
+                    let prev = i === 0 ? 0 : dTot[i-1];
+                    let growth = prev === 0 ? (dt.tot > 0 ? 100 : 0) : ((dt.tot - prev) / prev) * 100;
+                    dGrowth.push(growth);
+                });
+
+                let ctxMixAp = document.getElementById('chartApAlokasiGrowth').getContext('2d');
+                if (window.chartApMixObj) window.chartApMixObj.destroy();
+                
+                window.chartApMixObj = new Chart(ctxMixAp, {
+                    type: 'bar',
+                    data: {
+                        labels: blnLabels,
+                        datasets: [
+                            { type: 'line', label: 'Growth (%)', data: dGrowth, borderColor: '#1b5e20', backgroundColor: '#1b5e20', tension: 0.1, borderWidth: 2, pointRadius: 3, yAxisID: 'yGrowth', order: 1 },
+                            { type: 'bar', label: 'Penjualan', data: dJual, backgroundColor: '#1565c0', yAxisID: 'yQty', stack: 'Stack 0', order: 2 },
+                            { type: 'bar', label: 'Pemakaian', data: dPakai, backgroundColor: '#4A90E2', yAxisID: 'yQty', stack: 'Stack 0', order: 2 },
+                            { type: 'bar', label: 'Giling', data: dGiling, backgroundColor: '#9C27B0', yAxisID: 'yQty', stack: 'Stack 0', order: 2 },
+                            { type: 'bar', label: 'Mutasi', data: dMutasi, backgroundColor: '#FEA405', yAxisID: 'yQty', stack: 'Stack 0', order: 2 }
+                        ]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+                        scales: {
+                            x: { stacked: true },
+                            yQty: { type: 'linear', position: 'left', stacked: true, ticks: { font: { size: 9 }, callback: (val) => val / 1000 + 't' }, beginAtZero: true },
+                            yGrowth: { type: 'linear', position: 'right', display: false, min: -300, suggestedMax: 150 }
+                        },
+                        plugins: {
+                            legend: { display: true, position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } },
+                            datalabels: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: function (c) {
+                                        if (c.dataset.yAxisID === 'yQty') return c.dataset.label + ': ' + nf.format(c.raw) + ' Kg';
+                                        if (c.dataset.yAxisID === 'yGrowth') {
+                                            let sign = c.raw > 0 ? '+' : '';
+                                            return 'Growth: ' + sign + c.raw.toFixed(1) + '%';
+                                        }
+                                        return '';
+                                    },
+                                    afterBody: function(c) {
+                                        // Menjumlahkan total alokasi saat di hover
+                                        let total = c.reduce((sum, item) => item.dataset.yAxisID === 'yQty' ? sum + item.raw : sum, 0);
+                                        if (total > 0) return '\nTotal Keluar: ' + nf.format(total) + ' Kg';
+                                        return '';
+                                    }
+                                }
                             }
                         }
                     }
