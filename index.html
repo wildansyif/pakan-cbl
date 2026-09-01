@@ -6950,12 +6950,19 @@ async function prosesAntreanBackground() {
                         });
                     });
                 } 
-                // Jika bentrok karena hutang lama tersembunyi (seperti Asep Dani), cetak simpel saja
+                // Jika bentrok karena hutang lama tersembunyi (seperti Asep Dani), cetak simpel namun tetap bawa tanggalnya
                 else if (parsed.dp > 0) {
+                    // Mencegat tanggal dari riwayat potongan jika ada
+                    let tglTeks = "";
+                    if (parsed.potonganMasuk && parsed.potonganMasuk.length > 0) {
+                        let uniqueDates = [...new Set(parsed.potonganMasuk.map(p => p.tglBayar))];
+                        tglTeks = ` tgl ${uniqueDates.join(', ')}`;
+                    }
+
                     itemInvoiceTerpilih.push({
-                        tgl: parsed.tgl,
+                        tgl: parsed.tgl, // Tanggal baris tetap mengikuti tanggal DO
                         isPotongan: true,
-                        pakan: "[Telah di-DP / Dibayar Sebagian]",
+                        pakan: `[Telah di-DP / Dibayar Sebagian]${tglTeks}`, 
                         qty: 0,
                         satuan: '-',
                         nominal: -Math.abs(parsed.dp)
