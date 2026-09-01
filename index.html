@@ -7005,32 +7005,32 @@ async function prosesAntreanBackground() {
                     parsed.potonganMasuk.forEach(p => sumPotongan += Math.abs(p.nominal));
                 }
 
-                // Jika selaras (seperti Mulki), cetak rincian Retur/Bayar dengan jelas
+                // JIKA SELARAS (Kasus Rumini / Mulki) -> Cetak rincian dengan urutan DP
                 if (parsed.potonganMasuk && parsed.potonganMasuk.length > 0 && Math.abs(sumPotongan - parsed.dp) < 1) {
-                    parsed.potonganMasuk.forEach(pot => {
-                        let textPotongan = pot.metode === "Retur Barang" ? `[Potongan Retur: ${pot.pakanRetur || 'Pakan'}]` : `[Potongan DP / Bayar Sebagian]`;
-                        if (pot.tglBayar) textPotongan += ` Masuk tgl ${pot.tglBayar}`; // Pindahkan info tanggal ke deskripsi
+                    parsed.potonganMasuk.forEach((pot, indexPot) => {
+                        let prefix = pot.metode === "Retur Barang" ? `[Potongan Retur: ${pot.pakanRetur || 'Pakan'}]` : `[Potongan DP ${indexPot + 1}]`;
+                        let teksTgl = pot.tglBayar ? ` Uang masuk tgl ${pot.tglBayar}` : "";
                         
                         itemInvoiceTerpilih.push({
-                            tgl: parsed.tgl, // 🔥 INI KUNCINYA: Tetap pakai tanggal DO pengambilan (Misal: 18/05)
+                            tgl: parsed.tgl, // 🔥 KUNCI MUTLAK: Tetap pakai Tanggal DO Pengambilan (01/08/2026)
                             isPotongan: true,
-                            pakan: textPotongan,
+                            pakan: `${prefix}${teksTgl}`, // Hasil: [Potongan DP 1] Uang masuk tgl 19/08/2026
                             qty: 0,
                             satuan: '-',
                             nominal: -Math.abs(pot.nominal)
                         });
                     });
                 } 
-                // Jika bentrok karena hutang lama tersembunyi (seperti Asep Dani), cetak simpel namun tetap bawa tanggalnya
+                // JIKA BENTROK KARENA HUTANG LAMA TERSEMBUNYI (Kasus Asep Dani)
                 else if (parsed.dp > 0) {
                     let tglTeks = "";
                     if (parsed.potonganMasuk && parsed.potonganMasuk.length > 0) {
                         let uniqueDates = [...new Set(parsed.potonganMasuk.map(p => p.tglBayar))];
-                        tglTeks = ` Masuk tgl ${uniqueDates.join(', ')}`;
+                        tglTeks = ` Uang masuk tgl ${uniqueDates.join(', ')}`;
                     }
 
                     itemInvoiceTerpilih.push({
-                        tgl: parsed.tgl, // 🔥 TETAP pakai tanggal DO pengambilan
+                        tgl: parsed.tgl, // 🔥 KUNCI MUTLAK: Tetap pakai Tanggal DO Pengambilan
                         isPotongan: true,
                         pakan: `[Potongan DP / Bayar Sebagian]${tglTeks}`, 
                         qty: 0,
