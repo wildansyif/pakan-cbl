@@ -6990,9 +6990,11 @@ async function prosesAntreanBackground() {
                 // Jika selaras (seperti Mulki), cetak rincian Retur/Bayar dengan jelas
                 if (parsed.potonganMasuk && parsed.potonganMasuk.length > 0 && Math.abs(sumPotongan - parsed.dp) < 1) {
                     parsed.potonganMasuk.forEach(pot => {
-                        let textPotongan = pot.metode === "Retur Barang" ? `[RETUR] ${pot.pakanRetur || 'Pakan'}` : `[DP / ${pot.metode}]`;
+                        let textPotongan = pot.metode === "Retur Barang" ? `[Potongan Retur: ${pot.pakanRetur || 'Pakan'}]` : `[Potongan DP / Bayar Sebagian]`;
+                        if (pot.tglBayar) textPotongan += ` Masuk tgl ${pot.tglBayar}`; // Pindahkan info tanggal ke deskripsi
+                        
                         itemInvoiceTerpilih.push({
-                            tgl: pot.tglBayar || parsed.tgl,
+                            tgl: parsed.tgl, // 🔥 INI KUNCINYA: Tetap pakai tanggal DO pengambilan (Misal: 18/05)
                             isPotongan: true,
                             pakan: textPotongan,
                             qty: 0,
@@ -7002,19 +7004,17 @@ async function prosesAntreanBackground() {
                     });
                 } 
                 // Jika bentrok karena hutang lama tersembunyi (seperti Asep Dani), cetak simpel namun tetap bawa tanggalnya
-                // Jika bentrok karena hutang lama tersembunyi, cetak simpel namun tetap bawa tanggalnya
                 else if (parsed.dp > 0) {
                     let tglTeks = "";
                     if (parsed.potonganMasuk && parsed.potonganMasuk.length > 0) {
-                        // Kumpulkan semua tanggal bayar unik yang menyentuh nota ini
                         let uniqueDates = [...new Set(parsed.potonganMasuk.map(p => p.tglBayar))];
-                        tglTeks = ` pada tgl ${uniqueDates.join(', ')}`;
+                        tglTeks = ` Masuk tgl ${uniqueDates.join(', ')}`;
                     }
 
                     itemInvoiceTerpilih.push({
-                        tgl: parsed.tgl,
+                        tgl: parsed.tgl, // 🔥 TETAP pakai tanggal DO pengambilan
                         isPotongan: true,
-                        pakan: `[Telah di-DP / Dibayar Sebagian]${tglTeks}`, 
+                        pakan: `[Potongan DP / Bayar Sebagian]${tglTeks}`, 
                         qty: 0,
                         satuan: '-',
                         nominal: -Math.abs(parsed.dp)
