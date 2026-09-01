@@ -5862,78 +5862,75 @@ async function prosesAntreanBackground() {
                             }
                         }
 
-                        // 🔥 FASE 1.5: BAYAR TUNGGAKAN LAMA TERLEBIH DAHULU
-                        let idxBayarHidden = 0;
-                        while (sisaHutangTersembunyi > 0 && idxBayarHidden < listBayar.length) {
-                            let uangMasuk = listBayar[idxBayarHidden];
-                            if (uangMasuk.sisaBayar <= 0) { idxBayarHidden++; continue; }
+                        // ===============================================================
+                        // FASE 2 & 3 UNIFIED: REVERSE FIFO DELTA (SINKRONISASI MUTLAK)
+                        // ===============================================================
+                        
+                        // 1. Hitung sisa uang masuk yang belum terpakai oleh Fase 1
+                        let sumBayarNormal = 0;
+                        listBayar.forEach(b => { sumBayarNormal += b.sisaBayar; });
 
-                            let dipotong = Math.min(sisaHutangTersembunyi, uangMasuk.sisaBayar);
-                            if (dipotong > 0) {
-                                uangMasuk.detailPotongan.push({ 
-                                    tglNota: "Tunggakan Lama (Sblmnya)", 
-                                    hutangSblm: sisaHutangTersembunyi, 
-                                    jumlah: dipotong, 
-                                    sisaAkhir: sisaHutangTersembunyi - dipotong 
-                                });
-                                uangMasuk.sisaBayar -= dipotong;
-                                sisaHutangTersembunyi -= dipotong;
+                        // 2. Hitung status utang SEKARANG (Current State)
+                        let sisaUnpaidCurrent = sisaPiutangDB;
+                        for (let i = arrNota.length - 1; i >= 0; i--) {
+                            let nota = arrNota[i];
+                            if (nota.isExactMatched) {
+                                nota.sisaNyata = 0; nota.terbayar_display = nota.totalTagihan;
+                                continue;
                             }
-                            if (uangMasuk.sisaBayar <= 0) idxBayarHidden++;
+                            if (sisaUnpaidCurrent >= nota.totalTagihan) {
+                                nota.sisaNyata = nota.totalTagihan; sisaUnpaidCurrent -= nota.totalTagihan;
+                            } else {
+                                nota.sisaNyata = Math.max(0, sisaUnpaidCurrent); sisaUnpaidCurrent = 0;
+                            }
+                            nota.terbayar_display = nota.totalTagihan - nota.sisaNyata;
                         }
 
-                        // FASE 2: PURE FIFO PENGHABIS SISA HUTANG
+                        // 3. Hitung status utang SEBELUM Uang Masuk Dibayarkan (Before State)
+                        let sisaUnpaidBefore = sisaPiutangDB + sumBayarNormal;
+                        for (let i = arrNota.length - 1; i >= 0; i--) {
+                            let nota = arrNota[i];
+                            if (nota.isExactMatched) { nota.sisaNyataBefore = 0; continue; }
+                            
+                            if (sisaUnpaidBefore >= nota.totalTagihan) {
+                                nota.sisaNyataBefore = nota.totalTagihan; sisaUnpaidBefore -= nota.totalTagihan;
+                            } else {
+                                nota.sisaNyataBefore = Math.max(0, sisaUnpaidBefore); sisaUnpaidBefore = 0;
+                            }
+                            // Hitung seberapa besar nota ini harus menyedot uang masuk
+                            nota.jatahDipotong = nota.sisaNyataBefore - nota.sisaNyata;
+                        }
+
+                        // 4. Distribusikan Uang Masuk murni sesuai Jatah (Sinkron 100% dengan Invoice)
                         let indexBayar = 0;
                         for (let i = 0; i < arrNota.length; i++) {
                             let nota = arrNota[i];
-                            if (nota.totalTagihan < 0) continue; 
+                            if (!nota.jatahDipotong || nota.jatahDipotong <= 0) continue;
 
-                            let sisaHutangNota = nota.totalTagihan - nota.terbayar;
-                            
-                            while (sisaHutangNota > 0 && indexBayar < listBayar.length) {
+                            let sisaHutangNotaVisual = nota.sisaNyataBefore; 
+                            while (nota.jatahDipotong > 0 && indexBayar < listBayar.length) {
                                 let uangMasuk = listBayar[indexBayar];
                                 if (uangMasuk.sisaBayar <= 0) { indexBayar++; continue; }
-                                let jumlahDipotong = Math.min(sisaHutangNota, uangMasuk.sisaBayar);
-                                
-                                if (jumlahDipotong > 0) { 
+
+                                let dipotong = Math.min(nota.jatahDipotong, uangMasuk.sisaBayar);
+                                if (dipotong > 0) {
                                     let tglParts = nota.tgl.split('-');
                                     let tglIndo = tglParts.length === 3 ? `${tglParts[2]}/${tglParts[1]}/${tglParts[0]}` : nota.tgl;
-                                    uangMasuk.detailPotongan.push({ tglNota: tglIndo, hutangSblm: sisaHutangNota, jumlah: jumlahDipotong, sisaAkhir: sisaHutangNota - jumlahDipotong }); 
                                     
-                                    // 🔥 SUNTIK INFO DP KE DALAM NOTA
+                                    // Tulis di Riwayat Saldo Bawah
+                                    uangMasuk.detailPotongan.push({ 
+                                        tglNota: tglIndo, hutangSblm: sisaHutangNotaVisual, jumlah: dipotong, sisaAkhir: sisaHutangNotaVisual - dipotong 
+                                    });
+                                    sisaHutangNotaVisual -= dipotong;
+                                    
+                                    // Tulis di Rincian Invoice (Dropdown)
                                     let tglBayarParts = uangMasuk.tgl.split('-');
                                     let tglBayarIndo = tglBayarParts.length === 3 ? `${tglBayarParts[2]}/${tglBayarParts[1]}/${tglBayarParts[0]}` : uangMasuk.tgl;
-                                    nota.potonganMasuk.push({ nominal: jumlahDipotong, metode: uangMasuk.metode, pakanRetur: uangMasuk.pakanRetur, tglBayar: tglBayarIndo });
+                                    nota.potonganMasuk.push({ nominal: dipotong, metode: uangMasuk.metode, pakanRetur: uangMasuk.pakanRetur, tglBayar: tglBayarIndo });
                                 }
-                                nota.terbayar += jumlahDipotong; uangMasuk.sisaBayar -= jumlahDipotong; sisaHutangNota -= jumlahDipotong;
+                                nota.jatahDipotong -= dipotong;
+                                uangMasuk.sisaBayar -= dipotong;
                                 if (uangMasuk.sisaBayar <= 0) indexBayar++;
-                            }
-                        }
-
-                        // FASE 3: REVERSE FIFO
-                        let sisaUnpaid = sisaPiutangDB;
-                        for (let i = arrNota.length - 1; i >= 0; i--) {
-                            let nota = arrNota[i];
-                            
-                            if (nota.isExactMatched) {
-                                nota.sisaNyata = 0;
-                                nota.terbayar_display = nota.totalTagihan;
-                                continue;
-                            }
-                            
-                            if (sisaUnpaid <= 0.01 && sisaUnpaid >= -0.01) {
-                                nota.sisaNyata = 0; 
-                                nota.terbayar_display = nota.totalTagihan;
-                            } else {
-                                if (sisaUnpaid >= nota.totalTagihan) {
-                                    nota.sisaNyata = nota.totalTagihan; 
-                                    nota.terbayar_display = 0; 
-                                    sisaUnpaid -= nota.totalTagihan;
-                                } else {
-                                    nota.sisaNyata = sisaUnpaid; 
-                                    nota.terbayar_display = nota.totalTagihan - sisaUnpaid; 
-                                    sisaUnpaid = 0;
-                                }
                             }
                         }
 
@@ -6223,77 +6220,65 @@ async function prosesAntreanBackground() {
                     }
                 }
 
-                // 🔥 FASE 1.5: BAYAR TUNGGAKAN LAMA TERLEBIH DAHULU
-                let idxBayarHidden = 0;
-                while (sisaHutangTersembunyi > 0 && idxBayarHidden < bayarArr.length) {
-                    let uangMasuk = bayarArr[idxBayarHidden];
-                    if (uangMasuk.sisaBayar <= 0) { idxBayarHidden++; continue; }
+                // ===============================================================
+                // FASE 2 & 3 UNIFIED: REVERSE FIFO DELTA (SINKRONISASI MUTLAK)
+                // ===============================================================
+                let sumBayarNormal = 0;
+                bayarArr.forEach(b => { sumBayarNormal += b.sisaBayar; });
 
-                    let dipotong = Math.min(sisaHutangTersembunyi, uangMasuk.sisaBayar);
-                    if (dipotong > 0) {
-                        uangMasuk.detailPotongan.push({ 
-                            tglNota: "Tunggakan Lama (Sblmnya)", 
-                            hutangSblm: sisaHutangTersembunyi, 
-                            jumlah: dipotong, 
-                            sisaAkhir: sisaHutangTersembunyi - dipotong 
-                        });
-                        uangMasuk.sisaBayar -= dipotong;
-                        sisaHutangTersembunyi -= dipotong;
-                    }
-                    if (uangMasuk.sisaBayar <= 0) idxBayarHidden++;
-                }
-
-                // FASE 2: RIWAYAT POTONGAN KAS 
-                let indexBayar = 0;
-                for (let i = 0; i < arrNota.length; i++) {
-                    let nota = arrNota[i];
-                    if (nota.totalTagihan < 0) continue; 
-
-                    let sisaHutangNota = nota.totalTagihan - nota.terbayar;
-                    while (sisaHutangNota > 0 && indexBayar < bayarArr.length) {
-                        let uangMasuk = bayarArr[indexBayar];
-                        if (uangMasuk.sisaBayar <= 0) { indexBayar++; continue; }
-                        let dipotong = Math.min(sisaHutangNota, uangMasuk.sisaBayar);
-                        
-                        if (dipotong > 0) {
-                            let tglParts = nota.tgl.split('-');
-                            let tglIndo = tglParts.length === 3 ? `${tglParts[2]}/${tglParts[1]}/${tglParts[0]}` : nota.tgl;
-                            uangMasuk.detailPotongan.push({ 
-                                tglNota: tglIndo, hutangSblm: sisaHutangNota, jumlah: dipotong, sisaAkhir: sisaHutangNota - dipotong 
-                            });
-                        }
-
-                        nota.terbayar += dipotong; uangMasuk.sisaBayar -= dipotong; sisaHutangNota -= dipotong;
-                        if (uangMasuk.sisaBayar <= 0) indexBayar++;
-                    }
-                }
-
-                // FASE 3: REVERSE FIFO UNTUK ANALITIK
-                // 🔥 SULAP BUG FIX: Ambil dari dataPiutangLokal, bukan rekapData
-                let sisaUnpaidGlobal = dataPiutangLokal[namaRelasi] ? dataPiutangLokal[namaRelasi].total_sisa : 0;
+                let sisaPiutangDBData = dataPiutangLokal[namaRelasi] ? dataPiutangLokal[namaRelasi].total_sisa : 0;
+                let sisaUnpaidCurrent = sisaPiutangDBData;
 
                 for (let i = arrNota.length - 1; i >= 0; i--) {
                     let nota = arrNota[i];
-                    
                     if (nota.isExactMatched) {
-                        nota.sisaNyata = 0;
-                        nota.terbayar_display = nota.totalTagihan;
+                        nota.sisaNyata = 0; nota.terbayar_display = nota.totalTagihan;
                         continue;
                     }
-                    
-                    if (sisaUnpaidGlobal <= 0.01 && sisaUnpaidGlobal >= -0.01) {
-                        nota.sisaNyata = 0; 
-                        nota.terbayar_display = nota.totalTagihan;
+                    if (sisaUnpaidCurrent >= nota.totalTagihan) {
+                        nota.sisaNyata = nota.totalTagihan; sisaUnpaidCurrent -= nota.totalTagihan;
                     } else {
-                        if (sisaUnpaidGlobal >= nota.totalTagihan) {
-                            nota.sisaNyata = nota.totalTagihan; 
-                            nota.terbayar_display = 0; 
-                            sisaUnpaidGlobal -= nota.totalTagihan;
-                        } else {
-                            nota.sisaNyata = sisaUnpaidGlobal; 
-                            nota.terbayar_display = nota.totalTagihan - sisaUnpaidGlobal; 
-                            sisaUnpaidGlobal = 0;
+                        nota.sisaNyata = Math.max(0, sisaUnpaidCurrent); sisaUnpaidCurrent = 0;
+                    }
+                    nota.terbayar_display = nota.totalTagihan - nota.sisaNyata;
+                }
+
+                let sisaUnpaidBefore = sisaPiutangDBData + sumBayarNormal;
+                for (let i = arrNota.length - 1; i >= 0; i--) {
+                    let nota = arrNota[i];
+                    if (nota.isExactMatched) { nota.sisaNyataBefore = 0; continue; }
+                    
+                    if (sisaUnpaidBefore >= nota.totalTagihan) {
+                        nota.sisaNyataBefore = nota.totalTagihan; sisaUnpaidBefore -= nota.totalTagihan;
+                    } else {
+                        nota.sisaNyataBefore = Math.max(0, sisaUnpaidBefore); sisaUnpaidBefore = 0;
+                    }
+                    nota.jatahDipotong = nota.sisaNyataBefore - nota.sisaNyata;
+                }
+
+                let indexBayar = 0;
+                for (let i = 0; i < arrNota.length; i++) {
+                    let nota = arrNota[i];
+                    if (!nota.jatahDipotong || nota.jatahDipotong <= 0) continue;
+
+                    let sisaHutangNotaVisual = nota.sisaNyataBefore; 
+                    while (nota.jatahDipotong > 0 && indexBayar < bayarArr.length) {
+                        let uangMasuk = bayarArr[indexBayar];
+                        if (uangMasuk.sisaBayar <= 0) { indexBayar++; continue; }
+
+                        let dipotong = Math.min(nota.jatahDipotong, uangMasuk.sisaBayar);
+                        if (dipotong > 0) {
+                            let tglParts = nota.tgl.split('-');
+                            let tglIndo = tglParts.length === 3 ? `${tglParts[2]}/${tglParts[1]}/${tglParts[0]}` : nota.tgl;
+                            
+                            uangMasuk.detailPotongan.push({ 
+                                tglNota: tglIndo, hutangSblm: sisaHutangNotaVisual, jumlah: dipotong, sisaAkhir: sisaHutangNotaVisual - dipotong 
+                            });
+                            sisaHutangNotaVisual -= dipotong;
                         }
+                        nota.jatahDipotong -= dipotong;
+                        uangMasuk.sisaBayar -= dipotong;
+                        if (uangMasuk.sisaBayar <= 0) indexBayar++;
                     }
                 }
 
