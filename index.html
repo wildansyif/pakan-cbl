@@ -5831,6 +5831,15 @@ async function prosesAntreanBackground() {
                         });
                         let arrNota = Object.values(groupedNota).sort((a,b) => new Date(a.tgl) - new Date(b.tgl));
 
+                        // 🔥 PERSIAPAN: MENGHITUNG HUTANG LAMA (TERSEMBUNYI)
+                        let sumTagihanLayar = 0;
+                        arrNota.forEach(n => { sumTagihanLayar += n.totalTagihan; });
+                        let sumBayarLayar = 0;
+                        listBayar.forEach(b => { sumBayarLayar += b.nominal; });
+
+                        let sisaHutangTersembunyi = sisaPiutangDB - sumTagihanLayar + sumBayarLayar;
+                        if (sisaHutangTersembunyi < 0) sisaHutangTersembunyi = 0;
+
                         // FASE 1: EXACT MATCHING (Khusus Bayar Tunai)
                         for (let i = 0; i < listBayar.length; i++) {
                             let uangMasuk = listBayar[i];
@@ -5844,18 +5853,33 @@ async function prosesAntreanBackground() {
                                     uangMasuk.detailPotongan.push({ 
                                         tglNota: tglIndo, hutangSblm: matchedNota.totalTagihan, jumlah: dipotong, sisaAkhir: matchedNota.totalTagihan - dipotong, isTunai: true 
                                     });
-                                    
-                                    // 🔥 SUNTIK INFO DP KE DALAM NOTA
                                     matchedNota.potonganMasuk.push({ nominal: dipotong, metode: uangMasuk.metode, pakanRetur: uangMasuk.pakanRetur, tglBayar: tglIndo });
-                                    
                                     matchedNota.terbayar += dipotong;
                                     uangMasuk.sisaBayar -= dipotong;
                                     
-                                    if (matchedNota.terbayar >= matchedNota.totalTagihan) {
-                                        matchedNota.isExactMatched = true; 
-                                    }
+                                    if (matchedNota.terbayar >= matchedNota.totalTagihan) matchedNota.isExactMatched = true; 
                                 }
                             }
+                        }
+
+                        // 🔥 FASE 1.5: BAYAR TUNGGAKAN LAMA TERLEBIH DAHULU
+                        let idxBayarHidden = 0;
+                        while (sisaHutangTersembunyi > 0 && idxBayarHidden < listBayar.length) {
+                            let uangMasuk = listBayar[idxBayarHidden];
+                            if (uangMasuk.sisaBayar <= 0) { idxBayarHidden++; continue; }
+
+                            let dipotong = Math.min(sisaHutangTersembunyi, uangMasuk.sisaBayar);
+                            if (dipotong > 0) {
+                                uangMasuk.detailPotongan.push({ 
+                                    tglNota: "Tunggakan Lama (Sblmnya)", 
+                                    hutangSblm: sisaHutangTersembunyi, 
+                                    jumlah: dipotong, 
+                                    sisaAkhir: sisaHutangTersembunyi - dipotong 
+                                });
+                                uangMasuk.sisaBayar -= dipotong;
+                                sisaHutangTersembunyi -= dipotong;
+                            }
+                            if (uangMasuk.sisaBayar <= 0) idxBayarHidden++;
                         }
 
                         // FASE 2: PURE FIFO PENGHABIS SISA HUTANG
@@ -6168,6 +6192,16 @@ async function prosesAntreanBackground() {
                 });
                 let arrNota = Object.values(groupedNota).sort((a,b) => new Date(a.tgl) - new Date(b.tgl));
 
+                // 🔥 PERSIAPAN: MENGHITUNG HUTANG LAMA (TERSEMBUNYI)
+                let sumTagihanLayar = 0;
+                arrNota.forEach(n => { sumTagihanLayar += n.totalTagihan; });
+                let sumBayarLayar = 0;
+                bayarArr.forEach(b => { sumBayarLayar += b.nominal; });
+                
+                let sisaPiutangDBData = dataPiutangLokal[namaRelasi] ? dataPiutangLokal[namaRelasi].total_sisa : 0;
+                let sisaHutangTersembunyi = sisaPiutangDBData - sumTagihanLayar + sumBayarLayar;
+                if (sisaHutangTersembunyi < 0) sisaHutangTersembunyi = 0;
+
                 // FASE 1: EXACT MATCHING
                 for (let i = 0; i < bayarArr.length; i++) {
                     let uangMasuk = bayarArr[i];
@@ -6184,12 +6218,29 @@ async function prosesAntreanBackground() {
                             matchedNota.terbayar += dipotong;
                             uangMasuk.sisaBayar -= dipotong;
                             
-                            // 🔥 GEMBOK NOTA
-                            if (matchedNota.terbayar >= matchedNota.totalTagihan) {
-                                matchedNota.isExactMatched = true; 
-                            }
+                            if (matchedNota.terbayar >= matchedNota.totalTagihan) matchedNota.isExactMatched = true; 
                         }
                     }
+                }
+
+                // 🔥 FASE 1.5: BAYAR TUNGGAKAN LAMA TERLEBIH DAHULU
+                let idxBayarHidden = 0;
+                while (sisaHutangTersembunyi > 0 && idxBayarHidden < bayarArr.length) {
+                    let uangMasuk = bayarArr[idxBayarHidden];
+                    if (uangMasuk.sisaBayar <= 0) { idxBayarHidden++; continue; }
+
+                    let dipotong = Math.min(sisaHutangTersembunyi, uangMasuk.sisaBayar);
+                    if (dipotong > 0) {
+                        uangMasuk.detailPotongan.push({ 
+                            tglNota: "Tunggakan Lama (Sblmnya)", 
+                            hutangSblm: sisaHutangTersembunyi, 
+                            jumlah: dipotong, 
+                            sisaAkhir: sisaHutangTersembunyi - dipotong 
+                        });
+                        uangMasuk.sisaBayar -= dipotong;
+                        sisaHutangTersembunyi -= dipotong;
+                    }
+                    if (uangMasuk.sisaBayar <= 0) idxBayarHidden++;
                 }
 
                 // FASE 2: RIWAYAT POTONGAN KAS 
@@ -6951,16 +7002,17 @@ async function prosesAntreanBackground() {
                     });
                 } 
                 // Jika bentrok karena hutang lama tersembunyi (seperti Asep Dani), cetak simpel namun tetap bawa tanggalnya
+                // Jika bentrok karena hutang lama tersembunyi, cetak simpel namun tetap bawa tanggalnya
                 else if (parsed.dp > 0) {
-                    // Mencegat tanggal dari riwayat potongan jika ada
                     let tglTeks = "";
                     if (parsed.potonganMasuk && parsed.potonganMasuk.length > 0) {
+                        // Kumpulkan semua tanggal bayar unik yang menyentuh nota ini
                         let uniqueDates = [...new Set(parsed.potonganMasuk.map(p => p.tglBayar))];
-                        tglTeks = ` tgl ${uniqueDates.join(', ')}`;
+                        tglTeks = ` pada tgl ${uniqueDates.join(', ')}`;
                     }
 
                     itemInvoiceTerpilih.push({
-                        tgl: parsed.tgl, // Tanggal baris tetap mengikuti tanggal DO
+                        tgl: parsed.tgl,
                         isPotongan: true,
                         pakan: `[Telah di-DP / Dibayar Sebagian]${tglTeks}`, 
                         qty: 0,
