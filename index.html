@@ -6718,8 +6718,11 @@ async function prosesAntreanBackground() {
                           </div>`;
                 }).join('');
 
-                // 🔥 TAMBAHAN: Tampilkan riwayat uang masuk/retur yang memotong nota ini
-                if (nota.potonganMasuk && nota.potonganMasuk.length > 0) {
+                // 🔥 SMART VALIDATOR UNTUK TAMPILAN RINCIAN LAYAR
+                let sumPotongan = 0;
+                if (nota.potonganMasuk) nota.potonganMasuk.forEach(p => sumPotongan += Math.abs(p.nominal));
+
+                if (nota.potonganMasuk && nota.potonganMasuk.length > 0 && Math.abs(sumPotongan - nota.dp) < 1) {
                     let potongHtml = nota.potonganMasuk.map(pot => {
                         let textDepan = pot.metode === "Retur Barang" ? `[RETUR: ${pot.pakanRetur}]` : `[BAYAR: ${pot.metode}]`;
                         let colorText = pot.metode === "Retur Barang" ? "#e65100" : "#15803d";
@@ -6919,7 +6922,7 @@ async function prosesAntreanBackground() {
                     parsed = JSON.parse(cb.value.replace(/&#39;/g, "'"));
                 }
 
-                // 1. SELALU Masukkan Rincian Item Pakan yang diambil
+                // 1. Masukkan Rincian Item Pakan
                 if (parsed.items) {
                     parsed.items.forEach(i => { 
                         i.tgl = parsed.tgl; 
@@ -6927,21 +6930,28 @@ async function prosesAntreanBackground() {
                     });
                 }
 
-                // 2. Masukkan Riwayat Potongan / Retur sebagai Baris Pengurang (Minus)
-                if (parsed.potonganMasuk && parsed.potonganMasuk.length > 0) {
+                // 🔥 SMART VALIDATOR: Cek apakah riwayat potongan selaras dengan sisa DP di layar
+                let sumPotongan = 0;
+                if (parsed.potonganMasuk) {
+                    parsed.potonganMasuk.forEach(p => sumPotongan += Math.abs(p.nominal));
+                }
+
+                // Jika selaras (seperti Mulki), cetak rincian Retur/Bayar dengan jelas
+                if (parsed.potonganMasuk && parsed.potonganMasuk.length > 0 && Math.abs(sumPotongan - parsed.dp) < 1) {
                     parsed.potonganMasuk.forEach(pot => {
                         let textPotongan = pot.metode === "Retur Barang" ? `[RETUR] ${pot.pakanRetur || 'Pakan'}` : `[DP / ${pot.metode}]`;
                         itemInvoiceTerpilih.push({
                             tgl: pot.tglBayar || parsed.tgl,
-                            isPotongan: true, // Tanda khusus untuk pewarnaan merah di PDF
+                            isPotongan: true,
                             pakan: textPotongan,
                             qty: 0,
                             satuan: '-',
-                            nominal: -Math.abs(pot.nominal) // Pastikan nilainya mengurangi subtotal
+                            nominal: -Math.abs(pot.nominal)
                         });
                     });
-                } else if (parsed.dp > 0) {
-                    // Fallback jika tidak ada data detail potongan tapi ada DP
+                } 
+                // Jika bentrok karena hutang lama tersembunyi (seperti Asep Dani), cetak simpel saja
+                else if (parsed.dp > 0) {
                     itemInvoiceTerpilih.push({
                         tgl: parsed.tgl,
                         isPotongan: true,
@@ -6961,7 +6971,7 @@ async function prosesAntreanBackground() {
 
                 let isPotA = a.isPotongan ? 1 : 0;
                 let isPotB = b.isPotongan ? 1 : 0;
-                if (isPotA !== isPotB) return isPotA - isPotB; // Potongan selalu dilempar ke bawah
+                if (isPotA !== isPotB) return isPotA - isPotB; 
 
                 let isOngkirA = a.pakan ? a.pakan.toLowerCase().includes('ongkir') : false;
                 let isOngkirB = b.pakan ? b.pakan.toLowerCase().includes('ongkir') : false;
