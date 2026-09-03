@@ -7653,7 +7653,6 @@ async function prosesAntreanBackground() {
                         infoStok = `<span id="info-stok-${index}" onclick="cekRiwayatKandang('${item.nama}')" title="Klik untuk lihat riwayat" style="margin-left:8px; font-size:10px; font-weight:bold; color:${warnaStok}; background:${bgStok}; padding:3px 8px; border-radius:12px; display:inline-flex; align-items:center; gap:3px; cursor:pointer; box-shadow:0 2px 5px rgba(0,0,0,0.1);">
                             <span class="material-symbols-outlined" style="font-size:12px;">history</span> Sisa: ${new Intl.NumberFormat('id-ID').format(sisaStok)} Kg
                         </span>`;
-                    }
 
                     // 2. Trik Menyusun Elemen Alert & Harga
                     let textHarga = item.harga > 0 ? `Rp ${formatHarga} / Kg` : ``;
