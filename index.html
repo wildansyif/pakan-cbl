@@ -1768,17 +1768,7 @@
                     style="font-size: 13px; text-transform: uppercase; color:#8AA624; display:flex; align-items:center; gap:5px;">
                     <span class="material-symbols-outlined" style="font-size:16px;">list_alt</span> Daftar Pakan
                 </label>
-                <div id="dashboard-kandang-container" class="hidden" style="margin-bottom: 15px;">
-                    <label
-                        style="font-size: 13px; text-transform: uppercase; color:#FEA405; display:flex; align-items:center; gap:5px; margin-bottom:8px;">
-                        <span class="material-symbols-outlined" style="font-size:16px;">shelves</span> Stok Kandang
-                        <span id="stok-kandang-indicator" style="margin-left:auto; font-size:14px;"
-                            title="Status Sinkronisasi"><span class="material-symbols-outlined"
-                                style="font-size:18px; vertical-align:middle; color:#FEA405;"
-                                title="Data Lokal (Belum Tersinkron)">cloud</span></span>
-                    </label>
-                    <div id="loader-kandang" class="loader hidden">Mengecek sisa pakan di kandang...</div>
-                    <div id="list-stok-kandang" style="display:grid; grid-template-columns:1fr 1fr; gap:6px;"></div>
+                <div id="dashboard-kandang-container" class="hidden" style="display:none !important;">
                 </div>
                 <div id="product-list">
                     <div class="loader">Memuat data...</div>
@@ -4166,6 +4156,50 @@
                 alert("Error jaringan: " + e.message); 
             });
         }
+        
+        function cekRiwayatKandang(pakan) {
+            let gudang = (getLokasiAktif() === "/kandang") ? "Kandang PM" : "Kandang SPN";
+            document.getElementById('modal-kartu-stok').classList.remove('hidden');
+            document.getElementById('ks-subtitle').innerText = `${pakan} | ${gudang}`;
+            document.getElementById('ks-tbody').innerHTML = "";
+            document.getElementById('ks-loader').classList.remove('hidden');
+
+            if (!navigator.onLine) {
+                document.getElementById('ks-loader').classList.add('hidden');
+                alert("Wajib online untuk menarik riwayat stok kandang!");
+                return;
+            }
+
+            // Tembak view_kartu_stok_blok khusus untuk Kandang
+            fetch(`${SUPA_URL}/rest/v1/view_kartu_stok_blok?gudang=eq.${gudang}&pakan=eq.${pakan}&order=urutan_waktu.asc`, {
+                headers: { 'apikey': SUPA_ANON_KEY, 'Authorization': `Bearer ${SUPA_ANON_KEY}` }
+            })
+            .then(r => r.json())
+            .then(res => {
+                document.getElementById('ks-loader').classList.add('hidden');
+                let html = ""; let nf = new Intl.NumberFormat('id-ID');
+                if (res.length === 0) {
+                    html = "<tr><td colspan='5' style='text-align:center; padding:20px; color:#888;'>Tidak ada riwayat perputaran di kandang ini.</td></tr>";
+                } else {
+                    res.forEach(d => {
+                        let strIn = d.inqty > 0 ? `+${nf.format(d.inqty)}` : "-";
+                        let strOut = d.outqty > 0 ? `-${nf.format(d.outqty)}` : "-";
+                        html += `
+                        <tr style="border-bottom:1px solid #eee; background:#fff;">
+                            <td style="padding:8px 5px;">${d.tgl}</td>
+                            <td style="padding:8px 5px;"><strong style="color:#555;">${d.status}</strong><br><span style="color:#888; font-size:9px;">${d.relasi}</span></td>
+                            <td style="padding:8px 5px; text-align:right; font-weight:bold; color:#8AA624;">${strIn}</td>
+                            <td style="padding:8px 5px; text-align:right; font-weight:bold; color:#c62828;">${strOut}</td>
+                            <td style="padding:8px 5px; text-align:right; font-weight:bold; background:#fafafa;">${nf.format(d.saldo)}</td>
+                        </tr>`;
+                    });
+                }
+                document.getElementById('ks-tbody').innerHTML = html;
+            }).catch(e => { 
+                document.getElementById('ks-loader').classList.add('hidden'); 
+                alert("Error jaringan: " + e.message); 
+            });
+        }
 
         function simpanKeAntrianLokal(payload) {
             let antrian = JSON.parse(localStorage.getItem('antrian_pakan')) || [];
@@ -4650,12 +4684,14 @@ async function prosesAntreanBackground() {
                 if (mathStr) total = new Function('return (' + mathStr + ')')();
             } catch (e) { total = 0; }
             el.setAttribute('data-total', total || 0);
+            
             let kemasan = parseFloat(el.getAttribute('data-kemasan')) || 0;
             let satuan = el.getAttribute('data-satuan') || "Kg";
             let namaItem = currentItems[index].nama.toLowerCase();
             let namaKemasan = (satuan.toLowerCase() === 'ltr' || namaItem.includes('bio smart')) ? "Jirigen" : "Karung";
             let lblKarung = document.getElementById('lbl-karung-' + index);
             let hasilEl = document.getElementById('hasil-' + index);
+            
             if (kemasan > 0) {
                 let jmlKarung = total / kemasan;
                 el.setAttribute('data-karung', jmlKarung);
@@ -4675,6 +4711,26 @@ async function prosesAntreanBackground() {
                 }
             }
             updateEstimasiBongkar();
+
+            // --- TAMBAHAN BARU: ALARM MINUS LIVE ---
+            let isKandang = (getLokasiAktif() === "/kandang" || getLokasiAktif() === "/spn_kandang");
+            if (isKandang) {
+                let namaPakanAktual = currentItems[index].nama;
+                let sisaStok = globalStokKandang[namaPakanAktual] || 0;
+                let warnEl = document.getElementById('warn-stok-' + index);
+
+                if (total > sisaStok && total > 0) {
+                    if (warnEl) warnEl.style.display = "block";
+                    el.style.color = "#c62828";
+                    el.style.borderColor = "#c62828";
+                    el.style.backgroundColor = "#ffebee";
+                } else {
+                    if (warnEl) warnEl.style.display = "none";
+                    el.style.color = "#333";
+                    el.style.borderColor = "#DBE4C9";
+                    el.style.backgroundColor = "#fff";
+                }
+            }
         }
 
         function hapusPendingData(timestamp) {
@@ -7468,61 +7524,27 @@ async function prosesAntreanBackground() {
         }
 
         function renderMiniDashboardKandang() {
-            let list = document.getElementById('list-stok-kandang'); let html = "";
-            let isAdmin = (currentLoggedPin === "1234"); let nf = new Intl.NumberFormat('id-ID');
-
-            // NORMALISASI DATA SERVER
-            let cleanStok = {};
-            let u = document.querySelector('input[name="lokasi_utama"]:checked') ? document.querySelector('input[name="lokasi_utama"]:checked').value : 'PM';
-
-            for (let k in globalStokKandang) {
-                let val = globalStokKandang[k];
-                if (!isNaN(k) && typeof val === 'object' && val !== null) {
-                    // Abaikan jika gudang tidak cocok dengan filter lokasi saat ini
-                    if (val.gudang && val.gudang !== u) continue;
-
-                    let name = val.pakan || val.nama || val.Jenis || val.jenis;
-                    // PASTIKAN menangkap property qtyKandang dari backend Kode.js!
-                    let sisa = val.qtyKandang !== undefined ? val.qtyKandang : (val.sisa !== undefined ? val.sisa : (val.qty !== undefined ? val.qty : val.stok));
-
-                    if (sisa === undefined && Array.isArray(val)) { name = val[0]; sisa = val[1]; }
-                    if (name && typeof name === 'string') {
-                        cleanStok[name] = parseFloat(sisa) || 0;
-                    }
-                } else if (isNaN(k) && k.length > 2) {
-                    // Jika data hasil injeksi Optimistic UI (string key)
-                    cleanStok[k] = parseFloat(val) || 0;
-                }
-            }
-            globalStokKandang = cleanStok;
-
-            let keys = Object.keys(globalStokKandang);
-            if (keys.length === 0) { list.innerHTML = "<div style='font-size:11px; color:#888; text-align:center; padding:10px; background:#fafafa; border-radius:8px;'>Kandang Kosong. Belum ada mutasi pakan.</div>"; return; }
-
-            keys.forEach(pakan => {
-                let qty = globalStokKandang[pakan];
+            let isKandang = (getLokasiAktif() === "/kandang" || getLokasiAktif() === "/spn_kandang");
+            if (!isKandang) return;
+            
+            // Refresh text sisa stok langsung di masing-masing baris pakan
+            currentItems.forEach((item, index) => {
+                let sisaStok = globalStokKandang[item.nama] || 0;
+                let infoEl = document.getElementById('info-stok-' + index);
                 
-                // SULAP 1: Hide jika stok tepat = 0
-                if (Math.abs(qty) < 0.01) return;
-
-                let isKritis = qty <= 50;
-                let color = isKritis ? "#c62828" : "#8AA624"; let bg = isKritis ? "#ffebee" : "#e8f0d8";
-
-                // SULAP 2: Buat barisnya bisa diklik untuk buka riwayat!
-                html += `<div onclick="cekKartuStokKandang('${pakan.replace(/'/g, "\\'")}', '${u}')" style="display:flex; justify-content:space-between; align-items:center; background:${bg}; border-left:4px solid ${color}; padding:8px; border-radius:6px; margin-bottom:5px; box-shadow:0 1px 2px rgba(0,0,0,0.05); cursor:pointer;">
-                  <span style="font-size:11px; color:#333; font-weight:bold; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:60%;">${pakan}</span>
-                  <span style="font-size:11px; color:${color}; font-weight:bold; white-space:nowrap;">${nf.format(qty)} Kg</span>
-              </div>`;
+                if (infoEl) {
+                    let warnaStok = sisaStok <= 0 ? "#c62828" : "#1a5c40";
+                    let bgStok = sisaStok <= 0 ? "#ffebee" : "#e8f0d8";
+                    
+                    // Kita timpa outerHTML agar atribut onclick dan style tetap terjaga saat refresh
+                    infoEl.outerHTML = `<span id="info-stok-${index}" onclick="cekRiwayatKandang('${item.nama}')" title="Klik untuk lihat riwayat" style="margin-left:8px; font-size:10px; font-weight:bold; color:${warnaStok}; background:${bgStok}; padding:3px 8px; border-radius:12px; display:inline-flex; align-items:center; gap:3px; cursor:pointer; box-shadow:0 2px 5px rgba(0,0,0,0.1);">
+                        <span class="material-symbols-outlined" style="font-size:12px;">history</span> Sisa: ${new Intl.NumberFormat('id-ID').format(sisaStok)} Kg
+                    </span>`;
+                }
+                
+                // Trigger ulang kalkulator agar mengecek apakah angka yang diketik sekarang minus
+                hitungCalc(index); 
             });
-            
-            if (html === "") {
-                html = "<div style='font-size:11px; color:#8AA624; text-align:center; padding:10px; background:#f8fdf4; border-radius:8px; border:1px dashed #8AA624;'>Semua Pakan Habis Bersih (0 Kg).</div>";
-            } else {
-                // Tambahkan teks tips klik
-                html = "<div style='font-size:10px; color:#8AA624; font-weight:bold; margin-bottom:8px; text-align:center; background:#f4f7f0; padding:4px; border-radius:4px;'><span class='material-symbols-outlined' style='font-size:14px; vertical-align:middle;'>touch_app</span> Sentuh nama pakan untuk rincian pemakaian</div>" + html;
-            }
-            
-            list.innerHTML = html;
         }
 
         function cekKartuStokKandang(pakan, gudang) {
@@ -7611,8 +7633,70 @@ async function prosesAntreanBackground() {
             }, 500);
         }
 
-        function renderPakan(response) { currentItems = response.data || []; let html = ''; if (currentItems.length === 0) html = '<div class="loader">Tidak ada data pakan</div>'; else { currentItems.forEach(function (item, index) { let formatHarga = new Intl.NumberFormat('id-ID').format(item.harga || 0); let labelInput = item.satuan || "Kg"; if (item.kemasan > 0) { let stepValue = item.kemasan; html += `<div class="menu-item"><div class="item-info"><div class="item-name">${item.nama}</div>${item.harga > 0 ? '<div class="item-price">Rp ' + formatHarga + ' / Kg</div>' : ''}</div><div class="counter-box" style="flex-direction: column; align-items: flex-end; gap: 2px;"><div style="display:flex; align-items:center; gap:5px;"><div class="btn-qty" onclick="ubahQty(${index}, -${stepValue})">-</div><input type="text" id="qty-${index}" class="qty-input calc-input" style="width: 55px !important; text-align:center !important; padding:0 !important;" placeholder="0" onclick="bukaKeyboard(${index})" readonly data-total="0" data-karung="0" data-kemasan="${stepValue}" data-satuan="${item.satuan}"><div class="btn-qty" onclick="ubahQty(${index}, ${stepValue})">+</div><span style="font-size:12px; font-weight:bold;">${labelInput}</span></div><span id="lbl-karung-${index}" style="font-size:11px; color:#e91e63; font-weight:bold; height:14px; margin-right: 20px;"></span></div></div>`; } else { html += `<div class="menu-item"><div class="item-info" style="flex: 1;"><div class="item-name">${item.nama}</div>${item.harga > 0 ? '<div class="item-price">Rp ' + formatHarga + ' / Kg</div>' : ''}</div><div class="counter-box" style="flex: 1.5; justify-content: flex-end;"><input type="text" id="qty-${index}" class="qty-input calc-input" placeholder="Cth: 35+28" onclick="bukaKeyboard(${index})" readonly data-total="0" data-karung="0" data-kemasan="0" data-satuan="${item.satuan}"><span id="hasil-${index}" class="hasil-calc">= 0</span><span style="font-size:12px; font-weight:bold; margin-left:5px;">${labelInput}</span></div></div>`; } }); } document.getElementById('product-list').innerHTML = html; }
+        function renderPakan(response) {
+            currentItems = response.data || [];
+            let html = '';
+            if (currentItems.length === 0) {
+                html = '<div class="loader">Tidak ada data pakan</div>';
+            } else {
+                let isKandang = (getLokasiAktif() === "/kandang" || getLokasiAktif() === "/spn_kandang");
+                
+                currentItems.forEach(function (item, index) {
+                    let formatHarga = new Intl.NumberFormat('id-ID').format(item.harga || 0);
+                    let labelInput = item.satuan || "Kg";
+                    
+                    // 1. Trik Label Sisa Stok di Samping Nama
+                    let sisaStok = globalStokKandang[item.nama] || 0;
+                        let warnaStok = sisaStok <= 0 ? "#c62828" : "#1a5c40";
+                        let bgStok = sisaStok <= 0 ? "#ffebee" : "#e8f0d8";
+                        // TAMBAHAN: onclick, cursor pointer, dan box-shadow agar terlihat seperti tombol
+                        infoStok = `<span id="info-stok-${index}" onclick="cekRiwayatKandang('${item.nama}')" title="Klik untuk lihat riwayat" style="margin-left:8px; font-size:10px; font-weight:bold; color:${warnaStok}; background:${bgStok}; padding:3px 8px; border-radius:12px; display:inline-flex; align-items:center; gap:3px; cursor:pointer; box-shadow:0 2px 5px rgba(0,0,0,0.1);">
+                            <span class="material-symbols-outlined" style="font-size:12px;">history</span> Sisa: ${new Intl.NumberFormat('id-ID').format(sisaStok)} Kg
+                        </span>`;
+                    }
 
+                    // 2. Trik Menyusun Elemen Alert & Harga
+                    let textHarga = item.harga > 0 ? `Rp ${formatHarga} / Kg` : ``;
+                    let divHargaStok = `<div class="item-price" style="display:flex; align-items:center; flex-wrap:wrap; margin-top:5px;">${textHarga} ${infoStok}</div>`;
+                    let divWarning = `<div id="warn-stok-${index}" style="font-size:9px; color:#c62828; font-weight:bold; display:none; margin-top:5px; padding:4px 8px; background:#ffebee; border-radius:6px; border:1px dashed #ef9a9a; width:fit-content;">⚠️ Melebihi batas sisa stok!</div>`;
+
+                    if (item.kemasan > 0) {
+                        let stepValue = item.kemasan;
+                        html += `<div class="menu-item">
+                                    <div class="item-info">
+                                        <div class="item-name">${item.nama}</div>
+                                        ${divHargaStok}
+                                        ${divWarning}
+                                    </div>
+                                    <div class="counter-box" style="flex-direction: column; align-items: flex-end; gap: 2px;">
+                                        <div style="display:flex; align-items:center; gap:5px;">
+                                            <div class="btn-qty" onclick="ubahQty(${index}, -${stepValue})">-</div>
+                                            <input type="text" id="qty-${index}" class="qty-input calc-input" style="width: 55px !important; text-align:center !important; padding:0 !important;" placeholder="0" onclick="bukaKeyboard(${index})" readonly data-total="0" data-karung="0" data-kemasan="${stepValue}" data-satuan="${item.satuan}">
+                                            <div class="btn-qty" onclick="ubahQty(${index}, ${stepValue})">+</div>
+                                            <span style="font-size:12px; font-weight:bold;">${labelInput}</span>
+                                        </div>
+                                        <span id="lbl-karung-${index}" style="font-size:11px; color:#e91e63; font-weight:bold; height:14px; margin-right: 20px;"></span>
+                                    </div>
+                                </div>`;
+                    } else {
+                        html += `<div class="menu-item">
+                                    <div class="item-info" style="flex: 1;">
+                                        <div class="item-name">${item.nama}</div>
+                                        ${divHargaStok}
+                                        ${divWarning}
+                                    </div>
+                                    <div class="counter-box" style="flex: 1.5; justify-content: flex-end;">
+                                        <input type="text" id="qty-${index}" class="qty-input calc-input" placeholder="Cth: 35+28" onclick="bukaKeyboard(${index})" readonly data-total="0" data-karung="0" data-kemasan="0" data-satuan="${item.satuan}">
+                                        <span id="hasil-${index}" class="hasil-calc">= 0</span>
+                                        <span style="font-size:12px; font-weight:bold; margin-left:5px;">${labelInput}</span>
+                                    </div>
+                                </div>`;
+                    }
+                });
+            }
+            document.getElementById('product-list').innerHTML = html;
+        }
+        
         function fetchMasterRelasi() {
             // PAKSA HAPUS CACHE LAMA AGAR SELALU AMBIL FRESH DARI SUPABASE
             localStorage.removeItem('data_relasi_cbl'); 
