@@ -7502,7 +7502,9 @@ async function prosesAntreanBackground() {
 
                         // 1. Ekstrak data
                         data.forEach(val => {
-                            if (val.gudang === u) {
+                            // PERBAIKAN: Tambahkan kata "Kandang " di depannya agar cocok dengan database
+                            let targetKandang = "Kandang " + u; 
+                            if (val.gudang.toLowerCase() === targetKandang.toLowerCase()) {
                                 serverStok[val.pakan] = parseFloat(val.sisa) || 0;
                             }
                         });
