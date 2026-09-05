@@ -7484,8 +7484,8 @@ async function prosesAntreanBackground() {
                     let ind = document.getElementById('stok-kandang-indicator');
                     if (ind) ind.innerHTML = ICON_SYNCING;
 
-                    // 🚀 TEMBAK KE VIEW KANDANG DI SUPABASE
-                    fetch(`${SUPA_URL}/rest/v1/view_stok_kandang?select=*`, {
+                    // 🚀 TEMBAK KE VIEW STOK TERKINI YANG BARU
+                    fetch(`${SUPA_URL}/rest/v1/view_stok_terkini?select=*`, {
                         headers: {
                             'apikey': SUPA_ANON_KEY,
                             'Authorization': `Bearer ${SUPA_ANON_KEY}`
@@ -7499,13 +7499,12 @@ async function prosesAntreanBackground() {
                         
                         let serverStok = {};
                         let u = document.querySelector('input[name="lokasi_utama"]:checked') ? document.querySelector('input[name="lokasi_utama"]:checked').value : 'PM';
+                        let targetCabang = "Kandang " + u; 
 
-                        // 1. Ekstrak data
+                        // Ekstrak data berdasarkan cabang yang sedang aktif
                         data.forEach(val => {
-                            // PERBAIKAN: Tambahkan kata "Kandang " di depannya agar cocok dengan database
-                            let targetKandang = "Kandang " + u; 
-                            if (val.gudang.toLowerCase() === targetKandang.toLowerCase()) {
-                                serverStok[val.pakan] = parseFloat(val.sisa) || 0;
+                            if (val.cabang && val.cabang.toLowerCase() === targetCabang.toLowerCase()) {
+                                serverStok[val.pakan] = parseFloat(val.qty_sisa) || 0; 
                             }
                         });
 
