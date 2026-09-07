@@ -10347,36 +10347,34 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
         let globalTransaksiHariIni = [];
 
         function bukaReviewHarian() {
-            if (!navigator.onLine) return alert("Wajib online untuk mereview laporan Supabase!");
-            
-            // SULAP: Tarik langsung area utamanya, abaikan sub-fasilitas!
-            let baseCabang = document.querySelector('input[name="lokasi_utama"]:checked').value;
-            
-            let dObj = new Date();
-            let tglForm = document.getElementById('tanggal').value;
-            if (tglForm) dObj = new Date(tglForm);
-            
-            let tglFilter = dObj.toISOString().split('T')[0];
-            let tglIndo = ("0" + dObj.getDate()).slice(-2) + "/" + ("0" + (dObj.getMonth() + 1)).slice(-2) + "/" + dObj.getFullYear();
+    if (!navigator.onLine) return alert("Wajib online untuk mereview laporan Supabase!");
+    
+    let dObj = new Date();
+    let tglForm = document.getElementById('tanggal').value;
+    if (tglForm) dObj = new Date(tglForm);
+    
+    let tglFilter = dObj.toISOString().split('T')[0];
+    let tglIndo = ("0" + dObj.getDate()).slice(-2) + "/" + ("0" + (dObj.getMonth() + 1)).slice(-2) + "/" + dObj.getFullYear();
 
-            document.getElementById('review-subtitle').innerText = `Area: ${baseCabang} (Gudang & Kandang) | Tgl: ${tglIndo}`;
-            document.getElementById('modal-review-harian').classList.remove('hidden');
-            document.getElementById('review-loader').style.display = 'block';
-            document.getElementById('review-list').innerHTML = '';
+    // Judul diubah menjadi SEMUA GUDANG
+    document.getElementById('review-subtitle').innerText = `Area: SEMUA GUDANG & KANDANG | Tgl: ${tglIndo}`;
+    document.getElementById('modal-review-harian').classList.remove('hidden');
+    document.getElementById('review-loader').style.display = 'block';
+    document.getElementById('review-list').innerHTML = '';
 
-            // SULAP QUERY: Tarik semua cabang yang mengandung kata PM (PM dan Kandang PM)
-            fetch(`${SUPA_URL}/rest/v1/transaksi_pakan?tanggal=eq.${tglFilter}&cabang=ilike.*${baseCabang}*&order=waktu_input.asc`, {
-                headers: { 'apikey': SUPA_ANON_KEY, 'Authorization': `Bearer ${SUPA_ANON_KEY}` }
-            })
-            .then(r => r.json())
-            .then(data => {
-                document.getElementById('review-loader').style.display = 'none';
-                globalTransaksiHariIni = data;
-                renderListReviewHarian();
-            }).catch(e => {
-                document.getElementById('review-loader').innerText = "Gagal memuat data!";
-            });
-        }
+    // 🔥 PERUBAHAN: Tarik seluruh data berdasarkan tanggal saja (tanpa filter cabang)
+    fetch(`${SUPA_URL}/rest/v1/transaksi_pakan?tanggal=eq.${tglFilter}&order=waktu_input.asc`, {
+        headers: { 'apikey': SUPA_ANON_KEY, 'Authorization': `Bearer ${SUPA_ANON_KEY}` }
+    })
+    .then(r => r.json())
+    .then(data => {
+        document.getElementById('review-loader').style.display = 'none';
+        globalTransaksiHariIni = data;
+        renderListReviewHarian();
+    }).catch(e => {
+        document.getElementById('review-loader').innerText = "Gagal memuat data!";
+    });
+}
 
         function bukaModalEditTrx(id) {
             let t = globalTransaksiHariIni.find(x => x.id === id);
@@ -10478,66 +10476,56 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
         function renderListReviewHarian() {
     let container = document.getElementById('review-list');
     if (globalTransaksiHariIni.length === 0) {
-        container.innerHTML = '<div style="text-align:center; color:#888; font-size:12px; padding:20px;">Belum ada transaksi hari ini di gudang ini.</div>';
+        container.innerHTML = '<div style="text-align:center; color:#888; font-size:12px; padding:20px;">Belum ada transaksi hari ini.</div>';
         return;
     }
 
     let html = ''; let nf = new Intl.NumberFormat('id-ID');
-    
-    let grouped = {};
-    let sumKategori = {};
+    let grouped = {}; let sumKategori = {};
 
-    // 🔥 TRIK BARU: Pisahkan Pakan Normal dan Ongkir sejak awal
-    let itemsNormal = [];
-    let itemsOngkir = [];
+    let itemsNormal = []; let itemsOngkir = [];
 
     globalTransaksiHariIni.forEach(t => {
         let isOngkir = String(t.pakan).toLowerCase().includes('ongkir');
-        if (isOngkir) itemsOngkir.push(t);
-        else itemsNormal.push(t);
+        if (isOngkir) itemsOngkir.push(t); else itemsNormal.push(t);
 
         let kategori = getKategoriReview(t);
         let safeSatuan = isOngkir ? 'Rit' : (t.satuan || 'Kg');
-        
         if (safeSatuan === 'Kg') {
             if (!sumKategori[kategori]) sumKategori[kategori] = 0;
             sumKategori[kategori] += (parseFloat(t.qty) || 0);
         }
     });
 
-    // 1. Grouping Data Pakan (Normal) dengan pemisah Waktu
+    // 1. Grouping Data Pakan (Normal) - Ditambah t.cabang
     itemsNormal.forEach(t => {
         let wkt = new Date(t.waktu_input || t.tanggal).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'});
         let kategori = getKategoriReview(t);
-        let key = `${kategori}_${t.relasi}_${t.status}_${wkt}`; 
+        // Tambahkan Cabang ke kode unik agar orang yang sama tapi beda gudang tidak tercampur
+        let key = `${kategori}_${t.cabang}_${t.relasi}_${t.status}_${wkt}`; 
         
         if (!grouped[key]) {
-            grouped[key] = { kategori: kategori, relasi: t.relasi, status: t.status, waktu_awal: wkt, items: [] };
+            grouped[key] = { kategori: kategori, cabang: t.cabang, relasi: t.relasi, status: t.status, waktu_awal: wkt, items: [] };
         }
         grouped[key].items.push(t);
     });
 
-    // 2. Suntikkan Data Ongkir ke Grup yang Sudah Ada (Abaikan waktu ongkirnya)
+    // 2. Suntikkan Data Ongkir - Ditambah t.cabang
     itemsOngkir.forEach(t => {
         let kategori = getKategoriReview(t);
-        let prefixKey = `${kategori}_${t.relasi}_${t.status}`;
+        let prefixKey = `${kategori}_${t.cabang}_${t.relasi}_${t.status}`;
         
-        // Cari apakah relasi ini sudah punya kotak/kartu laporan sebelumnya
         let matchingKeys = Object.keys(grouped).filter(k => k.startsWith(prefixKey));
-        
         if (matchingKeys.length > 0) {
-            // Jika ada, tempelkan ongkir ke kotak transaksinya (ambil yg terakhir jika ada 2)
             let targetKey = matchingKeys[matchingKeys.length - 1]; 
             grouped[targetKey].items.push(t);
         } else {
-            // Jaga-jaga kalau hari itu anehnya cuma ada inputan ongkir tanpa pakan
             let wkt = new Date(t.waktu_input || t.tanggal).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'});
             let newKey = `${prefixKey}_${wkt}`;
-            grouped[newKey] = { kategori: kategori, relasi: t.relasi, status: t.status, waktu_awal: wkt, items: [t] };
+            grouped[newKey] = { kategori: kategori, cabang: t.cabang, relasi: t.relasi, status: t.status, waktu_awal: wkt, items: [t] };
         }
     });
 
-    // Sortir agar Ongkir selalu di paling bawah dalam satu card
     for(let k in grouped) {
         grouped[k].items.sort((a,b) => {
             let isOngkirA = String(a.pakan).toLowerCase().includes('ongkir');
@@ -10548,7 +10536,6 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
         });
     }
 
-    // 3. Render UI Kartu (Tetap urut jam)
     let kategoriAktif = "";
     let sortedKeys = Object.keys(grouped).sort((a, b) => {
         let getRnk = (k) => k.includes("Penjualan") ? 1 : k.includes("Mutasi") ? 2 : k.includes("Masuk") ? 3 : k.includes("Pemakaian") ? 4 : k.includes("Gilingan") ? 5 : 99;
@@ -10614,12 +10601,13 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
             </div>`;
         }).join('');
 
+        // Tampilkan Nama Relasi + Nama Cabangnya (Contoh: Asep Dani (PM))
         html += `
         <div style="background:#fff; border:1px solid #DBE4C9; border-radius:8px; padding:10px; margin-bottom:10px; box-shadow:0 2px 4px rgba(0,0,0,0.02);">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; border-bottom:2px solid #f4f7f0; padding-bottom:8px;">
                 <div>
                     <span style="font-size:10px; font-weight:bold; padding:2px 6px; border-radius:4px; ${stStyle}">${g.status}</span>
-                    <strong style="font-size:14px; color:#333; margin-left:5px;">${g.relasi}</strong>
+                    <strong style="font-size:14px; color:#333; margin-left:5px;">${g.relasi} <span style="font-size:10px; color:#888;">(${g.cabang})</span></strong>
                 </div>
                 <div style="font-size:11px; color:#888; font-weight:bold;">${g.waktu_awal}</div>
             </div>
@@ -10633,27 +10621,22 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
         function generateWALaporanHarian() {
     if (globalTransaksiHariIni.length === 0) return alert("Tidak ada data untuk direkap!");
 
-    let baseCabang = document.querySelector('input[name="lokasi_utama"]:checked').value;
-
     let dObj = new Date();
     let tglForm = document.getElementById('tanggal').value;
     if (tglForm) dObj = new Date(tglForm);
     let tglIndo = ("0" + dObj.getDate()).slice(-2) + "/" + ("0" + (dObj.getMonth() + 1)).slice(-2) + "/" + dObj.getFullYear();
 
-    let txt = `*REKAP LAPORAN GUDANG ${baseCabang}*\nTanggal: ${tglIndo}\nPetugas: ${activeUser}\n\n`;
+    // Judul WA diubah menjadi GLOBAL SEMUA GUDANG
+    let txt = `*REKAP LAPORAN SEMUA GUDANG*\nTanggal: ${tglIndo}\nPetugas: ${activeUser}\n\n`;
     let nf = new Intl.NumberFormat('id-ID');
     
-    let grouped = {};
-    let sumKategori = {}; 
+    let grouped = {}; let sumKategori = {}; 
 
-    // 🔥 TRIK BARU: Pisahkan Pakan Normal dan Ongkir
-    let itemsNormal = [];
-    let itemsOngkir = [];
+    let itemsNormal = []; let itemsOngkir = [];
 
     globalTransaksiHariIni.forEach(t => {
         let isOngkir = String(t.pakan).toLowerCase().includes('ongkir');
-        if (isOngkir) itemsOngkir.push(t);
-        else itemsNormal.push(t);
+        if (isOngkir) itemsOngkir.push(t); else itemsNormal.push(t);
 
         let kategori = getKategoriReview(t);
         let safeSatuan = isOngkir ? 'Rit' : (t.satuan || 'Kg');
@@ -10663,32 +10646,31 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
         }
     });
 
-    // 1. Grouping Data Pakan (Normal)
+    // 1. Grouping Data Pakan (Normal) - Ditambah t.cabang
     itemsNormal.forEach(t => {
         let wkt = new Date(t.waktu_input || t.tanggal).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'});
         let kategori = getKategoriReview(t);
-        let key = `${kategori}_${t.relasi}_${t.status}_${wkt}`; 
+        let key = `${kategori}_${t.cabang}_${t.relasi}_${t.status}_${wkt}`; 
         
         if (!grouped[key]) {
-            grouped[key] = { kategori: kategori, relasi: t.relasi, status: t.status, waktu_awal: wkt, items: [] };
+            grouped[key] = { kategori: kategori, cabang: t.cabang, relasi: t.relasi, status: t.status, waktu_awal: wkt, items: [] };
         }
         grouped[key].items.push(t);
     });
 
-    // 2. Suntikkan Data Ongkir
+    // 2. Suntikkan Data Ongkir - Ditambah t.cabang
     itemsOngkir.forEach(t => {
         let kategori = getKategoriReview(t);
-        let prefixKey = `${kategori}_${t.relasi}_${t.status}`;
+        let prefixKey = `${kategori}_${t.cabang}_${t.relasi}_${t.status}`;
         
         let matchingKeys = Object.keys(grouped).filter(k => k.startsWith(prefixKey));
-        
         if (matchingKeys.length > 0) {
             let targetKey = matchingKeys[matchingKeys.length - 1]; 
             grouped[targetKey].items.push(t);
         } else {
             let wkt = new Date(t.waktu_input || t.tanggal).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'});
             let newKey = `${prefixKey}_${wkt}`;
-            grouped[newKey] = { kategori: kategori, relasi: t.relasi, status: t.status, waktu_awal: wkt, items: [t] };
+            grouped[newKey] = { kategori: kategori, cabang: t.cabang, relasi: t.relasi, status: t.status, waktu_awal: wkt, items: [t] };
         }
     });
 
@@ -10725,7 +10707,8 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
         }
         
         let tStatus = g.status === 'Masuk' ? 'Dari' : 'Ke';
-        txt += `${tStatus}: ${g.relasi} | Pukul: ${g.waktu_awal}\n`;
+        // Tambahkan info cabang di WA
+        txt += `${tStatus}: ${g.relasi} (${g.cabang}) | Pukul: ${g.waktu_awal}\n`;
         
         let subt = 0;
         g.items.forEach(i => {
@@ -10761,7 +10744,7 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
     if (currentLoggedPin === "1234") {
         let tempInput = document.createElement("textarea"); tempInput.value = txt.trim();
         document.body.appendChild(tempInput); tempInput.select(); document.execCommand("copy"); document.body.removeChild(tempInput);
-        alert("✅ Rekapan Laporan Hari Ini berhasil di-copy! Silakan paste ke WhatsApp.");
+        alert("✅ Rekapan Laporan Semua Gudang berhasil di-copy! Silakan paste ke WhatsApp.");
     } else {
         let waUrl = `https://wa.me/${NOMOR_WA_ADMIN}?text=${encodeURIComponent(txt.trim())}`;
         window.open(waUrl, '_blank') || (window.location.href = waUrl);
