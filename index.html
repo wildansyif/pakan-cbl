@@ -4282,11 +4282,11 @@ async function prosesAntreanBackground() {
                 }
                 let strPakan = arrPakan.join('-');
                 
-                // Prefix nama dokumen dan folder tujuan yang cerdas
                 let prefixDoc = isGilingan ? 'GILING' : 'SJ';
                 let targetFolder = isGilingan ? 'bukti_giling' : 'surat_jalan';
                 
-                let rawNamaSJ = `${prefixDoc} ${cabangStr}-${tglSJ}-${strPakan}`;
+                // 🔥 SOLUSI 1: Tambahkan -${Date.now()} di ujung nama file
+                let rawNamaSJ = `${prefixDoc} ${cabangStr}-${tglSJ}-${strPakan}-${Date.now()}`;
                 // Bersihkan karakter ilegal (seperti koma/titik/slash) agar aman di Supabase
                 let namaFile = rawNamaSJ.replace(/[^a-zA-Z0-9 \-]/g, '_') + '.jpg';
                 try {
@@ -4388,16 +4388,21 @@ async function prosesAntreanBackground() {
                     'apikey': SUPA_ANON_KEY,
                     'Authorization': `Bearer ${SUPA_ANON_KEY}`,
                     'Content-Type': 'application/json',
-                    // 👇 TAMBAHKAN KALIMAT INI DI SINI 👇
-                    'Prefer': 'return=minimal, resolution=ignore-duplicates' 
+                    // 🔥 SOLUSI 2: Tambahkan resolution=ignore-duplicates
+                    'Prefer': 'return=minimal, resolution=ignore-duplicates'
                 },
                 body: JSON.stringify(supabaseRows),
                 signal: uploadAbortController.signal
             });
 
             if (!resPakan.ok) {
-                const err = await resPakan.json();
-                throw new Error("Pakan Error: " + err.message);
+                // Obat tambahan jaga-jaga kalau server masih kirim 409
+                if (resPakan.status === 409) {
+                    console.warn("Data duplikat diabaikan server. Antrean dianggap sukses.");
+                } else {
+                    const err = await resPakan.json();
+                    throw new Error("Pakan Error: " + err.message);
+                }
             }
         }
 
@@ -4409,11 +4414,12 @@ async function prosesAntreanBackground() {
                     'apikey': SUPA_ANON_KEY,
                     'Authorization': `Bearer ${SUPA_ANON_KEY}`,
                     'Content-Type': 'application/json',
+                    // 🔥 SOLUSI 2: Tambahkan juga di sini
                     'Prefer': 'return=minimal, resolution=ignore-duplicates'
                 },
                 body: JSON.stringify(cashflowRows)
             });
-            if (!resCF.ok) console.error("Gagal insert cashflow bongkar muat");
+            if (!resCF.ok && resCF.status !== 409) console.error("Gagal insert cashflow");
         }
 
         // BERHASIL! HAPUS DARI ANTREAN LOKAL
