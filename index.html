@@ -10628,7 +10628,7 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
     if (tglForm) dObj = new Date(tglForm);
     let tglIndo = ("0" + dObj.getDate()).slice(-2) + "/" + ("0" + (dObj.getMonth() + 1)).slice(-2) + "/" + dObj.getFullYear();
 
-    let txt = `*REKAP LAPORAN SEMUA GUDANG*\nTanggal: ${tglIndo}\nPetugas:${activeUser}\n\n`;
+    let txt = `*REKAP LAPORAN SEMUA GUDANG*\nTanggal: ${tglIndo}\nPetugas: ${activeUser}\n\n`;
     let nf = new Intl.NumberFormat('id-ID');
     
     let grouped = {}; let sumKategori = {}; 
@@ -10701,12 +10701,14 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
         if (g.kategori !== kategoriAktif) {
             let emote = g.kategori.includes('Penjualan') ? '🔵' : (g.kategori.includes('Pemakaian') ? '🐮' : (g.kategori.includes('Giling') ? '⚙️' : (g.kategori.includes('Masuk') ? '🟢' : '🔴')));
             let totKgKat = sumKategori[g.kategori] || 0;
-            txt += `\n${emote} *${g.kategori.toUpperCase()} \vert{} TOTAL:${nf.format(totKgKat)}*\n\n`;
+            // SUDAH DIBERSIHKAN DARI vert{}
+            txt += `\n${emote} *${g.kategori.toUpperCase()} | TOTAL: ${nf.format(totKgKat)}*\n\n`;
             kategoriAktif = g.kategori;
         }
         
         let tStatus = g.status === 'Masuk' ? 'Dari' : 'Ke';
-        txt += `${tStatus}:${g.relasi} (${g.cabang}) \vert{} Pukul:${g.waktu_awal}\n`;
+        // SUDAH DIBERSIHKAN DARI vert{}
+        txt += `${tStatus}: ${g.relasi} (${g.cabang}) | Pukul: ${g.waktu_awal}\n`;
         
         let subt = 0;
         
@@ -10721,7 +10723,6 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
                 let parts = catatanAsli.split("Link SJ:");
                 catatanTeks = parts[0].trim();
                 let fullUrl = parts[1].trim();
-                // Langsung simpan URL utuhnya ke himpunan
                 himpunanLinkSJ.add(fullUrl);
             }
 
@@ -10729,9 +10730,9 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
             let ketSusulan = catatanTeks.toLowerCase().includes('susulan') ? ' (Susulan)' : '';
             let safeSatuan = String(i.pakan).toLowerCase().includes('ongkir') ? 'Rit' : (i.satuan || 'Kg');
             
-            txt += `• ${i.pakan}: ${nf.format(i.qty)}${safeSatuan}${ketKoreksi}${ketSusulan}\n`; 
+            // DITAMBAHKAN SPASI ANTARA ANGKA DAN SATUAN (Misal: 250 Kg)
+            txt += `• ${i.pakan}: ${nf.format(i.qty)} ${safeSatuan}${ketKoreksi}${ketSusulan}\n`; 
             
-            // Filter agar "Biaya Pengiriman" tidak ikut masuk
             if (catatanTeks !== "" && !catatanTeks.includes('[DIKOREKSI') && catatanTeks.toLowerCase() !== 'biaya pengiriman') {
                 himpunanCatatan.add(catatanTeks);
             }
@@ -10739,12 +10740,10 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
             if (safeSatuan === 'Kg') subt += i.qty;
         });
 
-        // Cetak Catatan Unik (jika ada)
         himpunanCatatan.forEach(ctt => {
             txt += `   _Catatan: ${ctt}_\n`;
         });
         
-        // Cetak Link SJ (langsung URL utuh)
         himpunanLinkSJ.forEach(url => {
             txt += `   🔗 _Link Lampiran: ${url}_\n`;
         });
