@@ -10621,12 +10621,13 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
         function generateWALaporanHarian() {
     if (globalTransaksiHariIni.length === 0) return alert("Tidak ada data untuk direkap!");
 
+    let baseCabang = document.querySelector('input[name="lokasi_utama"]:checked').value;
+
     let dObj = new Date();
     let tglForm = document.getElementById('tanggal').value;
     if (tglForm) dObj = new Date(tglForm);
     let tglIndo = ("0" + dObj.getDate()).slice(-2) + "/" + ("0" + (dObj.getMonth() + 1)).slice(-2) + "/" + dObj.getFullYear();
 
-    // Judul WA diubah menjadi GLOBAL SEMUA GUDANG
     let txt = `*REKAP LAPORAN SEMUA GUDANG*\nTanggal: ${tglIndo}\nPetugas: ${activeUser}\n\n`;
     let nf = new Intl.NumberFormat('id-ID');
     
@@ -10646,7 +10647,6 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
         }
     });
 
-    // 1. Grouping Data Pakan (Normal) - Ditambah t.cabang
     itemsNormal.forEach(t => {
         let wkt = new Date(t.waktu_input || t.tanggal).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'});
         let kategori = getKategoriReview(t);
@@ -10658,7 +10658,6 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
         grouped[key].items.push(t);
     });
 
-    // 2. Suntikkan Data Ongkir - Ditambah t.cabang
     itemsOngkir.forEach(t => {
         let kategori = getKategoriReview(t);
         let prefixKey = `${kategori}_${t.cabang}_${t.relasi}_${t.status}`;
@@ -10707,36 +10706,52 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
         }
         
         let tStatus = g.status === 'Masuk' ? 'Dari' : 'Ke';
-        // Tambahkan info cabang di WA
         txt += `${tStatus}: ${g.relasi} (${g.cabang}) | Pukul: ${g.waktu_awal}\n`;
         
         let subt = 0;
+        
+        // 🔥 FITUR BARU: Wadah Set() otomatis mencegah catatan duplikat
+        let himpunanCatatan = new Set();
+        let himpunanFileSJ = new Set();
+
         g.items.forEach(i => {
             let catatanAsli = i.catatan || "";
-            let linkSJ = "";
+            let namaFileSJ = "";
             let catatanTeks = catatanAsli;
             
             if (catatanAsli.includes("Link SJ:")) {
                 let parts = catatanAsli.split("Link SJ:");
                 catatanTeks = parts[0].trim();
-                linkSJ = parts[1].trim();
+                let fullUrl = parts[1].trim();
+                namaFileSJ = decodeURIComponent(fullUrl.split('/').pop().split('?')[0]);
             }
 
             let ketKoreksi = catatanTeks.includes('[DIKOREKSI') ? ' (Ada Koreksi)' : '';
             let ketSusulan = catatanTeks.toLowerCase().includes('susulan') ? ' (Susulan)' : '';
             let safeSatuan = String(i.pakan).toLowerCase().includes('ongkir') ? 'Rit' : (i.satuan || 'Kg');
             
+            // Cetak List Pakan (TANPA Catatan di bawahnya)
             txt += `• ${i.pakan}: ${nf.format(i.qty)} ${safeSatuan}${ketKoreksi}${ketSusulan}\n`; 
             
-            if (catatanTeks !== "" && !catatanTeks.includes('[DIKOREKSI')) {
-                txt += `   _Catatan: ${catatanTeks}_\n`;
+            // Simpan ke wadah JIKA BUKAN Koreksi dan BUKAN "Biaya Pengiriman"
+            if (catatanTeks !== "" && !catatanTeks.includes('[DIKOREKSI') && catatanTeks.toLowerCase() !== 'biaya pengiriman') {
+                himpunanCatatan.add(catatanTeks);
             }
-            if (linkSJ !== "") {
-                txt += `   🔗 _Lampiran SJ: ${linkSJ}_\n`;
+            if (namaFileSJ !== "") {
+                himpunanFileSJ.add(namaFileSJ);
             }
 
             if (safeSatuan === 'Kg') subt += i.qty;
         });
+
+        // 🔥 CETAK CATATAN UNIK DI BAGIAN BAWAH LIST PAKAN (Cukup 1x per Relasi)
+        himpunanCatatan.forEach(ctt => {
+            txt += `   _Catatan: ${ctt}_\n`;
+        });
+        himpunanFileSJ.forEach(sj => {
+            txt += `   📸 _Lampiran SJ: ${sj}_\n`;
+        });
+
         if (subt > 0) txt += `Total Kg: ${nf.format(subt)} Kg\n\n`;
         else txt += `\n`; 
     });
