@@ -10484,33 +10484,56 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
 
     let html = ''; let nf = new Intl.NumberFormat('id-ID');
     
-    // 1. Grouping Data berdasarkan KATEGORI, lalu Relasi, Status & Waktu
     let grouped = {};
     let sumKategori = {};
 
-    globalTransaksiHariIni.forEach(t => {
-        let wkt = new Date(t.waktu_input || t.tanggal).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'});
-        let kategori = getKategoriReview(t);
-        
-        // 🔥 PERUBAHAN 1: Tambahkan _wkt di key agar transaksi beda jam tidak dijadikan satu kotak
-        let key = `${kategori}_${t.relasi}_${t.status}_${wkt}`; 
-        
-        if (!grouped[key]) {
-            grouped[key] = {
-                kategori: kategori,
-                relasi: t.relasi,
-                status: t.status,
-                waktu_awal: wkt,
-                items: []
-            };
-        }
-        grouped[key].items.push(t);
+    // 🔥 TRIK BARU: Pisahkan Pakan Normal dan Ongkir sejak awal
+    let itemsNormal = [];
+    let itemsOngkir = [];
 
-        // Hitung sum kategori hanya untuk satuan Kg
-        let safeSatuan = String(t.pakan).toLowerCase().includes('ongkir') ? 'Rit' : (t.satuan || 'Kg');
+    globalTransaksiHariIni.forEach(t => {
+        let isOngkir = String(t.pakan).toLowerCase().includes('ongkir');
+        if (isOngkir) itemsOngkir.push(t);
+        else itemsNormal.push(t);
+
+        let kategori = getKategoriReview(t);
+        let safeSatuan = isOngkir ? 'Rit' : (t.satuan || 'Kg');
+        
         if (safeSatuan === 'Kg') {
             if (!sumKategori[kategori]) sumKategori[kategori] = 0;
             sumKategori[kategori] += (parseFloat(t.qty) || 0);
+        }
+    });
+
+    // 1. Grouping Data Pakan (Normal) dengan pemisah Waktu
+    itemsNormal.forEach(t => {
+        let wkt = new Date(t.waktu_input || t.tanggal).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'});
+        let kategori = getKategoriReview(t);
+        let key = `${kategori}_${t.relasi}_${t.status}_${wkt}`; 
+        
+        if (!grouped[key]) {
+            grouped[key] = { kategori: kategori, relasi: t.relasi, status: t.status, waktu_awal: wkt, items: [] };
+        }
+        grouped[key].items.push(t);
+    });
+
+    // 2. Suntikkan Data Ongkir ke Grup yang Sudah Ada (Abaikan waktu ongkirnya)
+    itemsOngkir.forEach(t => {
+        let kategori = getKategoriReview(t);
+        let prefixKey = `${kategori}_${t.relasi}_${t.status}`;
+        
+        // Cari apakah relasi ini sudah punya kotak/kartu laporan sebelumnya
+        let matchingKeys = Object.keys(grouped).filter(k => k.startsWith(prefixKey));
+        
+        if (matchingKeys.length > 0) {
+            // Jika ada, tempelkan ongkir ke kotak transaksinya (ambil yg terakhir jika ada 2)
+            let targetKey = matchingKeys[matchingKeys.length - 1]; 
+            grouped[targetKey].items.push(t);
+        } else {
+            // Jaga-jaga kalau hari itu anehnya cuma ada inputan ongkir tanpa pakan
+            let wkt = new Date(t.waktu_input || t.tanggal).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'});
+            let newKey = `${prefixKey}_${wkt}`;
+            grouped[newKey] = { kategori: kategori, relasi: t.relasi, status: t.status, waktu_awal: wkt, items: [t] };
         }
     });
 
@@ -10525,19 +10548,14 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
         });
     }
 
-    // 2. Render UI Kartu (DENGAN SORTIR WAKTU)
+    // 3. Render UI Kartu (Tetap urut jam)
     let kategoriAktif = "";
-    
     let sortedKeys = Object.keys(grouped).sort((a, b) => {
         let getRnk = (k) => k.includes("Penjualan") ? 1 : k.includes("Mutasi") ? 2 : k.includes("Masuk") ? 3 : k.includes("Pemakaian") ? 4 : k.includes("Gilingan") ? 5 : 99;
-        
         let rankA = getRnk(grouped[a].kategori);
         let rankB = getRnk(grouped[b].kategori);
-        
-        // Urutkan Kategori dulu (Penjualan di atas, dsb)
         if (rankA !== rankB) return rankA - rankB;
         
-        // 🔥 PERUBAHAN 2: Urutkan berdasarkan JAM (Bukan lagi berdasarkan Alfabet/a.localeCompare)
         let waktuA = grouped[a].waktu_awal || "23:59";
         let waktuB = grouped[b].waktu_awal || "23:59";
         return waktuA.localeCompare(waktuB);
@@ -10546,7 +10564,6 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
     sortedKeys.forEach(key => {
         let g = grouped[key];
         
-        // Bikin header kategori jika berubah
         if (g.kategori !== kategoriAktif) {
             let colorKat = g.kategori.includes('Masuk') ? '#2e7d32' : (g.kategori.includes('Penjualan') ? '#1565c0' : (g.kategori.includes('Pemakaian') ? '#9C27B0' : '#e65100'));
             let emoteKat = g.kategori.includes('Penjualan') ? '🛒' : (g.kategori.includes('Pemakaian') ? '🐮' : (g.kategori.includes('Giling') ? '⚙️' : '🏭'));
@@ -10565,11 +10582,9 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
             let isKoreksi = it.catatan && it.catatan.includes('[DIKOREKSI');
             let bgItem = isKoreksi ? 'background:#fff8e1;' : '';
             
-            // Menampilkan info catatan dan link SJ
             let catatanEksplisit = "";
             if (it.catatan) {
                 let textCatatan = it.catatan;
-                // Jika ada Link SJ, buat formatnya sedikit lebih rapi di tampilan UI
                 if (textCatatan.includes("Link SJ:")) {
                     let parts = textCatatan.split("Link SJ:");
                     let teksDepan = parts[0].trim();
@@ -10618,7 +10633,6 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
         function generateWALaporanHarian() {
     if (globalTransaksiHariIni.length === 0) return alert("Tidak ada data untuk direkap!");
 
-    // SULAP JUDUL WA
     let baseCabang = document.querySelector('input[name="lokasi_utama"]:checked').value;
 
     let dObj = new Date();
@@ -10630,22 +10644,51 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
     let nf = new Intl.NumberFormat('id-ID');
     
     let grouped = {};
-    let sumKategori = {}; // Untuk menyimpan total per kategori
+    let sumKategori = {}; 
+
+    // 🔥 TRIK BARU: Pisahkan Pakan Normal dan Ongkir
+    let itemsNormal = [];
+    let itemsOngkir = [];
 
     globalTransaksiHariIni.forEach(t => {
+        let isOngkir = String(t.pakan).toLowerCase().includes('ongkir');
+        if (isOngkir) itemsOngkir.push(t);
+        else itemsNormal.push(t);
+
+        let kategori = getKategoriReview(t);
+        let safeSatuan = isOngkir ? 'Rit' : (t.satuan || 'Kg');
+        if (safeSatuan === 'Kg') {
+            if (!sumKategori[kategori]) sumKategori[kategori] = 0;
+            sumKategori[kategori] += (parseFloat(t.qty) || 0);
+        }
+    });
+
+    // 1. Grouping Data Pakan (Normal)
+    itemsNormal.forEach(t => {
         let wkt = new Date(t.waktu_input || t.tanggal).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'});
         let kategori = getKategoriReview(t);
-        let key = `${kategori}_${t.relasi}_${t.status}_${wkt}`; // Tambahan waktu di key agar relasi yg sama beda jam dipisah
+        let key = `${kategori}_${t.relasi}_${t.status}_${wkt}`; 
         
         if (!grouped[key]) {
             grouped[key] = { kategori: kategori, relasi: t.relasi, status: t.status, waktu_awal: wkt, items: [] };
         }
         grouped[key].items.push(t);
+    });
 
-        let safeSatuan = String(t.pakan).toLowerCase().includes('ongkir') ? 'Rit' : (t.satuan || 'Kg');
-        if (safeSatuan === 'Kg') {
-            if (!sumKategori[kategori]) sumKategori[kategori] = 0;
-            sumKategori[kategori] += (parseFloat(t.qty) || 0);
+    // 2. Suntikkan Data Ongkir
+    itemsOngkir.forEach(t => {
+        let kategori = getKategoriReview(t);
+        let prefixKey = `${kategori}_${t.relasi}_${t.status}`;
+        
+        let matchingKeys = Object.keys(grouped).filter(k => k.startsWith(prefixKey));
+        
+        if (matchingKeys.length > 0) {
+            let targetKey = matchingKeys[matchingKeys.length - 1]; 
+            grouped[targetKey].items.push(t);
+        } else {
+            let wkt = new Date(t.waktu_input || t.tanggal).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'});
+            let newKey = `${prefixKey}_${wkt}`;
+            grouped[newKey] = { kategori: kategori, relasi: t.relasi, status: t.status, waktu_awal: wkt, items: [t] };
         }
     });
 
@@ -10660,18 +10703,12 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
     }
 
     let kategoriAktif = "";
-    
-    // 🔥 PERUBAHAN 1: SORTIR KATEGORI LALU SORTIR JAM
     let sortedKeys = Object.keys(grouped).sort((a, b) => {
         let getRnk = (k) => k.includes("Penjualan") ? 1 : k.includes("Mutasi") ? 2 : k.includes("Masuk") ? 3 : k.includes("Pemakaian") ? 4 : k.includes("Gilingan") ? 5 : 99;
-        
         let rankA = getRnk(grouped[a].kategori);
         let rankB = getRnk(grouped[b].kategori);
+        if (rankA !== rankB) return rankA - rankB;
         
-        // 1. Urutkan berdasarkan Kategori dulu (Penjualan -> Mutasi -> dsb)
-        if (rankA !== rankB) return rankA - rankB; 
-        
-        // 2. Jika Kategorinya sama, baru urutkan berdasarkan Jam Transaksi (Awal ke Akhir)
         let waktuA = grouped[a].waktu_awal || "23:59";
         let waktuB = grouped[b].waktu_awal || "23:59";
         return waktuA.localeCompare(waktuB);
@@ -10694,20 +10731,23 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
         g.items.forEach(i => {
             let catatanAsli = i.catatan || "";
             let linkSJ = "";
+            let catatanTeks = catatanAsli;
             
-            // 🔥 PERUBAHAN 2: DETEKTOR LINK SURAT JALAN
             if (catatanAsli.includes("Link SJ:")) {
                 let parts = catatanAsli.split("Link SJ:");
-                linkSJ = parts[1].trim(); // Mengambil URL yang ada di sebelah kanan tulisan "Link SJ:"
+                catatanTeks = parts[0].trim();
+                linkSJ = parts[1].trim();
             }
 
-            let ketKoreksi = catatanAsli.includes('[DIKOREKSI') ? ' (Ada Koreksi)' : '';
-            let ketSusulan = catatanAsli.toLowerCase().includes('susulan') ? ' (Susulan)' : '';
+            let ketKoreksi = catatanTeks.includes('[DIKOREKSI') ? ' (Ada Koreksi)' : '';
+            let ketSusulan = catatanTeks.toLowerCase().includes('susulan') ? ' (Susulan)' : '';
             let safeSatuan = String(i.pakan).toLowerCase().includes('ongkir') ? 'Rit' : (i.satuan || 'Kg');
             
             txt += `• ${i.pakan}: ${nf.format(i.qty)} ${safeSatuan}${ketKoreksi}${ketSusulan}\n`; 
             
-            // Jika ada link Surat Jalan, tempelkan di baris bawahnya
+            if (catatanTeks !== "" && !catatanTeks.includes('[DIKOREKSI')) {
+                txt += `   _Catatan: ${catatanTeks}_\n`;
+            }
             if (linkSJ !== "") {
                 txt += `   🔗 _Lampiran SJ: ${linkSJ}_\n`;
             }
@@ -10715,7 +10755,7 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
             if (safeSatuan === 'Kg') subt += i.qty;
         });
         if (subt > 0) txt += `Total Kg: ${nf.format(subt)} Kg\n\n`;
-        else txt += `\n`; // Spasi kalau misal isinya cuma ongkir
+        else txt += `\n`; 
     });
 
     if (currentLoggedPin === "1234") {
