@@ -4719,24 +4719,26 @@ async function prosesAntreanBackground() {
             }
             updateEstimasiBongkar();
 
-            // --- TAMBAHAN BARU: ALARM MINUS LIVE ---
-            let isKandang = (getLokasiAktif() === "/kandang" || getLokasiAktif() === "/spn_kandang");
-            if (isKandang) {
-                let namaPakanAktual = currentItems[index].nama;
-                let sisaStok = globalStokKandang[namaPakanAktual] || 0;
-                let warnEl = document.getElementById('warn-stok-' + index);
+            // --- ALARM MINUS STOK LIVE (BERLAKU SEMUA GUDANG) ---
+            let namaPakanAktual = currentItems[index].nama;
+            let sisaStok = globalStokAktif[namaPakanAktual] || 0;
+            let warnEl = document.getElementById('warn-stok-' + index);
+            let statusTrx = document.getElementById('status').value; 
 
-                if (total > sisaStok && total > 0) {
-                    if (warnEl) warnEl.style.display = "block";
-                    el.style.color = "#c62828";
-                    el.style.borderColor = "#c62828";
-                    el.style.backgroundColor = "#ffebee";
-                } else {
-                    if (warnEl) warnEl.style.display = "none";
-                    el.style.color = "#333";
-                    el.style.borderColor = "#DBE4C9";
-                    el.style.backgroundColor = "#fff";
+            // Alarm hanya menyala jika status "Keluar" dan jumlah melebihi stok
+            if (statusTrx === "Keluar" && total > sisaStok && total > 0) {
+                if (warnEl) {
+                    warnEl.style.display = "block";
+                    warnEl.innerHTML = `⚠️ Sisa stok di server hanya ${new Intl.NumberFormat('id-ID').format(sisaStok)} Kg!`;
                 }
+                el.style.color = "#c62828";
+                el.style.borderColor = "#c62828";
+                el.style.backgroundColor = "#ffebee";
+            } else {
+                if (warnEl) warnEl.style.display = "none";
+                el.style.color = "#333";
+                el.style.borderColor = "#DBE4C9";
+                el.style.backgroundColor = "#fff";
             }
         }
 
@@ -7415,6 +7417,7 @@ async function prosesAntreanBackground() {
             } else {
                 document.getElementById('product-list').innerHTML = '<div class="loader">Membutuhkan koneksi internet...</div>';
             }
+            
             // 🚀 TEMBAK LANGSUNG KE MASTER PAKAN SUPABASE
             if (navigator.onLine) { 
                 let mapFilter = { '/pm': 'PM', '/spn': 'SPN', '/rph': 'RPH', '/kandang': 'PM', '/spn_kandang': 'SPN' };
@@ -7458,7 +7461,9 @@ async function prosesAntreanBackground() {
                     document.getElementById('product-list').innerHTML = '<div class="loader">Gagal mengambil data dari server</div>'; 
                 }); 
             }
-            fetchStokKandang(); // Panggil pengecekan stok murni
+            
+            // 👇 INI PERUBAHANNYA: Menarik sisa stok live dari semua gudang
+            tarikStokAktifUntukInput(); 
         }
         let globalStokKandang = {};
 
@@ -7531,29 +7536,54 @@ async function prosesAntreanBackground() {
             }
         }
 
-        function renderMiniDashboardKandang() {
-            let isKandang = (getLokasiAktif() === "/kandang" || getLokasiAktif() === "/spn_kandang");
-            if (!isKandang) return;
-            
-            // Refresh text sisa stok langsung di masing-masing baris pakan
-            currentItems.forEach((item, index) => {
-                let sisaStok = globalStokKandang[item.nama] || 0;
-                let infoEl = document.getElementById('info-stok-' + index);
-                
-                if (infoEl) {
-                    let warnaStok = sisaStok <= 0 ? "#c62828" : "#1a5c40";
-                    let bgStok = sisaStok <= 0 ? "#ffebee" : "#e8f0d8";
-                    
-                    // Kita timpa outerHTML agar atribut onclick dan style tetap terjaga saat refresh
-                    infoEl.outerHTML = `<span id="info-stok-${index}" onclick="cekRiwayatKandang('${item.nama}')" title="Klik untuk lihat riwayat" style="margin-left:8px; font-size:10px; font-weight:bold; color:${warnaStok}; background:${bgStok}; padding:3px 8px; border-radius:12px; display:inline-flex; align-items:center; gap:3px; cursor:pointer; box-shadow:0 2px 5px rgba(0,0,0,0.1);">
-                        <span class="material-symbols-outlined" style="font-size:12px;">history</span> Sisa: ${new Intl.NumberFormat('id-ID').format(sisaStok)} Kg
-                    </span>`;
-                }
-                
-                // Trigger ulang kalkulator agar mengecek apakah angka yang diketik sekarang minus
-                hitungCalc(index); 
-            });
-        }
+        // Variabel global baru untuk menampung stok live di form input
+let globalStokAktif = {};
+
+async function tarikStokAktifUntukInput() {
+    let lokasi = getLokasiAktif(); // Cek user sedang pilih lokasi apa
+    let mapLoc = { '/pm': 'PM', '/spn': 'SPN', '/rph': 'RPH', '/kandang': 'Kandang PM', '/spn_kandang': 'Kandang SPN' };
+    let cabangAktif = mapLoc[lokasi] || 'PM';
+
+    try {
+        // Tembak data ke stok_batch khusus untuk gudang yang sedang dipilih
+        let res = await fetch(`${SUPA_URL}/rest/v1/stok_batch?cabang=eq.${cabangAktif}&qty_sisa=gt.0&select=pakan,qty_sisa`, {
+            headers: { 'apikey': SUPA_ANON_KEY, 'Authorization': `Bearer ${SUPA_ANON_KEY}` }
+        });
+        let data = await res.json();
+        
+        globalStokAktif = {};
+        data.forEach(item => {
+            if(!globalStokAktif[item.pakan]) globalStokAktif[item.pakan] = 0;
+            globalStokAktif[item.pakan] += item.qty_sisa;
+        });
+        
+        renderLiveStokDiInput();
+    } catch(e) {
+        console.error("Gagal tarik stok live form:", e);
+    }
+}
+
+function renderLiveStokDiInput() {
+    let container = document.getElementById('dashboard-kandang-container');
+    if (!container) return;
+    
+    let html = `<div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom: 10px;">`;
+    for(let pakan in globalStokAktif) {
+        let qty = globalStokAktif[pakan];
+        let minStok = window.minStokDict ? (window.minStokDict[pakan] || 500) : 500;
+        let bg = qty <= minStok ? '#ffebee' : '#e8f0d8';
+        let color = qty <= minStok ? '#c62828' : '#1a5c40';
+        
+        html += `<div style="background:${bg}; color:${color}; padding:6px 12px; border-radius:6px; font-size:11px; border:1px solid ${color}; font-weight:bold;">
+            ${pakan}: ${new Intl.NumberFormat('id-ID').format(qty)} Kg
+        </div>`;
+    }
+    html += `</div>`;
+    
+    container.innerHTML = html;
+    container.style.display = "block";
+    container.classList.remove('hidden');
+}
 
         function cekKartuStokKandang(pakan, gudang) {
             document.getElementById('modal-kartu-stok').classList.remove('hidden');
