@@ -10476,13 +10476,15 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
         function renderListReviewHarian() {
     let container = document.getElementById('review-list');
     if (globalTransaksiHariIni.length === 0) {
-        container.innerHTML = '<div style="text-align:center; color:#888; font-size:12px; padding:20px;">Belum ada transaksi hari ini.</div>';
+        container.innerHTML = '<div style="text-align:center; color:#888; font-size:12px; padding:20px;">Belum ada transaksi hari ini di gudang ini.</div>';
         return;
     }
 
-    let html = ''; let nf = new Intl.NumberFormat('id-ID');
-    let grouped = {}; let sumKategori = {};
-
+    let html = ''; 
+    // Format angka dengan maksimal 2 angka di belakang koma (untuk rata-rata)
+    let nf = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 2 });
+    
+    let grouped = {}; let sumKategori = {}; 
     let itemsNormal = []; let itemsOngkir = [];
 
     globalTransaksiHariIni.forEach(t => {
@@ -10497,11 +10499,9 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
         }
     });
 
-    // 1. Grouping Data Pakan (Normal) - Ditambah t.cabang
     itemsNormal.forEach(t => {
         let wkt = new Date(t.waktu_input || t.tanggal).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'});
         let kategori = getKategoriReview(t);
-        // Tambahkan Cabang ke kode unik agar orang yang sama tapi beda gudang tidak tercampur
         let key = `${kategori}_${t.cabang}_${t.relasi}_${t.status}_${wkt}`; 
         
         if (!grouped[key]) {
@@ -10510,7 +10510,6 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
         grouped[key].items.push(t);
     });
 
-    // 2. Suntikkan Data Ongkir - Ditambah t.cabang
     itemsOngkir.forEach(t => {
         let kategori = getKategoriReview(t);
         let prefixKey = `${kategori}_${t.cabang}_${t.relasi}_${t.status}`;
@@ -10565,6 +10564,10 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
 
         let stStyle = g.status === 'Masuk' ? 'color:#2e7d32; background:#e8f5e9;' : 'color:#c62828; background:#ffebee;';
         
+        let subt = 0;
+        // Ambil data jumlah ekor dari item pertama di transaksi ini
+        let jmlEkor = parseFloat(g.items[0].ekor) || 0;
+
         let itemHtml = g.items.map(it => {
             let isKoreksi = it.catatan && it.catatan.includes('[DIKOREKSI');
             let bgItem = isKoreksi ? 'background:#fff8e1;' : '';
@@ -10585,6 +10588,7 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
             }
 
             let safeSatuan = String(it.pakan).toLowerCase().includes('ongkir') ? 'Rit' : (it.satuan || 'Kg');
+            if (safeSatuan === 'Kg') subt += it.qty;
             
             return `
             <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding:8px 5px; ${bgItem}">
@@ -10601,7 +10605,13 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
             </div>`;
         }).join('');
 
-        // Tampilkan Nama Relasi + Nama Cabangnya (Contoh: Asep Dani (PM))
+        // 🔥 Kalkulasi Rata-rata Konsumsi
+        let infoAvgUI = "";
+        if (subt > 0 && jmlEkor > 0) {
+            let avgKonsumsi = subt / jmlEkor;
+            infoAvgUI = `<span style="font-size:10px; color:#1a5c40; font-weight:bold; background:#e8f0d8; padding:2px 6px; border-radius:4px; margin-left:5px;">(Avg: ${nf.format(avgKonsumsi)} Kg/ekor)</span>`;
+        }
+
         html += `
         <div style="background:#fff; border:1px solid #DBE4C9; border-radius:8px; padding:10px; margin-bottom:10px; box-shadow:0 2px 4px rgba(0,0,0,0.02);">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; border-bottom:2px solid #f4f7f0; padding-bottom:8px;">
@@ -10612,6 +10622,7 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
                 <div style="font-size:11px; color:#888; font-weight:bold;">${g.waktu_awal}</div>
             </div>
             <div>${itemHtml}</div>
+            ${subt > 0 ? `<div style="margin-top:8px; border-top:1px dashed #eee; padding-top:8px; font-weight:bold; font-size:12px; color:#333;">Total: ${nf.format(subt)} Kg ${infoAvgUI}</div>` : ''}
         </div>`;
     });
 
@@ -10629,7 +10640,7 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
     let tglIndo = ("0" + dObj.getDate()).slice(-2) + "/" + ("0" + (dObj.getMonth() + 1)).slice(-2) + "/" + dObj.getFullYear();
 
     let txt = `*REKAP LAPORAN SEMUA GUDANG*\nTanggal: ${tglIndo}\nPetugas: ${activeUser}\n\n`;
-    let nf = new Intl.NumberFormat('id-ID');
+    let nf = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 2 });
     
     let grouped = {}; let sumKategori = {}; 
 
@@ -10701,16 +10712,16 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
         if (g.kategori !== kategoriAktif) {
             let emote = g.kategori.includes('Penjualan') ? '🔵' : (g.kategori.includes('Pemakaian') ? '🐮' : (g.kategori.includes('Giling') ? '⚙️' : (g.kategori.includes('Masuk') ? '🟢' : '🔴')));
             let totKgKat = sumKategori[g.kategori] || 0;
-            // SUDAH DIBERSIHKAN DARI vert{}
             txt += `\n${emote} *${g.kategori.toUpperCase()} | TOTAL: ${nf.format(totKgKat)}*\n\n`;
             kategoriAktif = g.kategori;
         }
         
         let tStatus = g.status === 'Masuk' ? 'Dari' : 'Ke';
-        // SUDAH DIBERSIHKAN DARI vert{}
         txt += `${tStatus}: ${g.relasi} (${g.cabang}) | Pukul: ${g.waktu_awal}\n`;
         
         let subt = 0;
+        // Ambil data jumlah ekor
+        let jmlEkor = parseFloat(g.items[0].ekor) || 0;
         
         let himpunanCatatan = new Set();
         let himpunanLinkSJ = new Set();
@@ -10730,7 +10741,6 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
             let ketSusulan = catatanTeks.toLowerCase().includes('susulan') ? ' (Susulan)' : '';
             let safeSatuan = String(i.pakan).toLowerCase().includes('ongkir') ? 'Rit' : (i.satuan || 'Kg');
             
-            // DITAMBAHKAN SPASI ANTARA ANGKA DAN SATUAN (Misal: 250 Kg)
             txt += `• ${i.pakan}: ${nf.format(i.qty)} ${safeSatuan}${ketKoreksi}${ketSusulan}\n`; 
             
             if (catatanTeks !== "" && !catatanTeks.includes('[DIKOREKSI') && catatanTeks.toLowerCase() !== 'biaya pengiriman') {
@@ -10748,8 +10758,17 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
             txt += `   🔗 _Link Lampiran: ${url}_\n`;
         });
 
-        if (subt > 0) txt += `Total Kg: ${nf.format(subt)} Kg\n\n`;
-        else txt += `\n`; 
+        // 🔥 Cetak Total Kg & Kalkulasi Rata-rata
+        if (subt > 0) {
+            let txtTotal = `Total Kg: ${nf.format(subt)} Kg`;
+            if (jmlEkor > 0) {
+                let avgKonsumsi = subt / jmlEkor;
+                txtTotal += ` (Avg: ${nf.format(avgKonsumsi)} Kg/ekor dari ${jmlEkor} ekor)`;
+            }
+            txt += `${txtTotal}\n\n`;
+        } else {
+            txt += `\n`; 
+        }
     });
 
     if (currentLoggedPin === "1234") {
