@@ -4157,7 +4157,7 @@
             });
         }
         
-        function cekRiwayatKandang(pakan) {
+        function cekRiwayatPakan(pakan) {
             let gudang = (getLokasiAktif() === "/kandang") ? "Kandang PM" : "Kandang SPN";
             document.getElementById('modal-kartu-stok').classList.remove('hidden');
             document.getElementById('ks-subtitle').innerText = `${pakan} | ${gudang}`;
@@ -4897,13 +4897,13 @@ async function prosesAntreanBackground() {
                 };
 
                 if (f_fasilitas === "/kandang" || f_fasilitas === "/spn_kandang") {
-                    if (globalStokKandang[pakan] === undefined) globalStokKandang[pakan] = 0;
-                    if (f_sifat === "Masuk") globalStokKandang[pakan] += qty;
-                    else globalStokKandang[pakan] -= qty;
-                    localStorage.setItem('stok_kandang_ptcbl', JSON.stringify(globalStokKandang));
+                    if (globalStokAktif[pakan] === undefined) globalStokAktif[pakan] = 0;
+                    if (f_sifat === "Masuk") globalStokAktif[pakan] += qty;
+                    else globalStokAktif[pakan] -= qty;
+                    localStorage.setItem('stok_live_ptcbl', JSON.stringify(globalStokAktif));
                     let ind = document.getElementById('stok-kandang-indicator');
                     if (ind) ind.innerHTML = ICON_CLOUD;
-                    renderMiniDashboardKandang();
+                    renderLiveStokDiInput();
                 }
 
                 suntikCacheOptimistic(payloadKoreksi);
@@ -7465,7 +7465,7 @@ async function prosesAntreanBackground() {
             // 👇 INI PERUBAHANNYA: Menarik sisa stok live dari semua gudang
             tarikStokAktifUntukInput(); 
         }
-        let globalStokKandang = {};
+        let globalStokAktif = {};
 
         function fetchStokKandang() {
             let container = document.getElementById('dashboard-kandang-container');
@@ -7479,12 +7479,12 @@ async function prosesAntreanBackground() {
                 container.classList.remove('hidden'); // Kunci pembuka pintu yang tadi hilang!
 
                 // 1. TAMPILKAN LANGSUNG JIKA DATA SUDAH ADA DI MEMORI HP (0 Detik Loading)
-                let cached = localStorage.getItem('stok_kandang_ptcbl');
+                let cached = localStorage.getItem('stok_live_ptcbl');
                 if (cached) {
-                    globalStokKandang = JSON.parse(cached);
+                    globalStokAktif = JSON.parse(cached);
                     let ind = document.getElementById('stok-kandang-indicator');
                     if (ind) ind.innerHTML = ICON_CLOUD;
-                    renderMiniDashboardKandang();
+                    renderLiveStokDiInput();
                 } else {
                     let ind = document.getElementById('stok-kandang-indicator');
                     if (ind) ind.innerHTML = ICON_CLOUD;
@@ -7520,9 +7520,9 @@ async function prosesAntreanBackground() {
                             }
                         });
 
-                        globalStokKandang = serverStok;
-                        localStorage.setItem('stok_kandang_ptcbl', JSON.stringify(globalStokKandang)); 
-                        renderMiniDashboardKandang(); 
+                        globalStokAktif = serverStok;
+                        localStorage.setItem('stok_live_ptcbl', JSON.stringify(globalStokAktif)); 
+                        renderLiveStokDiInput(); 
                     }).catch(e => {
                         loader.classList.add('hidden');
                         console.log("Koneksi lambat, memakai stok kandang lokal.");
@@ -7656,17 +7656,17 @@ function renderLiveStokDiInput() {
             loader.classList.remove('hidden'); loader.innerText = "Mengeksekusi Sapu Bersih...";
             
             // SUNTIK STOK KANDANG LOKAL SECARA INSTAN
-            if (globalStokKandang[pakan] !== undefined) {
-                globalStokKandang[pakan] -= sisaQty; 
-                if(globalStokKandang[pakan] < 0) globalStokKandang[pakan] = 0;
+            if (globalStokAktif[pakan] !== undefined) {
+                globalStokAktif[pakan] -= sisaQty; 
+                if(globalStokAktif[pakan] < 0) globalStokAktif[pakan] = 0;
             }
-            localStorage.setItem('stok_kandang_ptcbl', JSON.stringify(globalStokKandang));
+            localStorage.setItem('stok_live_ptcbl', JSON.stringify(globalStokAktif));
             
             setTimeout(() => {
                 suntikCacheOptimistic(payloadFlush);
                 simpanKeAntrianLokal(payloadFlush);
                 loader.classList.add('hidden');
-                renderMiniDashboardKandang();
+                renderLiveStokDiInput();
                 alert("✅ Stok kandang berhasil dikuras!\nData akan tersinkronisasi ke database secara otomatis.");
             }, 500);
         }
@@ -7684,11 +7684,11 @@ function renderLiveStokDiInput() {
                     let labelInput = item.satuan || "Kg";
                     
                     // 1. Trik Label Sisa Stok di Samping Nama
-                    let sisaStok = globalStokKandang[item.nama] || 0;
+                    let sisaStok = globalStokAktif[item.nama] || 0;
                         let warnaStok = sisaStok <= 0 ? "#c62828" : "#1a5c40";
                         let bgStok = sisaStok <= 0 ? "#ffebee" : "#e8f0d8";
                         // TAMBAHAN: onclick, cursor pointer, dan box-shadow agar terlihat seperti tombol
-                        infoStok = `<span id="info-stok-${index}" onclick="cekRiwayatKandang('${item.nama}')" title="Klik untuk lihat riwayat" style="margin-left:8px; font-size:10px; font-weight:bold; color:${warnaStok}; background:${bgStok}; padding:3px 8px; border-radius:12px; display:inline-flex; align-items:center; gap:3px; cursor:pointer; box-shadow:0 2px 5px rgba(0,0,0,0.1);">
+                        infoStok = `<span id="info-stok-${index}" onclick="cekRiwayatPakan('${item.nama}')" title="Klik untuk lihat riwayat" style="margin-left:8px; font-size:10px; font-weight:bold; color:${warnaStok}; background:${bgStok}; padding:3px 8px; border-radius:12px; display:inline-flex; align-items:center; gap:3px; cursor:pointer; box-shadow:0 2px 5px rgba(0,0,0,0.1);">
                             <span class="material-symbols-outlined" style="font-size:12px;">history</span> Sisa: ${new Intl.NumberFormat('id-ID').format(sisaStok)} Kg
                         </span>`;
 
@@ -8181,7 +8181,7 @@ function renderLiveStokDiInput() {
                     rincianHTML += `<div style="display:flex; justify-content:space-between; margin-bottom:3px;"><span>${key}</span> <b>${qty} Kg <span style="font-weight:normal; font-size:10px; color:#888;">${avgTxt}</span></b></div>`;
                     ringkasanItemKandang += `• ${key}: ${qty} Kg ${avgTxt}\n`;
 
-                    let sisaDiKandang = globalStokKandang[key] || 0;
+                    let sisaDiKandang = globalStokAktif[key] || 0;
                     if (qty > sisaDiKandang) {
                         isMinusWarning = true;
                         txtMinus += `⚠️ ${key} (Minus ${qty - sisaDiKandang} Kg)\n`;
@@ -8315,14 +8315,14 @@ function renderLiveStokDiInput() {
                 if (payload.lokasi === "/kandang" || payload.lokasi === "/spn_kandang") {
                     for (let pakan in payload.items) {
                         let qty = parseFloat(payload.items[pakan]) || 0;
-                        if (globalStokKandang[pakan] === undefined) globalStokKandang[pakan] = 0;
-                        if (payload.status === "Masuk") globalStokKandang[pakan] += qty;
-                        else if (payload.status === "Keluar") globalStokKandang[pakan] -= qty;
+                        if (globalStokAktif[pakan] === undefined) globalStokAktif[pakan] = 0;
+                        if (payload.status === "Masuk") globalStokAktif[pakan] += qty;
+                        else if (payload.status === "Keluar") globalStokAktif[pakan] -= qty;
                     }
-                    localStorage.setItem('stok_kandang_ptcbl', JSON.stringify(globalStokKandang));
+                    localStorage.setItem('stok_live_ptcbl', JSON.stringify(globalStokAktif));
                     let ind = document.getElementById('stok-kandang-indicator');
                     if (ind) ind.innerHTML = ICON_CLOUD;
-                    if (typeof renderMiniDashboardKandang === 'function') renderMiniDashboardKandang();
+                    if (typeof renderMiniDashboardKandang === 'function') renderLiveStokDiInput();
                 }
 
                 renderKeranjang();
@@ -8412,15 +8412,15 @@ function renderLiveStokDiInput() {
                 if (deletedItem.lokasi === "/kandang" || deletedItem.lokasi === "/spn_kandang") {
                     for (let pakan in deletedItem.items) {
                         let qty = parseFloat(deletedItem.items[pakan]) || 0;
-                        if (globalStokKandang[pakan] !== undefined) {
-                            if (deletedItem.status === "Masuk") globalStokKandang[pakan] -= qty;
-                            else if (deletedItem.status === "Keluar") globalStokKandang[pakan] += qty;
+                        if (globalStokAktif[pakan] !== undefined) {
+                            if (deletedItem.status === "Masuk") globalStokAktif[pakan] -= qty;
+                            else if (deletedItem.status === "Keluar") globalStokAktif[pakan] += qty;
                         }
                     }
-                    localStorage.setItem('stok_kandang_ptcbl', JSON.stringify(globalStokKandang));
+                    localStorage.setItem('stok_live_ptcbl', JSON.stringify(globalStokAktif));
                     let ind = document.getElementById('stok-kandang-indicator');
                     if (ind) ind.innerHTML = ICON_CLOUD;
-                    if (typeof renderMiniDashboardKandang === 'function') renderMiniDashboardKandang();
+                    if (typeof renderMiniDashboardKandang === 'function') renderLiveStokDiInput();
                 }
 
                 keranjangLaporan.splice(index, 1);
@@ -8803,8 +8803,8 @@ function renderLiveStokDiInput() {
                 simpanKeAntrianLokal(batchPayload);
 
                 // Simpan Stok Kandang Global
-                localStorage.setItem('stok_kandang_ptcbl', JSON.stringify(globalStokKandang));
-                renderMiniDashboardKandang();
+                localStorage.setItem('stok_live_ptcbl', JSON.stringify(globalStokAktif));
+                renderLiveStokDiInput();
 
                 if (!navigator.onLine) updateStatusKoneksi();
                 else prosesAntreanBackground();
@@ -8861,21 +8861,21 @@ function renderLiveStokDiInput() {
                     let qty = parseFloat(payload.items[pakan]) || 0;
 
                     // CEK: Kalau pakan belum ada di layar, anggap 0 dulu biar nggak 'undefined'
-                    if (globalStokKandang[pakan] === undefined) {
-                        globalStokKandang[pakan] = 0;
+                    if (globalStokAktif[pakan] === undefined) {
+                        globalStokAktif[pakan] = 0;
                     }
 
                     // LOGIKA CERDAS: Kalau Masuk -> Tambah (+), Kalau Keluar -> Kurang (-)
                     if (payload.status === "Masuk") {
-                        globalStokKandang[pakan] += qty;
+                        globalStokAktif[pakan] += qty;
                     } else if (payload.status === "Keluar") {
-                        globalStokKandang[pakan] -= qty;
+                        globalStokAktif[pakan] -= qty;
                     }
                 }
                 // Simpan perubahan ke cache lokal agar awet saat refresh
-                localStorage.setItem('stok_kandang_ptcbl', JSON.stringify(globalStokKandang));
+                localStorage.setItem('stok_live_ptcbl', JSON.stringify(globalStokAktif));
                 // Langsung render ulang layar tanpa nunggu loading server!
-                renderMiniDashboardKandang();
+                renderLiveStokDiInput();
             }
             // =================================================================
 
@@ -10320,15 +10320,15 @@ function renderLiveStokDiInput() {
                 if (payloadData.lokasi === "/kandang" || payloadData.lokasi === "/spn_kandang") {
                     for (let pakan in payloadData.items) {
                         let qty = parseFloat(payloadData.items[pakan]) || 0;
-                        if (globalStokKandang[pakan] === undefined) globalStokKandang[pakan] = 0;
-                        if (payloadData.status === "Masuk") globalStokKandang[pakan] += qty;
-                        else if (payloadData.status === "Keluar") globalStokKandang[pakan] -= qty;
+                        if (globalStokAktif[pakan] === undefined) globalStokAktif[pakan] = 0;
+                        if (payloadData.status === "Masuk") globalStokAktif[pakan] += qty;
+                        else if (payloadData.status === "Keluar") globalStokAktif[pakan] -= qty;
                     }
-                    localStorage.setItem('stok_kandang_ptcbl', JSON.stringify(globalStokKandang));
+                    localStorage.setItem('stok_live_ptcbl', JSON.stringify(globalStokAktif));
                     let ind = document.getElementById('stok-kandang-indicator');
                     if (ind) ind.innerHTML = `<span class="material-symbols-outlined" style="font-size:18px; vertical-align:middle; color:#FEA405;" title="Data Lokal (Belum Tersinkron)">cloud</span>`;
                     if (typeof renderMiniDashboardKandang === 'function') {
-                        renderMiniDashboardKandang();
+                        renderLiveStokDiInput();
                     }
                 }
             });
