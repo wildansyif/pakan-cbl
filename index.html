@@ -7465,76 +7465,6 @@ async function prosesAntreanBackground() {
             // 👇 INI PERUBAHANNYA: Menarik sisa stok live dari semua gudang
             tarikStokAktifUntukInput(); 
         }
-        let globalStokAktif = {};
-
-        function fetchStokKandang() {
-            let container = document.getElementById('dashboard-kandang-container');
-            let loader = document.getElementById('loader-kandang');
-
-            let u = document.querySelector('input[name="lokasi_utama"]:checked').value;
-            let s = document.querySelector('input[name="sub_lokasi"]:checked').value;
-
-            // HANYA TAMPILKAN UI STOK JIKA FASILITAS = KANDANG PM
-            if (u === 'PM' && s === 'kandang') {
-                container.classList.remove('hidden'); // Kunci pembuka pintu yang tadi hilang!
-
-                // 1. TAMPILKAN LANGSUNG JIKA DATA SUDAH ADA DI MEMORI HP (0 Detik Loading)
-                let cached = localStorage.getItem('stok_live_ptcbl');
-                if (cached) {
-                    globalStokAktif = JSON.parse(cached);
-                    let ind = document.getElementById('stok-kandang-indicator');
-                    if (ind) ind.innerHTML = ICON_CLOUD;
-                    renderLiveStokDiInput();
-                } else {
-                    let ind = document.getElementById('stok-kandang-indicator');
-                    if (ind) ind.innerHTML = ICON_CLOUD;
-                    loader.classList.remove('hidden');
-                }
-
-                // 2. CEK KE SERVER DIEM-DIEM (Background Sync)
-                if (navigator.onLine) {
-                    let ind = document.getElementById('stok-kandang-indicator');
-                    if (ind) ind.innerHTML = ICON_SYNCING;
-
-                    // 🚀 TEMBAK KE VIEW STOK TERKINI YANG BARU
-                    fetch(`${SUPA_URL}/rest/v1/view_stok_terkini?select=*`, {
-                        headers: {
-                            'apikey': SUPA_ANON_KEY,
-                            'Authorization': `Bearer ${SUPA_ANON_KEY}`
-                        }
-                    })
-                    .then(r => r.json())
-                    .then(data => {
-                        loader.classList.add('hidden');
-                        let ind = document.getElementById('stok-kandang-indicator');
-                        if (ind) ind.innerHTML = ICON_SYNCED;
-                        
-                        let serverStok = {};
-                        let u = document.querySelector('input[name="lokasi_utama"]:checked') ? document.querySelector('input[name="lokasi_utama"]:checked').value : 'PM';
-                        let targetCabang = "Kandang " + u; 
-
-                        // Ekstrak data berdasarkan cabang yang sedang aktif
-                        data.forEach(val => {
-                            if (val.cabang && val.cabang.toLowerCase() === targetCabang.toLowerCase()) {
-                                serverStok[val.pakan] = parseFloat(val.qty_sisa) || 0; 
-                            }
-                        });
-
-                        globalStokAktif = serverStok;
-                        localStorage.setItem('stok_live_ptcbl', JSON.stringify(globalStokAktif)); 
-                        renderLiveStokDiInput(); 
-                    }).catch(e => {
-                        loader.classList.add('hidden');
-                        console.log("Koneksi lambat, memakai stok kandang lokal.");
-                    });
-                } else {
-                    loader.classList.add('hidden');
-                }
-            } else {
-                // SEMBUNYIKAN JIKA BUKAN KANDANG
-                container.classList.add('hidden');
-            }
-        }
 
         // Variabel global baru untuk menampung stok live di form input
 let globalStokAktif = {};
@@ -7584,60 +7514,6 @@ function renderLiveStokDiInput() {
     container.style.display = "block";
     container.classList.remove('hidden');
 }
-
-        function cekKartuStokKandang(pakan, gudang) {
-            document.getElementById('modal-kartu-stok').classList.remove('hidden');
-            document.getElementById('ks-subtitle').innerText = `Kandang ${gudang} | ${pakan}`;
-            document.getElementById('ks-tbody').innerHTML = "";
-            document.getElementById('ks-loader').classList.remove('hidden');
-
-            if (!navigator.onLine) {
-                document.getElementById('ks-loader').classList.add('hidden');
-                alert("Wajib online untuk menarik riwayat stok kandang!");
-                return;
-            }
-
-            // 🚀 TEMBAK LANGSUNG KE VIEW RECORDING STOK KANDANG (URUTAN Z-A / TERBARU DI ATAS)
-            fetch(`${SUPA_URL}/rest/v1/recording_stok_kandang?gudang=eq.${gudang}&pakan=eq.${encodeURIComponent(pakan)}&order=tanggal.desc,waktu_input.desc`, {
-                headers: {
-                    'apikey': SUPA_ANON_KEY,
-                    'Authorization': `Bearer ${SUPA_ANON_KEY}`
-                }
-            })
-            .then(r => r.json())
-            .then(res => {
-                document.getElementById('ks-loader').classList.add('hidden');
-                let html = ""; let nf = new Intl.NumberFormat('id-ID');
-                
-                if (res.length === 0) {
-                    html = "<tr><td colspan='5' style='text-align:center; padding:20px; color:#888;'>Tidak ada riwayat mutasi di kandang ini.</td></tr>";
-                } else {
-                    res.forEach(d => {
-                        let strIn = d.masuk_kg > 0 ? `+${nf.format(d.masuk_kg)}` : "-";
-                        let strOut = d.keluar_kg > 0 ? `-${nf.format(d.keluar_kg)}` : "-";
-                        
-                        let parts = d.tanggal.split('-');
-                        let tglFormat = parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0].substring(2)}` : d.tanggal;
-
-                        // Mencegah kolom kosong. Panggil semua kemungkinan nama kolom dari View Supabase Bapak!
-                        let relasiText = d.keterangan_transaksi || d.keterangan_trx || d.relasi || d.keterangan_t || '-';
-
-                        html += `
-                        <tr style="border-bottom:1px solid #eee; background:#fff;">
-                            <td style="padding:8px 5px;">${tglFormat}</td>
-                            <td style="padding:8px 5px;"><strong style="color:#555;">${relasiText}</strong><br><span style="color:#888; font-size:9px;">${d.catatan || ''}</span></td>
-                            <td style="padding:8px 5px; text-align:right; font-weight:bold; color:#8AA624;">${strIn}</td>
-                            <td style="padding:8px 5px; text-align:right; font-weight:bold; color:#c62828;">${strOut}</td>
-                            <td style="padding:8px 5px; text-align:right; font-weight:bold; background:#fafafa;">${nf.format(d.saldo_berjalan)}</td>
-                        </tr>`;
-                    });
-                }
-                document.getElementById('ks-tbody').innerHTML = html;
-            }).catch(e => { 
-                document.getElementById('ks-loader').classList.add('hidden'); 
-                alert("Error jaringan: " + e.message); 
-            });
-        }
 
         function flushStokKandang(pakan, sisaQty) {
             let u = document.querySelector('input[name="lokasi_utama"]:checked').value;
