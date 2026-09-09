@@ -4847,11 +4847,11 @@ async function prosesAntreanBackground() {
                     let img = new Image();
                     img.onload = function () {
                         let canvas = document.createElement('canvas');
-                        const MAX_WIDTH = 600; let w = img.width, h = img.height;
+                        const MAX_WIDTH = 1200; let w = img.width, h = img.height;
                         if (w > MAX_WIDTH) { h *= MAX_WIDTH / w; w = MAX_WIDTH; }
                         canvas.width = w; canvas.height = h;
                         let ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, w, h);
-                        let dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+                        let dataUrl = canvas.toDataURL('image/jpeg', 0.85);
                         fileBase64_Reject = dataUrl.split(',')[1];
                         fileMime_Reject = 'image/jpeg';
                     };
@@ -7667,7 +7667,7 @@ function renderLiveStokDiInput() {
 
         async function pasteImageFromClipboard(type) { try { const items = await navigator.clipboard.read(); let found = false; for (let item of items) { for (let t of item.types) { if (t.startsWith('image/')) { let blob = await item.getType(t); if (type === 'SJ') prosesFileGambarSJ(blob); else prosesFileGambarCF(blob); found = true; break; } } if (found) break; } if (!found) alert("⚠️ Copy gambar terlebih dahulu!"); } catch (e) { alert("⚠️ Browser menolak paste otomatis atau tidak ada gambar. Gunakan tombol 'Pilih File' di atas."); } }
         function previewSJ(input) { let file = input.files[0]; if (file) { prosesFileGambarSJ(file); } else { hapusSJ(); } }
-        function prosesFileGambarSJ(file) { let reader = new FileReader(); reader.onload = function (e) { document.getElementById('sj_preview_container').style.display = 'block'; document.getElementById('sj_preview').src = e.target.result; let img = new Image(); img.onload = function () { let canvas = document.createElement('canvas'); const MAX_WIDTH = 600; let w = img.width; let h = img.height; if (w > MAX_WIDTH) { h *= MAX_WIDTH / w; w = MAX_WIDTH; } canvas.width = w; canvas.height = h; let ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, w, h); let dataUrl = canvas.toDataURL('image/jpeg', 0.6); fileBase64_SJ = dataUrl.split(',')[1]; fileMime_SJ = 'image/jpeg'; document.getElementById('paste-zone-sj').innerHTML = "<b>✅ Gambar SJ disalin!</b>"; }; img.src = e.target.result; }; reader.readAsDataURL(file); }
+        function prosesFileGambarSJ(file) { let reader = new FileReader(); reader.onload = function (e) { document.getElementById('sj_preview_container').style.display = 'block'; document.getElementById('sj_preview').src = e.target.result; let img = new Image(); img.onload = function () { let canvas = document.createElement('canvas'); const MAX_WIDTH = 1200; let w = img.width; let h = img.height; if (w > MAX_WIDTH) { h *= MAX_WIDTH / w; w = MAX_WIDTH; } canvas.width = w; canvas.height = h; let ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, w, h); let dataUrl = canvas.toDataURL('image/jpeg', 0.85); fileBase64_SJ = dataUrl.split(',')[1]; fileMime_SJ = 'image/jpeg'; document.getElementById('paste-zone-sj').innerHTML = "<b>✅ Gambar SJ disalin!</b>"; }; img.src = e.target.result; }; reader.readAsDataURL(file); }
         function hapusSJ() { document.getElementById('sj_preview_container').style.display = 'none'; document.getElementById('input_sj').value = ""; document.getElementById('paste-zone-sj').innerHTML = `<span class="material-symbols-outlined" style="font-size:18px;">content_paste</span> <b>Paste Lampiran</b>`; fileBase64_SJ = ""; fileMime_SJ = ""; }
         function updateKategoriCashflow() {
             let jenis = document.querySelector('input[name="cf_jenis"]:checked').value;
@@ -7787,14 +7787,14 @@ function renderLiveStokDiInput() {
                 let img = new Image();
                 img.onload = function () {
                     let canvas = document.createElement('canvas');
-                    const MAX_WIDTH = 600;
+                    const MAX_WIDTH = 1200;
                     let width = img.width;
                     let height = img.height;
                     if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
                     canvas.width = width; canvas.height = height;
                     let ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, width, height);
-                    let dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+                    let dataUrl = canvas.toDataURL('image/jpeg', 0.85);
                     fileBase64_Global = dataUrl.split(',')[1];
                     fileMime_Global = 'image/jpeg';
                     document.getElementById('paste-zone').innerHTML = "<b>✅ Gambar disalin!</b>";
@@ -8042,35 +8042,41 @@ function renderLiveStokDiInput() {
 
                 if (payload.status === 'Masuk') {
                     teksWA = `*LAPORAN PAKAN MASUK, ${tglFormatWA}*\n`;
-                    teksWA += `*GUDANG ${locLabel}*\n\n`;
-                    teksWA += `Gudang: ${payload.relasi}\n`;
+                    let suppInfo = payload.ongkir ? `Supplier: ${payload.ongkir}` : `Gudang: ${payload.relasi}`;
+                    teksWA += `*GUDANG ${locLabel} | ${suppInfo}*\n`;
                     if (infoAlamat !== "-") teksWA += `Alamat: ${infoAlamat}\n`;
-                    if (payload.ongkir) teksWA += `Supplier: ${payload.ongkir}\n`;
-                    teksWA += `${ringkasanItem}\n`;
-                    teksWA += `*Total: ${Number(grandTotal).toLocaleString('id-ID')} Kg*\n\n`;
-                    teksWA += `_Petugas: ${payload.petugas}_`;
+                    teksWA += `${ringkasanItem}`; 
+                    teksWA += `Total: ${Number(grandTotal).toLocaleString('id-ID')} Kg\n\n`;
+                    teksWA += `Petugas: ${payload.petugas}\n`;
 
-                    if (predictedUrlSJ) teksWA += `\n\n🔗 Bukti: ${predictedUrlSJ}`;
+                    if (predictedUrlSJ) teksWA += `\n🔗 Lampiran SJ: ${predictedUrlSJ}\n`;
 
+                    let arrBawah = [];
                     if (payload.uangBongkar) {
                         let biayaBongkar = grandTotal * 30;
-                        teksWA += `\n\n*Bongkar Muat (Cash Out):* Rp ${Number(biayaBongkar).toLocaleString('id-ID')}`;
+                        arrBawah.push(`Bongkar Muat (Cash Out): Rp ${Number(biayaBongkar).toLocaleString('id-ID')}`);
                     }
+                    if (payload.catatan) arrBawah.push(`Catatan: ${payload.catatan}`);
+                    
+                    if (arrBawah.length > 0) teksWA += `\n${arrBawah.join(' | ')}`;
+
                 } else {
                     let relasiLabel = payload.status === 'Keluar' ? 'Konsumen' : 'Relasi';
                     teksWA = `*LAPORAN PAKAN ${payload.status.toUpperCase()}, ${tglFormatWA}*\n`;
-                    teksWA += `*GUDANG ${locLabel}*\n\n`;
-                    teksWA += `${relasiLabel}: ${payload.relasi}\n`;
+                    teksWA += `*GUDANG ${locLabel} | ${relasiLabel}: ${payload.relasi}*\n`;
                     if (infoAlamat !== "-") teksWA += `Alamat: ${infoAlamat}\n`;
                     if (payload.ongkir) teksWA += `Ongkir: ${payload.ongkir}\n`;
-                    teksWA += `${ringkasanItem}\n`;
-                    teksWA += `*Total: ${Number(grandTotal).toLocaleString('id-ID')} Kg*\n\n`;
-                    teksWA += `_Petugas: ${payload.petugas}_`;
+                    teksWA += `${ringkasanItem}`;
+                    teksWA += `Total: ${Number(grandTotal).toLocaleString('id-ID')} Kg\n\n`;
+                    teksWA += `Petugas: ${payload.petugas}\n`;
                     
-                    if (predictedUrlSJ) teksWA += `\n\n🔗 Bukti: ${predictedUrlSJ}`;
-                }
+                    let linkNama = (payload.status === 'Keluar' && payload.lokasi === '/spn') ? 'Lampiran Giling' : 'Lampiran SJ';
+                    if (predictedUrlSJ) teksWA += `\n🔗 ${linkNama}: ${predictedUrlSJ}\n`;
 
-                if (payload.catatan) teksWA += `\nCatatan: ${payload.catatan}`;
+                    let arrBawah = [];
+                    if (payload.catatan) arrBawah.push(`Catatan: ${payload.catatan}`);
+                    if (arrBawah.length > 0) teksWA += `\n${arrBawah.join(' | ')}`;
+                }
 
             } else {
                 rincianHTML += `<div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span>Kandang:</span> <b style="color:#8AA624; font-size:14px;">${payload.relasi}</b></div>`;
