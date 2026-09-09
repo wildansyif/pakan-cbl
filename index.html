@@ -4213,14 +4213,25 @@
         }
 
         function simpanKeAntrianLokal(payload) {
-            let antrian = JSON.parse(localStorage.getItem('antrian_pakan')) || [];
+            let antrian = [];
+            try { 
+                antrian = JSON.parse(localStorage.getItem('antrian_pakan')) || []; 
+            } catch(e) { 
+                antrian = []; 
+            }
+            
             antrian.push(payload);
-            localStorage.setItem('antrian_pakan', JSON.stringify(antrian));
 
-            // Mainkan suara sukses terkirim (lokal)
+            // PENGAMAN 1: Tangkap error jika memori HP penuh (QuotaExceededError)
             try {
-                let notifSound = new Audio('notifdatamasuk.mp3');
-                notifSound.play().catch(e => console.log("Browser memblokir suara otomatis"));
+                localStorage.setItem('antrian_pakan', JSON.stringify(antrian));
+            } catch (e) {
+                throw new Error("Memori antrean di HP kepenuhan (Maksimal 5MB). Silakan klik ikon 'Sinyal WiFi/Awan' di bagian atas aplikasi untuk Menghapus Antrean Macet.");
+            }
+
+            try { 
+                let notifSound = new Audio('notifdatamasuk.mp3'); 
+                notifSound.play().catch(e => console.log("Audio diblokir")); 
             } catch (err) { }
 
             if (navigator.onLine) {
@@ -4858,11 +4869,11 @@ async function prosesAntreanBackground() {
                     let img = new Image();
                     img.onload = function () {
                         let canvas = document.createElement('canvas');
-                        const MAX_WIDTH = 1200; let w = img.width, h = img.height;
+                        const MAX_WIDTH = 1000; let w = img.width, h = img.height;
                         if (w > MAX_WIDTH) { h *= MAX_WIDTH / w; w = MAX_WIDTH; }
                         canvas.width = w; canvas.height = h;
                         let ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, w, h);
-                        let dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+                        let dataUrl = canvas.toDataURL('image/jpeg', 0.70);
                         fileBase64_Reject = dataUrl.split(',')[1];
                         fileMime_Reject = 'image/jpeg';
                     };
@@ -7687,7 +7698,7 @@ function renderLiveStokDiInput() {
 
         async function pasteImageFromClipboard(type) { try { const items = await navigator.clipboard.read(); let found = false; for (let item of items) { for (let t of item.types) { if (t.startsWith('image/')) { let blob = await item.getType(t); if (type === 'SJ') prosesFileGambarSJ(blob); else prosesFileGambarCF(blob); found = true; break; } } if (found) break; } if (!found) alert("⚠️ Copy gambar terlebih dahulu!"); } catch (e) { alert("⚠️ Browser menolak paste otomatis atau tidak ada gambar. Gunakan tombol 'Pilih File' di atas."); } }
         function previewSJ(input) { let file = input.files[0]; if (file) { prosesFileGambarSJ(file); } else { hapusSJ(); } }
-        function prosesFileGambarSJ(file) { let reader = new FileReader(); reader.onload = function (e) { document.getElementById('sj_preview_container').style.display = 'block'; document.getElementById('sj_preview').src = e.target.result; let img = new Image(); img.onload = function () { let canvas = document.createElement('canvas'); const MAX_WIDTH = 1200; let w = img.width; let h = img.height; if (w > MAX_WIDTH) { h *= MAX_WIDTH / w; w = MAX_WIDTH; } canvas.width = w; canvas.height = h; let ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, w, h); let dataUrl = canvas.toDataURL('image/jpeg', 0.85); fileBase64_SJ = dataUrl.split(',')[1]; fileMime_SJ = 'image/jpeg'; document.getElementById('paste-zone-sj').innerHTML = "<b>✅ Gambar SJ disalin!</b>"; }; img.src = e.target.result; }; reader.readAsDataURL(file); }
+        function prosesFileGambarSJ(file) { let reader = new FileReader(); reader.onload = function (e) { document.getElementById('sj_preview_container').style.display = 'block'; document.getElementById('sj_preview').src = e.target.result; let img = new Image(); img.onload = function () { let canvas = document.createElement('canvas'); const MAX_WIDTH = 1000; let w = img.width; let h = img.height; if (w > MAX_WIDTH) { h *= MAX_WIDTH / w; w = MAX_WIDTH; } canvas.width = w; canvas.height = h; let ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, w, h); let dataUrl = canvas.toDataURL('image/jpeg', 0.70); fileBase64_SJ = dataUrl.split(',')[1]; fileMime_SJ = 'image/jpeg'; document.getElementById('paste-zone-sj').innerHTML = "<b>✅ Gambar SJ disalin!</b>"; }; img.src = e.target.result; }; reader.readAsDataURL(file); }
         function hapusSJ() { document.getElementById('sj_preview_container').style.display = 'none'; document.getElementById('input_sj').value = ""; document.getElementById('paste-zone-sj').innerHTML = `<span class="material-symbols-outlined" style="font-size:18px;">content_paste</span> <b>Paste Lampiran</b>`; fileBase64_SJ = ""; fileMime_SJ = ""; }
         function updateKategoriCashflow() {
             let jenis = document.querySelector('input[name="cf_jenis"]:checked').value;
@@ -7807,14 +7818,14 @@ function renderLiveStokDiInput() {
                 let img = new Image();
                 img.onload = function () {
                     let canvas = document.createElement('canvas');
-                    const MAX_WIDTH = 1200;
+                    const MAX_WIDTH = 1000;
                     let width = img.width;
                     let height = img.height;
                     if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
                     canvas.width = width; canvas.height = height;
                     let ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, width, height);
-                    let dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+                    let dataUrl = canvas.toDataURL('image/jpeg', 0.70);
                     fileBase64_Global = dataUrl.split(',')[1];
                     fileMime_Global = 'image/jpeg';
                     document.getElementById('paste-zone').innerHTML = "<b>✅ Gambar disalin!</b>";
@@ -8699,7 +8710,6 @@ function renderLiveStokDiInput() {
             tutupModalConfirm();
 
             let btn = document.getElementById('btn-kirim');
-            // Jika element btn tidak ada (karena diganti jadi btn-tambah-keranjang dsb), ambil btn-kirim-langsung
             if (!btn) btn = document.getElementById('btn-kirim-langsung');
 
             if (btn) {
@@ -8707,144 +8717,156 @@ function renderLiveStokDiInput() {
                 btn.disabled = true;
             }
 
-            let payload = pendingPayload;
+            // PENGAMAN 2: Blok Try-Catch agar tombol tidak stuck jika terjadi error
+            try {
+                let payload = pendingPayload;
 
-            // =================================================================
-            // LOGIKA BATCH KERANJANG (KIRIM SEMUA)
-            // =================================================================
-            if (payload === "BATCH_KERANJANG") {
-                let allWatext = "*REKAP PENGIRIMAN BATCH (KERANJANG)*\n\n";
+                // =================================================================
+                // LOGIKA BATCH KERANJANG (KIRIM SEMUA)
+                // =================================================================
+                if (payload === "BATCH_KERANJANG") {
+                    let allWatext = "*REKAP PENGIRIMAN BATCH (KERANJANG)*\n\n";
 
-                let batchPayload = {
-                    isBatch: true,
-                    items: JSON.parse(JSON.stringify(keranjangLaporan)) // Klon data
-                };
+                    let batchPayload = {
+                        isBatch: true,
+                        items: JSON.parse(JSON.stringify(keranjangLaporan)) // Klon data
+                    };
 
-                keranjangLaporan.forEach((itemPayload, index) => {
-                    suntikCacheOptimistic(itemPayload);
+                    keranjangLaporan.forEach((itemPayload, index) => {
+                        suntikCacheOptimistic(itemPayload);
+                        allWatext += `--- Laporan ${index + 1} ---\n`;
+                        allWatext += itemPayload.teksWA + "\n\n";
+                    });
 
-                    // Gabungkan teks WA
-                    allWatext += `--- Laporan ${index + 1} ---\n`;
-                    allWatext += itemPayload.teksWA + "\n\n";
+                    simpanKeAntrianLokal(batchPayload);
+
+                    if (typeof renderLiveStokDiInput === 'function') renderLiveStokDiInput();
+
+                    if (!navigator.onLine) updateStatusKoneksi();
+                    else prosesAntreanBackground();
+
+                    if (isLaporWA) {
+                        if (currentLoggedPin === "1234") {
+                            let tempInput = document.createElement("textarea");
+                            tempInput.value = allWatext.trim();
+                            document.body.appendChild(tempInput);
+                            tempInput.select();
+                            document.execCommand("copy");
+                            document.body.removeChild(tempInput);
+                            alert("✅ Laporan berhasil di-copy! Silakan teruskan/paste manual ke grup WhatsApp.");
+                        } else {
+                            let waUrl = `https://wa.me/${NOMOR_WA_ADMIN}?text=${encodeURIComponent(allWatext.trim())}`;
+                            setTimeout(() => {
+                                window.open(waUrl, '_blank') || (window.location.href = waUrl);
+                            }, 1500);
+                        }
+                    }
+
+                    // Kosongkan keranjang
+                    keranjangLaporan = [];
+                    renderKeranjang();
+
+                    if (btn) {
+                        btn.innerHTML = `<span class="material-symbols-outlined" style="font-size:16px;">send</span> Kirim 1 Laporan`;
+                        btn.disabled = false;
+                    }
+                    setTimeout(() => { window.isSubmittingData = false; }, 2000);
+                    return; // SELESAI UNTUK BATCH!
+                }
+                // =================================================================
+
+                let now = new Date();
+                let historyInput = JSON.parse(localStorage.getItem('history_input_v2') || "[]");
+                historyInput.push({
+                    hash: payload.hashStr,
+                    petugas: payload.petugas,
+                    waktu: now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+                    teksWA: pendingTeksWA,
+                    dateStr: now.toLocaleDateString('id-ID')
                 });
+                localStorage.setItem('history_input_v2', JSON.stringify(historyInput));
 
-                // Background Queue (Hanya 1x push untuk semua item!)
-                simpanKeAntrianLokal(batchPayload);
+                suntikCacheOptimistic(payload);
 
-                // Simpan Stok Kandang Global
-                localStorage.setItem('stok_live_ptcbl', JSON.stringify(globalStokAktif));
-                renderLiveStokDiInput();
+                // =================================================================
+                // SULAP OPTIMISTIC UI: UPDATE STOK LIVE SECARA INSTAN
+                // =================================================================
+                if (payload.lokasi === "/kandang" || payload.lokasi === "/spn_kandang") {
+                    for (let pakan in payload.items) {
+                        let qty = parseFloat(payload.items[pakan]) || 0;
 
-                if (!navigator.onLine) updateStatusKoneksi();
-                else prosesAntreanBackground();
+                        if (globalStokAktif[pakan] === undefined) {
+                            globalStokAktif[pakan] = 0;
+                        }
 
-                if (isLaporWA) {
+                        if (payload.status === "Masuk") {
+                            globalStokAktif[pakan] += qty;
+                        } else if (payload.status === "Keluar") {
+                            globalStokAktif[pakan] -= qty;
+                        }
+                    }
+                    localStorage.setItem('stok_live_ptcbl', JSON.stringify(globalStokAktif));
+                    if (typeof renderLiveStokDiInput === 'function') renderLiveStokDiInput();
+                }
+                // =================================================================
+
+                // PENGIRIMAN DATA
+                simpanKeAntrianLokal(payload);
+
+                if (isLaporWA && pendingTeksWA) {
                     if (currentLoggedPin === "1234") {
                         let tempInput = document.createElement("textarea");
-                        tempInput.value = allWatext.trim();
+                        tempInput.value = pendingTeksWA;
                         document.body.appendChild(tempInput);
                         tempInput.select();
                         document.execCommand("copy");
                         document.body.removeChild(tempInput);
                         alert("✅ Laporan berhasil di-copy! Silakan teruskan/paste manual ke grup WhatsApp.");
                     } else {
-        let waUrl = `https://wa.me/${NOMOR_WA_ADMIN}?text=${encodeURIComponent(allWatext.trim())}`;
-        // Terapkan delay yang sama di sini
-        setTimeout(() => {
-            window.open(waUrl, '_blank') || (window.location.href = waUrl);
-        }, 1500);
-    }
-}
+                        let waUrl = `https://wa.me/${NOMOR_WA_ADMIN}?text=${encodeURIComponent(pendingTeksWA)}`;
+                        
+                        btn.innerHTML = `<span class="material-symbols-outlined icon-spin" style="font-size:16px;">sync</span> Mengirim Laporan...`;
+                        
+                        setTimeout(() => {
+                            window.open(waUrl, '_blank') || (window.location.href = waUrl);
+                        }, 1500); 
+                    }
+                }
 
-                // Kosongkan keranjang
-                keranjangLaporan = [];
-                renderKeranjang();
+                // Reset Form
+                if (payload.lokasi !== '/kandang') document.getElementById('relasi').value = "";
+                document.getElementById('ekor').value = ""; 
+                document.getElementById('ongkir').value = ""; 
+                document.getElementById('catatan').value = "";
+                
+                currentItems.forEach((item, index) => { 
+                    let el = document.getElementById('qty-' + index); 
+                    el.value = ""; 
+                    el.setAttribute('data-total', "0"); 
+                    el.setAttribute('data-karung', "0"); 
+                    if (document.getElementById('hasil-' + index)) document.getElementById('hasil-' + index).innerText = "= 0"; 
+                    if (document.getElementById('lbl-karung-' + index)) document.getElementById('lbl-karung-' + index).innerText = ""; 
+                });
+                hapusSJ();
 
                 if (btn) {
                     btn.innerHTML = `<span class="material-symbols-outlined" style="font-size:16px;">send</span> Kirim 1 Laporan`;
                     btn.disabled = false;
                 }
-                setTimeout(() => { window.isSubmittingData = false; }, 2000);
-                return; // SELESAI UNTUK BATCH!
-            }
-            // =================================================================
 
-            let now = new Date();
-            let historyInput = JSON.parse(localStorage.getItem('history_input_v2') || "[]");
-            historyInput.push({
-                hash: payload.hashStr,
-                petugas: payload.petugas,
-                waktu: now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
-                teksWA: pendingTeksWA,
-                dateStr: now.toLocaleDateString('id-ID')
-            });
-            localStorage.setItem('history_input_v2', JSON.stringify(historyInput));
-
-            suntikCacheOptimistic(payload);
-
-            // =================================================================
-            // SULAP OPTIMISTIC UI: UPDATE STOK KANDANG SECARA INSTAN
-            // =================================================================
-            if (payload.lokasi === "/kandang" || payload.lokasi === "/spn_kandang") {
-                for (let pakan in payload.items) {
-                    let qty = parseFloat(payload.items[pakan]) || 0;
-
-                    // CEK: Kalau pakan belum ada di layar, anggap 0 dulu biar nggak 'undefined'
-                    if (globalStokAktif[pakan] === undefined) {
-                        globalStokAktif[pakan] = 0;
-                    }
-
-                    // LOGIKA CERDAS: Kalau Masuk -> Tambah (+), Kalau Keluar -> Kurang (-)
-                    if (payload.status === "Masuk") {
-                        globalStokAktif[pakan] += qty;
-                    } else if (payload.status === "Keluar") {
-                        globalStokAktif[pakan] -= qty;
-                    }
+            } catch (err) {
+                // PENGAMAN 3: Jika terjadi error (seperti memori penuh), tangkap errornya dan buka kembali gembok tombol
+                console.error("Crash di prosesKonfirmasi:", err);
+                alert("❌ Gagal Memproses Laporan:\n" + err.message);
+                
+                if (btn) { 
+                    btn.innerHTML = `<span class="material-symbols-outlined" style="font-size:16px;">send</span> Kirim 1 Laporan`; 
+                    btn.disabled = false; 
                 }
-                // Simpan perubahan ke cache lokal agar awet saat refresh
-                localStorage.setItem('stok_live_ptcbl', JSON.stringify(globalStokAktif));
-                // Langsung render ulang layar tanpa nunggu loading server!
-                renderLiveStokDiInput();
+            } finally {
+                // PENGAMAN 4: Apapun yang terjadi (sukses atau error), gembok proses wajib dibuka lagi!
+                setTimeout(() => { window.isSubmittingData = false; }, 2000);
             }
-            // =================================================================
-
-            // PENGIRIMAN DATA
-            simpanKeAntrianLokal(payload);
-
-            if (isLaporWA && pendingTeksWA) {
-    if (currentLoggedPin === "1234") {
-        // ... (kode copy text admin tetap biarkan seperti semula)
-        let tempInput = document.createElement("textarea");
-        tempInput.value = pendingTeksWA;
-        document.body.appendChild(tempInput);
-        tempInput.select();
-        document.execCommand("copy");
-        document.body.removeChild(tempInput);
-        alert("✅ Laporan berhasil di-copy! Silakan teruskan/paste manual ke grup WhatsApp.");
-    } else {
-        let waUrl = `https://wa.me/${NOMOR_WA_ADMIN}?text=${encodeURIComponent(pendingTeksWA)}`;
-        
-        // FIX: Beri jeda 1.5 detik sebelum melempar ke WA agar Supabase kebagian waktu upload
-        btn.innerHTML = `<span class="material-symbols-outlined icon-spin" style="font-size:16px;">sync</span> Mengirim Laporan...`;
-        
-        setTimeout(() => {
-            window.open(waUrl, '_blank') || (window.location.href = waUrl);
-        }, 1500); 
-    }
-}
-
-            if (payload.lokasi !== '/kandang') document.getElementById('relasi').value = "";
-            document.getElementById('ekor').value = ""; document.getElementById('ongkir').value = ""; document.getElementById('catatan').value = "";
-            currentItems.forEach((item, index) => { let el = document.getElementById('qty-' + index); el.value = ""; el.setAttribute('data-total', "0"); el.setAttribute('data-karung', "0"); if (document.getElementById('hasil-' + index)) document.getElementById('hasil-' + index).innerText = "= 0"; if (document.getElementById('lbl-karung-' + index)) document.getElementById('lbl-karung-' + index).innerText = ""; });
-            hapusSJ();
-
-            if (btn) {
-                btn.innerHTML = `<span class="material-symbols-outlined" style="font-size:16px;">send</span> Kirim 1 Laporan`;
-                btn.disabled = false;
-            }
-
-            // Buka kembali gerbang setelah eksekusi UI selesai
-            setTimeout(() => { window.isSubmittingData = false; }, 2000);
         }
 
         // ==========================================
