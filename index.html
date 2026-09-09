@@ -10559,7 +10559,8 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
                 if (textCatatan.includes("Link SJ:")) {
                     let parts = textCatatan.split("Link SJ:");
                     let teksDepan = parts[0].trim();
-                    let urlLink = parts[1].trim();
+                    // SULAP: Ganti semua spasi dengan %20
+                    let urlLink = parts[1].trim().replace(/ /g, '%20');
                     catatanEksplisit = `<div style="font-size:9px; color:#888; margin-top:2px;">Catatan: ${teksDepan}</div>
                                         <div style="font-size:9px; margin-top:2px;"><a href="${urlLink}" target="_blank" style="color:#4A90E2; text-decoration:none;">🔗 Lihat Surat Jalan</a></div>`;
                 } else {
@@ -10714,7 +10715,8 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
             if (catatanAsli.includes("Link SJ:")) {
                 let parts = catatanAsli.split("Link SJ:");
                 catatanTeks = parts[0].trim();
-                let fullUrl = parts[1].trim();
+                // SULAP: Ganti semua spasi dengan %20 agar link WA tidak putus
+                let fullUrl = parts[1].trim().replace(/ /g, '%20');
                 himpunanLinkSJ.add(fullUrl);
             }
 
