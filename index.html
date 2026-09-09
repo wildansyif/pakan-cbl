@@ -7494,25 +7494,34 @@ async function tarikStokAktifUntukInput() {
 }
 
 function renderLiveStokDiInput() {
+    // 1. Sembunyikan dan kosongkan blok hijau (Banner atas)
     let container = document.getElementById('dashboard-kandang-container');
-    if (!container) return;
-    
-    let html = `<div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom: 10px;">`;
-    for(let pakan in globalStokAktif) {
-        let qty = globalStokAktif[pakan];
-        let minStok = window.minStokDict ? (window.minStokDict[pakan] || 500) : 500;
-        let bg = qty <= minStok ? '#ffebee' : '#e8f0d8';
-        let color = qty <= minStok ? '#c62828' : '#1a5c40';
-        
-        html += `<div style="background:${bg}; color:${color}; padding:6px 12px; border-radius:6px; font-size:11px; border:1px solid ${color}; font-weight:bold;">
-            ${pakan}: ${new Intl.NumberFormat('id-ID').format(qty)} Kg
-        </div>`;
+    if (container) {
+        container.innerHTML = "";
+        container.classList.add('hidden');
     }
-    html += `</div>`;
-    
-    container.innerHTML = html;
-    container.style.display = "block";
-    container.classList.remove('hidden');
+
+    // 2. Suntik angka stok secara dinamis ke teks di sebelah harga (Inline)
+    currentItems.forEach(function (item, index) {
+        let sisaStok = globalStokAktif[item.nama] || 0;
+        let infoEl = document.getElementById('info-stok-' + index);
+        
+        if (infoEl) {
+            let warnaStok = sisaStok <= 0 ? "#c62828" : "#1a5c40";
+            let bgStok = sisaStok <= 0 ? "#ffebee" : "#e8f0d8";
+            
+            // Ubah warna dan teks secara instan
+            infoEl.style.color = warnaStok;
+            infoEl.style.backgroundColor = bgStok;
+            infoEl.innerHTML = `<span class="material-symbols-outlined" style="font-size:12px;">history</span> Sisa: ${new Intl.NumberFormat('id-ID').format(sisaStok)} Kg`;
+        }
+        
+        // 3. Panggil kalkulasi ulang untuk memicu alarm merah di kotak input (jika angka sedang diketik)
+        let inputEl = document.getElementById('qty-' + index);
+        if (inputEl && inputEl.value !== "") {
+            hitungCalc(index);
+        }
+    });
 }
 
         function flushStokKandang(pakan, sisaQty) {
