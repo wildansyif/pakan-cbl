@@ -4075,8 +4075,8 @@
                 return;
             }
 
-            // 🚀 TEMBAK LANGSUNG KE VIEW KARTU STOK BATCH
-            fetch(`${SUPA_URL}/rest/v1/view_kartu_stok_batch?batch_id=eq.${batchId}&order=urutan_waktu.asc`, {
+            // 🚀 UBAH ALAMAT FETCH KE BUKU BESAR BARU
+            fetch(`${SUPA_URL}/rest/v1/view_buku_besar_stok?batch_id=eq.${batchId}&order=tanggal.asc,waktu_input.asc,urutan_logika.asc`, {
                 headers: {
                     'apikey': SUPA_ANON_KEY,
                     'Authorization': `Bearer ${SUPA_ANON_KEY}`
@@ -4091,15 +4091,19 @@
                     html = "<tr><td colspan='5' style='text-align:center; padding:20px; color:#888;'>Tidak ada riwayat transaksi.</td></tr>";
                 } else {
                     res.forEach(d => {
-                        let strIn = d.inqty > 0 ? `+${nf.format(d.inqty)}` : "-";
-                        let strOut = d.outqty > 0 ? `-${nf.format(d.outqty)}` : "-";
+                        let strIn = d.masuk_kg > 0 ? `+${nf.format(d.masuk_kg)}` : "-";
+                        let strOut = d.keluar_kg > 0 ? `-${nf.format(d.keluar_kg)}` : "-";
+                        // Sesuaikan format tanggal
+                        let tglArr = d.tanggal ? d.tanggal.split('-') : [];
+                        let tglFmt = tglArr.length === 3 ? `${tglArr[2]}/${tglArr[1]}/${tglArr[0].substring(2)}` : d.tanggal;
+                        
                         html += `
                         <tr style="border-bottom:1px solid #eee; background:#fff;">
-                            <td style="padding:8px 5px;">${d.tgl}</td>
-                            <td style="padding:8px 5px;"><strong style="color:#555;">${d.status}</strong><br><span style="color:#888; font-size:9px;">${d.relasi}</span></td>
+                            <td style="padding:8px 5px;">${tglFmt}</td>
+                            <td style="padding:8px 5px;"><strong style="color:#555;">${d.status}</strong><br><span style="color:#888; font-size:9px;">${d.keterangan || '-'}</span></td>
                             <td style="padding:8px 5px; text-align:right; font-weight:bold; color:#8AA624;">${strIn}</td>
                             <td style="padding:8px 5px; text-align:right; font-weight:bold; color:#c62828;">${strOut}</td>
-                            <td style="padding:8px 5px; text-align:right; font-weight:bold; background:#fafafa;">${nf.format(d.saldo)}</td>
+                            <td style="padding:8px 5px; text-align:right; font-weight:bold; background:#fafafa;">${nf.format(d.saldo_batch)}</td>
                         </tr>`;
                     });
                 }
@@ -4122,8 +4126,8 @@
                 return;
             }
 
-            // 🚀 TEMBAK LANGSUNG KE VIEW KARTU STOK BLOK
-            fetch(`${SUPA_URL}/rest/v1/view_kartu_stok_blok?gudang=eq.${gudang}&blok=eq.${blok}&pakan=eq.${pakan}&order=urutan_waktu.asc`, {
+            // 🚀 UBAH ALAMAT FETCH KE BUKU BESAR BARU
+            fetch(`${SUPA_URL}/rest/v1/view_buku_besar_stok?gudang=eq.${gudang}&blok=eq.${blok}&pakan=eq.${pakan}&order=tanggal.asc,waktu_input.asc,urutan_logika.asc`, {
                 headers: {
                     'apikey': SUPA_ANON_KEY,
                     'Authorization': `Bearer ${SUPA_ANON_KEY}`
@@ -4138,15 +4142,18 @@
                     html = "<tr><td colspan='5' style='text-align:center; padding:20px; color:#888;'>Tidak ada riwayat perputaran di blok ini.</td></tr>";
                 } else {
                     res.forEach(d => {
-                        let strIn = d.inqty > 0 ? `+${nf.format(d.inqty)}` : "-";
-                        let strOut = d.outqty > 0 ? `-${nf.format(d.outqty)}` : "-";
+                        let strIn = d.masuk_kg > 0 ? `+${nf.format(d.masuk_kg)}` : "-";
+                        let strOut = d.keluar_kg > 0 ? `-${nf.format(d.keluar_kg)}` : "-";
+                        let tglArr = d.tanggal ? d.tanggal.split('-') : [];
+                        let tglFmt = tglArr.length === 3 ? `${tglArr[2]}/${tglArr[1]}/${tglArr[0].substring(2)}` : d.tanggal;
+
                         html += `
                         <tr style="border-bottom:1px solid #eee; background:#fff;">
-                            <td style="padding:8px 5px;">${d.tgl}</td>
-                            <td style="padding:8px 5px;"><strong style="color:#555;">${d.status}</strong><br><span style="color:#888; font-size:9px;">${d.relasi}</span></td>
+                            <td style="padding:8px 5px;">${tglFmt}</td>
+                            <td style="padding:8px 5px;"><strong style="color:#555;">${d.status}</strong><br><span style="color:#888; font-size:9px;">${d.keterangan || '-'}</span></td>
                             <td style="padding:8px 5px; text-align:right; font-weight:bold; color:#8AA624;">${strIn}</td>
                             <td style="padding:8px 5px; text-align:right; font-weight:bold; color:#c62828;">${strOut}</td>
-                            <td style="padding:8px 5px; text-align:right; font-weight:bold; background:#fafafa;">${nf.format(d.saldo)}</td>
+                            <td style="padding:8px 5px; text-align:right; font-weight:bold; background:#fafafa;">${nf.format(d.saldo_blok)}</td>
                         </tr>`;
                     });
                 }
@@ -4158,7 +4165,8 @@
         }
         
         function cekRiwayatPakan(pakan) {
-            let gudang = (getLokasiAktif() === "/kandang") ? "Kandang PM" : "Kandang SPN";
+            let gudang = (getLokasiAktif() === "/kandang" || getLokasiAktif() === "/spn_kandang") ? (getLokasiAktif() === "/kandang" ? "Kandang PM" : "Kandang SPN") : "PM";
+            
             document.getElementById('modal-kartu-stok').classList.remove('hidden');
             document.getElementById('ks-subtitle').innerText = `${pakan} | ${gudang}`;
             document.getElementById('ks-tbody').innerHTML = "";
@@ -4166,12 +4174,12 @@
 
             if (!navigator.onLine) {
                 document.getElementById('ks-loader').classList.add('hidden');
-                alert("Wajib online untuk menarik riwayat stok kandang!");
+                alert("Wajib online untuk menarik riwayat stok!");
                 return;
             }
 
-            // Tembak view_kartu_stok_blok khusus untuk Kandang
-            fetch(`${SUPA_URL}/rest/v1/view_kartu_stok_blok?gudang=eq.${gudang}&pakan=eq.${pakan}&order=urutan_waktu.asc`, {
+            // 🚀 UBAH ALAMAT FETCH KE BUKU BESAR BARU
+            fetch(`${SUPA_URL}/rest/v1/view_buku_besar_stok?gudang=eq.${gudang}&pakan=eq.${pakan}&order=tanggal.asc,waktu_input.asc,urutan_logika.asc`, {
                 headers: { 'apikey': SUPA_ANON_KEY, 'Authorization': `Bearer ${SUPA_ANON_KEY}` }
             })
             .then(r => r.json())
@@ -4179,18 +4187,21 @@
                 document.getElementById('ks-loader').classList.add('hidden');
                 let html = ""; let nf = new Intl.NumberFormat('id-ID');
                 if (res.length === 0) {
-                    html = "<tr><td colspan='5' style='text-align:center; padding:20px; color:#888;'>Tidak ada riwayat perputaran di kandang ini.</td></tr>";
+                    html = "<tr><td colspan='5' style='text-align:center; padding:20px; color:#888;'>Tidak ada riwayat perputaran di lokasi ini.</td></tr>";
                 } else {
                     res.forEach(d => {
-                        let strIn = d.inqty > 0 ? `+${nf.format(d.inqty)}` : "-";
-                        let strOut = d.outqty > 0 ? `-${nf.format(d.outqty)}` : "-";
+                        let strIn = d.masuk_kg > 0 ? `+${nf.format(d.masuk_kg)}` : "-";
+                        let strOut = d.keluar_kg > 0 ? `-${nf.format(d.keluar_kg)}` : "-";
+                        let tglArr = d.tanggal ? d.tanggal.split('-') : [];
+                        let tglFmt = tglArr.length === 3 ? `${tglArr[2]}/${tglArr[1]}/${tglArr[0].substring(2)}` : d.tanggal;
+
                         html += `
                         <tr style="border-bottom:1px solid #eee; background:#fff;">
-                            <td style="padding:8px 5px;">${d.tgl}</td>
-                            <td style="padding:8px 5px;"><strong style="color:#555;">${d.status}</strong><br><span style="color:#888; font-size:9px;">${d.relasi}</span></td>
+                            <td style="padding:8px 5px;">${tglFmt}</td>
+                            <td style="padding:8px 5px;"><strong style="color:#555;">${d.status}</strong><br><span style="color:#888; font-size:9px;">${d.keterangan || '-'}</span></td>
                             <td style="padding:8px 5px; text-align:right; font-weight:bold; color:#8AA624;">${strIn}</td>
                             <td style="padding:8px 5px; text-align:right; font-weight:bold; color:#c62828;">${strOut}</td>
-                            <td style="padding:8px 5px; text-align:right; font-weight:bold; background:#fafafa;">${nf.format(d.saldo)}</td>
+                            <td style="padding:8px 5px; text-align:right; font-weight:bold; background:#fafafa;">${nf.format(d.saldo_global)}</td>
                         </tr>`;
                     });
                 }
