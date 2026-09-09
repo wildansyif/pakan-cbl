@@ -4264,36 +4264,36 @@ async function prosesAntreanBackground() {
             // ===============================================
             // 1. OTOMATIS UPLOAD BERKAS/GAMBAR JIKA ADA
             // ===============================================
-            let urlSJ = "-";
+            let urlSJ = pl.urlSJPasti || "-"; // Ambil prediksi link jika ada
             if (pl.fileSJ && pl.fileSJ.base64) {
-                // Deteksi otomatis: Apakah ini transaksi Giling SPN?
                 let isGilingan = (pl.status === 'Keluar' && pl.lokasi === '/spn');
                 let namaTeksUI = isGilingan ? "Catatan Giling" : "Surat Jalan";
                 
                 badge.innerHTML = `<span class="material-symbols-outlined icon-spin" style="font-size:16px; vertical-align:middle;">sync</span> Upload ${namaTeksUI}...`;
                 
-                let dSJ = pl.tanggal ? new Date(pl.tanggal) : new Date();
-                let tglSJ = ("0" + dSJ.getDate()).slice(-2) + "-" + ("0" + (dSJ.getMonth() + 1)).slice(-2) + "-" + dSJ.getFullYear();
-                
-                // Susun string pakan & qty (contoh: Mako S-20-200-Silase Jagung-100)
-                let arrPakan = [];
-                for (let namaPkn in pl.items) {
-                    arrPakan.push(`${namaPkn}-${pl.items[namaPkn]}`);
+                let targetFolder = pl.targetFolderSJPasti;
+                let namaFile = pl.namaFileSJPasti;
+
+                // Fallback kalau prediksi nama file belum ada (untuk antrean lama yang nyangkut)
+                if (!namaFile) {
+                    let dSJ = pl.tanggal ? new Date(pl.tanggal) : new Date();
+                    let tglSJ = ("0" + dSJ.getDate()).slice(-2) + "-" + ("0" + (dSJ.getMonth() + 1)).slice(-2) + "-" + dSJ.getFullYear();
+                    let arrPakan = [];
+                    for (let namaPkn in pl.items) { arrPakan.push(`${namaPkn}-${pl.items[namaPkn]}`); }
+                    let strPakan = arrPakan.join('-');
+                    let prefixDoc = isGilingan ? 'GILING' : 'SJ';
+                    targetFolder = isGilingan ? 'bukti_giling' : 'surat_jalan';
+                    let rawNamaSJ = `${prefixDoc} ${cabangStr}-${tglSJ}-${strPakan}-${Date.now()}`;
+                    namaFile = rawNamaSJ.replace(/[^a-zA-Z0-9 \-]/g, '_') + '.jpg';
                 }
-                let strPakan = arrPakan.join('-');
                 
-                let prefixDoc = isGilingan ? 'GILING' : 'SJ';
-                let targetFolder = isGilingan ? 'bukti_giling' : 'surat_jalan';
-                
-                // 🔥 SOLUSI 1: Tambahkan -${Date.now()} di ujung nama file
-                let rawNamaSJ = `${prefixDoc} ${cabangStr}-${tglSJ}-${strPakan}-${Date.now()}`;
-                // Bersihkan karakter ilegal (seperti koma/titik/slash) agar aman di Supabase
-                let namaFile = rawNamaSJ.replace(/[^a-zA-Z0-9 \-]/g, '_') + '.jpg';
                 try {
-                    urlSJ = await uploadGambarKeSupabase(pl.fileSJ.base64, pl.fileSJ.mime, targetFolder, namaFile);
+                    // Upload ke Supabase menggunakan Folder & Nama File prediksi yang sudah tersemat di Laporan
+                    let actualUrl = await uploadGambarKeSupabase(pl.fileSJ.base64, pl.fileSJ.mime, targetFolder, namaFile);
+                    urlSJ = actualUrl; // Memastikan linknya terpasang dengan URL public aslinya
                 } catch (err) {
                     console.error(`Gagal upload ${namaTeksUI}`, err);
-                    urlSJ = `Gagal Upload ${prefixDoc}`;
+                    urlSJ = `Gagal Upload`;
                 }
                 badge.innerHTML = `<span class="material-symbols-outlined icon-spin" style="font-size:16px; vertical-align:middle;">sync</span> Menyimpan Data...`;
             }
@@ -7973,17 +7973,38 @@ function renderLiveStokDiInput() {
             let dObj = payload.tanggal ? new Date(payload.tanggal) : new Date();
             let tglFormatShort = ("0" + dObj.getDate()).slice(-2) + "/" + ("0" + (dObj.getMonth() + 1)).slice(-2) + "/" + dObj.getFullYear().toString().substring(2);
 
+            // --- SULAP PREDIKSI URL SJ SEBELUM UPLOAD ---
+            let predictedUrlSJ = "";
+            if (payload.fileSJ) {
+                let mapLoc = { '/pm': 'PM', '/spn': 'SPN', '/rph': 'RPH', '/kandang': 'Kandang PM', '/spn_kandang': 'Kandang SPN' };
+                let cabangStr = mapLoc[lokasiTerpilih] || 'PM';
+                let isGilingan = (statusPilihan === 'Keluar' && lokasiTerpilih === '/spn');
+                let prefixDoc = isGilingan ? 'GILING' : 'SJ';
+                let targetFolder = isGilingan ? 'bukti_giling' : 'surat_jalan';
+                let tglSJ = ("0" + dObj.getDate()).slice(-2) + "-" + ("0" + (dObj.getMonth() + 1)).slice(-2) + "-" + dObj.getFullYear();
+                
+                let arrPakan = [];
+                for (let key in payload.items) { arrPakan.push(`${key}-${payload.items[key]}`); }
+                let strPakan = arrPakan.join('-');
+                
+                let rawNamaSJ = `${prefixDoc} ${cabangStr}-${tglSJ}-${strPakan}-${Date.now()}`;
+                let namaFilePasti = rawNamaSJ.replace(/[^a-zA-Z0-9 \-]/g, '_') + '.jpg';
+                
+                predictedUrlSJ = `${SUPA_URL}/storage/v1/object/public/berkas_cbl/${targetFolder}/${namaFilePasti}`;
+                
+                // Titipkan ke payload agar Background Worker menggunakan nama file ini
+                payload.namaFileSJPasti = namaFilePasti;
+                payload.targetFolderSJPasti = targetFolder;
+                payload.urlSJPasti = predictedUrlSJ;
+            }
+            // --------------------------------------------
+
             let rincianHTML = ``; let teksWA = ``;
             let isMinusWarning = false;
             let txtMinus = "";
 
             if (!isKandang) {
                 rincianHTML += `<div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span>Relasi:</span> <b style="color:#8AA624; font-size:14px;">${payload.relasi}</b></div>`;
-                rincianHTML += `<div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span>Tanggal:</span> <b>${tglFormatShort}</b></div>`;
-                rincianHTML += `<div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span>Status:</span> <b>${payload.status}</b></div>`;
-                if (payload.alamat) rincianHTML += `<div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span>Alamat:</span> <b>${payload.alamat}</b></div>`;
-                if (payload.ongkir) rincianHTML += `<div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span>Ongkir:</span> <b>${payload.ongkir}</b></div>`;
-                rincianHTML += `<hr style="border:0; border-top:1px dashed #ccc; margin:10px 0;">`;
 
                 let grandTotal = 0; let ringkasanItem = "";
                 for (let key in payload.items) {
@@ -8012,6 +8033,8 @@ function renderLiveStokDiInput() {
                     rincianHTML += `<div style="margin-top:10px; padding:10px; background:#ffebee; color:#c62828; border-radius:8px; font-size:12px; border: 1px dashed #c62828;"><b>Bongkar Muat (Cash Out):</b> Rp ${Number(biayaBongkar).toLocaleString('id-ID')}</div>`;
                 }
 
+                if (predictedUrlSJ) rincianHTML += `<div style="margin-top:8px; font-size:10px;"><a href="${predictedUrlSJ}" target="_blank" style="color:#4A90E2; text-decoration:none;">🔗 Lihat Surat Jalan / Bukti</a></div>`;
+
                 let tglFormatWA = ("0" + dObj.getDate()).slice(-2) + "/" + ("0" + (dObj.getMonth() + 1)).slice(-2) + "/" + dObj.getFullYear();
                 let infoAlamat = payload.alamat ? payload.alamat : (payload.ekor > 0 ? payload.ekor + " Ekor" : "-");
 
@@ -8027,6 +8050,8 @@ function renderLiveStokDiInput() {
                     teksWA += `*Total: ${Number(grandTotal).toLocaleString('id-ID')} Kg*\n\n`;
                     teksWA += `_Petugas: ${payload.petugas}_`;
 
+                    if (predictedUrlSJ) teksWA += `\n\n🔗 Link SJ: ${predictedUrlSJ}`;
+
                     if (payload.uangBongkar) {
                         let biayaBongkar = grandTotal * 30;
                         teksWA += `\n\n*Bongkar Muat (Cash Out):* Rp ${Number(biayaBongkar).toLocaleString('id-ID')}`;
@@ -8041,6 +8066,8 @@ function renderLiveStokDiInput() {
                     teksWA += `${ringkasanItem}\n`;
                     teksWA += `*Total: ${Number(grandTotal).toLocaleString('id-ID')} Kg*\n\n`;
                     teksWA += `_Petugas: ${payload.petugas}_`;
+                    
+                    if (predictedUrlSJ) teksWA += `\n\n🔗 Lampiran Bukti: ${predictedUrlSJ}`;
                 }
 
                 if (payload.catatan) teksWA += `\nCatatan: ${payload.catatan}`;
