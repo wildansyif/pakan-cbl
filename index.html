@@ -7963,11 +7963,15 @@ function renderLiveStokDiInput() {
             if (!navigator.onLine && statusPilihan === 'Masuk' && !isMutasiKandang) { alert("⚠️ Barang Masuk wajib ONLINE!"); return; }
             if (statusPilihan === 'Masuk' && !fileBase64_SJ && !isMutasiKandang) { alert("⚠️ Foto SJ wajib diisi!"); return; }
 
+            // 🔥 SULAP: Paksa tanggal terisi dengan hari ini jika kosong, agar Hash (Sidik Jari) tidak kembar dengan hari sebelumnya!
+            let inputTglField = document.getElementById('tanggal').value;
+            let finalTglFix = inputTglField ? inputTglField : new Date().toISOString().split('T')[0];
+
             let payload = {
                 device_id: window.myDeviceId,
                 petugas: activeUser,
                 lokasi: lokasiTerpilih,
-                tanggal: document.getElementById('tanggal').value,
+                tanggal: finalTglFix,
                 status: statusPilihan,
                 relasi: valRelasi,
                 ekor: isAngka ? parseFloat(inputVal) : 0,
