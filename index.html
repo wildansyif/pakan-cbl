@@ -4168,7 +4168,8 @@
             let gudang = (getLokasiAktif() === "/kandang" || getLokasiAktif() === "/spn_kandang") ? (getLokasiAktif() === "/kandang" ? "Kandang PM" : "Kandang SPN") : "PM";
             
             document.getElementById('modal-kartu-stok').classList.remove('hidden');
-            document.getElementById('ks-subtitle').innerText = `${pakan} | ${gudang}`;
+            // Tambahkan keterangan "(100 Terakhir)" agar petugas tidak bingung
+            document.getElementById('ks-subtitle').innerText = `${pakan} | ${gudang} (100 Terakhir)`;
             document.getElementById('ks-tbody').innerHTML = "";
             document.getElementById('ks-loader').classList.remove('hidden');
 
@@ -4178,8 +4179,8 @@
                 return;
             }
 
-            // 🚀 UBAH ALAMAT FETCH KE BUKU BESAR BARU
-            fetch(`${SUPA_URL}/rest/v1/view_buku_besar_stok?gudang=eq.${gudang}&pakan=eq.${pakan}&order=tanggal.asc,waktu_input.asc,id_transaksi.asc`, {
+            // 🚀 SULAP: Ubah urutan jadi DESC (Z-A) dan batasi maksimal 100 baris (limit=100)
+            fetch(`${SUPA_URL}/rest/v1/view_buku_besar_stok?gudang=eq.${gudang}&pakan=eq.${pakan}&order=tanggal.desc,waktu_input.desc,id_transaksi.desc&limit=100`, {
                 headers: { 'apikey': SUPA_ANON_KEY, 'Authorization': `Bearer ${SUPA_ANON_KEY}` }
             })
             .then(r => r.json())
