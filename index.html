@@ -3420,6 +3420,22 @@
                     <tbody id="ks-tbody"></tbody>
                 </table>
             </div>
+            
+            <!-- WADAH PAGINATION ALA SUPABASE -->
+            <div id="ks-pagination" style="display:none; justify-content:space-between; align-items:center; padding:12px 15px; background:#f4f7f0; border-top:1px solid #DBE4C9; font-size:11px; color:#555;">
+                <div style="display:flex; align-items:center; gap:6px;">
+                    <span>Page</span>
+                    <input type="number" id="ks-page-input" value="1" style="width:35px; padding:4px; text-align:center; border:1px solid #ccc; border-radius:4px; font-size:11px; font-weight:bold;" onchange="lompatHalamanRiwayat()">
+                    <span id="ks-total-pages">of 1</span>
+                    <button id="ks-btn-prev" onclick="gantiHalamanRiwayat(-1)" style="border:1px solid #ccc; background:#fff; border-radius:4px; cursor:pointer; padding:2px; display:flex; align-items:center; margin-left:4px;"><span class="material-symbols-outlined" style="font-size:16px;">chevron_left</span></button>
+                    <button id="ks-btn-next" onclick="gantiHalamanRiwayat(1)" style="border:1px solid #ccc; background:#fff; border-radius:4px; cursor:pointer; padding:2px; display:flex; align-items:center;"><span class="material-symbols-outlined" style="font-size:16px;">chevron_right</span></button>
+                </div>
+                <div style="display:flex; align-items:center; gap:6px;">
+                    <span style="background:#e8f0d8; border:1px solid #8AA624; color:#1a5c40; padding:4px 6px; border-radius:4px; font-weight:bold;">100 rows</span>
+                    <span id="ks-total-records" style="font-weight:bold;">0 records</span>
+                </div>
+            </div>
+
         </div>
     </div>
     <div id="estatement-container" style="display: none;">
@@ -4063,154 +4079,141 @@
             document.getElementById('view-stok-' + tab).classList.remove('hidden');
         }
 
-        function cekKartuStok(pakan, blok, gudang, batchId) {
-            document.getElementById('modal-kartu-stok').classList.remove('hidden');
-            document.getElementById('ks-subtitle').innerText = `${pakan} | ${blok} | Gudang ${gudang}`;
+        // ==========================================
+        // SISTEM PAGINATION (HALAMAN) ALA SUPABASE
+        // ==========================================
+        let ksCurrentPage = 1;
+        let ksTotalPages = 1;
+        let ksTotalRecords = 0;
+        let ksCurrentFetchUrl = "";
+        let ksIsLoading = false;
+
+        function gantiHalamanRiwayat(delta) {
+            let targetPage = ksCurrentPage + delta;
+            if (targetPage < 1 || targetPage > ksTotalPages) return;
+            ksCurrentPage = targetPage;
+            muatHalamanRiwayat();
+        }
+
+        function lompatHalamanRiwayat() {
+            let inputPage = parseInt(document.getElementById('ks-page-input').value);
+            if (isNaN(inputPage) || inputPage < 1) inputPage = 1;
+            if (inputPage > ksTotalPages) inputPage = ksTotalPages;
+            document.getElementById('ks-page-input').value = inputPage;
+            ksCurrentPage = inputPage;
+            muatHalamanRiwayat();
+        }
+
+        function muatHalamanRiwayat() {
+            if (ksIsLoading) return;
+            ksIsLoading = true;
+            
             document.getElementById('ks-tbody').innerHTML = "";
             document.getElementById('ks-loader').classList.remove('hidden');
-
-            if (!navigator.onLine) {
-                document.getElementById('ks-loader').classList.add('hidden');
-                alert("Wajib online untuk menarik riwayat stok!");
-                return;
-            }
-
-            // 🚀 UBAH ALAMAT FETCH KE BUKU BESAR BARU
-            fetch(`${SUPA_URL}/rest/v1/view_buku_besar_stok?batch_id=eq.${batchId}&order=tanggal.asc,waktu_input.asc,id_transaksi.asc`, {
-                headers: {
-                    'apikey': SUPA_ANON_KEY,
-                    'Authorization': `Bearer ${SUPA_ANON_KEY}`
+            document.getElementById('ks-pagination').style.display = 'none';
+            
+            let offset = (ksCurrentPage - 1) * 100;
+            
+            // 🚀 TEMBAK SERVER + MINTA JUMLAH TOTAL BARIS (Prefer: count=exact)
+            fetch(`${ksCurrentFetchUrl}&limit=100&offset=${offset}`, {
+                headers: { 
+                    'apikey': SUPA_ANON_KEY, 
+                    'Authorization': `Bearer ${SUPA_ANON_KEY}`,
+                    'Prefer': 'count=exact'
                 }
             })
-            .then(r => r.json())
+            .then(async r => {
+                // Ambil rahasia total records dari Header balasan Supabase
+                let rangeHeader = r.headers.get('Content-Range');
+                if (rangeHeader) {
+                    ksTotalRecords = parseInt(rangeHeader.split('/')[1]);
+                    ksTotalPages = Math.ceil(ksTotalRecords / 100) || 1;
+                }
+                let data = await r.json();
+                return data;
+            })
             .then(res => {
+                ksIsLoading = false;
                 document.getElementById('ks-loader').classList.add('hidden');
-                let html = ""; let nf = new Intl.NumberFormat('id-ID');
+                document.getElementById('ks-pagination').style.display = 'flex';
+                
+                // Update Angka di UI Pagination
+                document.getElementById('ks-page-input').value = ksCurrentPage;
+                document.getElementById('ks-total-pages').innerText = `of ${ksTotalPages}`;
+                document.getElementById('ks-total-records').innerText = `${ksTotalRecords} records`;
+                
+                document.getElementById('ks-btn-prev').disabled = (ksCurrentPage === 1);
+                document.getElementById('ks-btn-next').disabled = (ksCurrentPage === ksTotalPages);
+
+                let tbody = document.getElementById('ks-tbody');
+                let nf = new Intl.NumberFormat('id-ID');
                 
                 if (res.length === 0) {
-                    html = "<tr><td colspan='5' style='text-align:center; padding:20px; color:#888;'>Tidak ada riwayat transaksi.</td></tr>";
-                } else {
-                    res.forEach(d => {
-                        let strIn = d.masuk_kg > 0 ? `+${nf.format(d.masuk_kg)}` : "-";
-                        let strOut = d.keluar_kg > 0 ? `-${nf.format(d.keluar_kg)}` : "-";
-                        // Sesuaikan format tanggal
-                        let tglArr = d.tanggal ? d.tanggal.split('-') : [];
-                        let tglFmt = tglArr.length === 3 ? `${tglArr[2]}/${tglArr[1]}/${tglArr[0].substring(2)}` : d.tanggal;
-                        
-                        html += `
-                        <tr style="border-bottom:1px solid #eee; background:#fff;">
-                            <td style="padding:8px 5px;">${tglFmt}</td>
-                            <td style="padding:8px 5px;"><strong style="color:#555;">${d.status}</strong><br><span style="color:#888; font-size:9px;">${d.keterangan || '-'}</span></td>
-                            <td style="padding:8px 5px; text-align:right; font-weight:bold; color:#8AA624;">${strIn}</td>
-                            <td style="padding:8px 5px; text-align:right; font-weight:bold; color:#c62828;">${strOut}</td>
-                            <td style="padding:8px 5px; text-align:right; font-weight:bold; background:#fafafa;">${nf.format(d.saldo_batch)}</td>
-                        </tr>`;
-                    });
+                    tbody.innerHTML = "<tr><td colspan='5' style='text-align:center; padding:20px; color:#888;'>Tidak ada riwayat transaksi.</td></tr>";
+                    document.getElementById('ks-pagination').style.display = 'none';
+                    return;
                 }
-                document.getElementById('ks-tbody').innerHTML = html;
+
+                let html = "";
+                res.forEach(d => {
+                    let strIn = d.masuk_kg > 0 ? `+${nf.format(d.masuk_kg)}` : "-";
+                    let strOut = d.keluar_kg > 0 ? `-${nf.format(d.keluar_kg)}` : "-";
+                    let tglArr = d.tanggal ? d.tanggal.split('-') : [];
+                    let tglFmt = tglArr.length === 3 ? `${tglArr[2]}/${tglArr[1]}/${tglArr[0].substring(2)}` : d.tanggal;
+                    
+                    let saldoVal = 0;
+                    if (ksCurrentFetchUrl.includes('batch_id=')) saldoVal = d.saldo_batch;
+                    else if (ksCurrentFetchUrl.includes('blok=eq.')) saldoVal = d.saldo_blok;
+                    else saldoVal = d.saldo_global;
+
+                    html += `
+                    <tr style="border-bottom:1px solid #eee; background:#fff;">
+                        <td style="padding:8px 5px;">${tglFmt}</td>
+                        <td style="padding:8px 5px;"><strong style="color:#555;">${d.status}</strong><br><span style="color:#888; font-size:9px;">${d.keterangan || '-'}</span></td>
+                        <td style="padding:8px 5px; text-align:right; font-weight:bold; color:#8AA624;">${strIn}</td>
+                        <td style="padding:8px 5px; text-align:right; font-weight:bold; color:#c62828;">${strOut}</td>
+                        <td style="padding:8px 5px; text-align:right; font-weight:bold; background:#fafafa;">${nf.format(saldoVal)}</td>
+                    </tr>`;
+                });
+
+                // Timpa dan ganti total halamannya
+                tbody.innerHTML = html; 
             }).catch(e => { 
+                ksIsLoading = false;
                 document.getElementById('ks-loader').classList.add('hidden'); 
                 alert("Error jaringan: " + e.message); 
             });
+        }
+
+        // --- 1 MESIN PENGENDALI UNTUK 3 TOMBOL ---
+        function setupModalRiwayat(subtitle, fetchUrl) {
+            document.getElementById('modal-kartu-stok').classList.remove('hidden');
+            document.getElementById('ks-subtitle').innerText = subtitle;
+            document.getElementById('ks-tbody').innerHTML = "";
+            document.getElementById('ks-loader').classList.remove('hidden');
+            document.getElementById('ks-pagination').style.display = 'none';
+
+            if (!navigator.onLine) {
+                document.getElementById('ks-loader').classList.add('hidden');
+                return alert("Wajib online untuk menarik riwayat stok!");
+            }
+
+            ksCurrentPage = 1; // Mulai dari halaman pertama
+            ksCurrentFetchUrl = fetchUrl; // Simpan URL dasar
+            muatHalamanRiwayat(); // Gas tarik data!
+        }
+
+        function cekKartuStok(pakan, blok, gudang, batchId) {
+            setupModalRiwayat(`${pakan} | ${blok} | Gudang ${gudang}`, `${SUPA_URL}/rest/v1/view_buku_besar_stok?batch_id=eq.${batchId}&order=tanggal.desc,waktu_input.desc,id_transaksi.desc`);
         }
 
         function cekKartuStokBlok(pakan, blok, gudang) {
-            document.getElementById('modal-kartu-stok').classList.remove('hidden');
-            document.getElementById('ks-subtitle').innerText = `${pakan} | Perputaran ${blok} | Gudang ${gudang}`;
-            document.getElementById('ks-tbody').innerHTML = "";
-            document.getElementById('ks-loader').classList.remove('hidden');
-
-            if (!navigator.onLine) {
-                document.getElementById('ks-loader').classList.add('hidden');
-                alert("Wajib online untuk menarik riwayat perputaran blok!");
-                return;
-            }
-
-            // 🚀 UBAH ALAMAT FETCH KE BUKU BESAR BARU
-            fetch(`${SUPA_URL}/rest/v1/view_buku_besar_stok?gudang=eq.${gudang}&blok=eq.${blok}&pakan=eq.${pakan}&order=tanggal.asc,waktu_input.asc,id_transaksi.asc`, {
-                headers: {
-                    'apikey': SUPA_ANON_KEY,
-                    'Authorization': `Bearer ${SUPA_ANON_KEY}`
-                }
-            })
-            .then(r => r.json())
-            .then(res => {
-                document.getElementById('ks-loader').classList.add('hidden');
-                let html = ""; let nf = new Intl.NumberFormat('id-ID');
-                
-                if (res.length === 0) {
-                    html = "<tr><td colspan='5' style='text-align:center; padding:20px; color:#888;'>Tidak ada riwayat perputaran di blok ini.</td></tr>";
-                } else {
-                    res.forEach(d => {
-                        let strIn = d.masuk_kg > 0 ? `+${nf.format(d.masuk_kg)}` : "-";
-                        let strOut = d.keluar_kg > 0 ? `-${nf.format(d.keluar_kg)}` : "-";
-                        let tglArr = d.tanggal ? d.tanggal.split('-') : [];
-                        let tglFmt = tglArr.length === 3 ? `${tglArr[2]}/${tglArr[1]}/${tglArr[0].substring(2)}` : d.tanggal;
-
-                        html += `
-                        <tr style="border-bottom:1px solid #eee; background:#fff;">
-                            <td style="padding:8px 5px;">${tglFmt}</td>
-                            <td style="padding:8px 5px;"><strong style="color:#555;">${d.status}</strong><br><span style="color:#888; font-size:9px;">${d.keterangan || '-'}</span></td>
-                            <td style="padding:8px 5px; text-align:right; font-weight:bold; color:#8AA624;">${strIn}</td>
-                            <td style="padding:8px 5px; text-align:right; font-weight:bold; color:#c62828;">${strOut}</td>
-                            <td style="padding:8px 5px; text-align:right; font-weight:bold; background:#fafafa;">${nf.format(d.saldo_blok)}</td>
-                        </tr>`;
-                    });
-                }
-                document.getElementById('ks-tbody').innerHTML = html;
-            }).catch(e => { 
-                document.getElementById('ks-loader').classList.add('hidden'); 
-                alert("Error jaringan: " + e.message); 
-            });
+            setupModalRiwayat(`${pakan} | Perputaran ${blok} | Gudang ${gudang}`, `${SUPA_URL}/rest/v1/view_buku_besar_stok?gudang=eq.${gudang}&blok=eq.${blok}&pakan=eq.${pakan}&order=tanggal.desc,waktu_input.desc,id_transaksi.desc`);
         }
-        
+
         function cekRiwayatPakan(pakan) {
             let gudang = (getLokasiAktif() === "/kandang" || getLokasiAktif() === "/spn_kandang") ? (getLokasiAktif() === "/kandang" ? "Kandang PM" : "Kandang SPN") : "PM";
-            
-            document.getElementById('modal-kartu-stok').classList.remove('hidden');
-            // Tambahkan keterangan "(100 Terakhir)" agar petugas tidak bingung
-            document.getElementById('ks-subtitle').innerText = `${pakan} | ${gudang} (100 Terakhir)`;
-            document.getElementById('ks-tbody').innerHTML = "";
-            document.getElementById('ks-loader').classList.remove('hidden');
-
-            if (!navigator.onLine) {
-                document.getElementById('ks-loader').classList.add('hidden');
-                alert("Wajib online untuk menarik riwayat stok!");
-                return;
-            }
-
-            // 🚀 SULAP: Ubah urutan jadi DESC (Z-A) dan batasi maksimal 100 baris (limit=100)
-            fetch(`${SUPA_URL}/rest/v1/view_buku_besar_stok?gudang=eq.${gudang}&pakan=eq.${pakan}&order=tanggal.desc,waktu_input.desc,id_transaksi.desc&limit=100`, {
-                headers: { 'apikey': SUPA_ANON_KEY, 'Authorization': `Bearer ${SUPA_ANON_KEY}` }
-            })
-            .then(r => r.json())
-            .then(res => {
-                document.getElementById('ks-loader').classList.add('hidden');
-                let html = ""; let nf = new Intl.NumberFormat('id-ID');
-                if (res.length === 0) {
-                    html = "<tr><td colspan='5' style='text-align:center; padding:20px; color:#888;'>Tidak ada riwayat perputaran di lokasi ini.</td></tr>";
-                } else {
-                    res.forEach(d => {
-                        let strIn = d.masuk_kg > 0 ? `+${nf.format(d.masuk_kg)}` : "-";
-                        let strOut = d.keluar_kg > 0 ? `-${nf.format(d.keluar_kg)}` : "-";
-                        let tglArr = d.tanggal ? d.tanggal.split('-') : [];
-                        let tglFmt = tglArr.length === 3 ? `${tglArr[2]}/${tglArr[1]}/${tglArr[0].substring(2)}` : d.tanggal;
-
-                        html += `
-                        <tr style="border-bottom:1px solid #eee; background:#fff;">
-                            <td style="padding:8px 5px;">${tglFmt}</td>
-                            <td style="padding:8px 5px;"><strong style="color:#555;">${d.status}</strong><br><span style="color:#888; font-size:9px;">${d.keterangan || '-'}</span></td>
-                            <td style="padding:8px 5px; text-align:right; font-weight:bold; color:#8AA624;">${strIn}</td>
-                            <td style="padding:8px 5px; text-align:right; font-weight:bold; color:#c62828;">${strOut}</td>
-                            <td style="padding:8px 5px; text-align:right; font-weight:bold; background:#fafafa;">${nf.format(d.saldo_global)}</td>
-                        </tr>`;
-                    });
-                }
-                document.getElementById('ks-tbody').innerHTML = html;
-            }).catch(e => { 
-                document.getElementById('ks-loader').classList.add('hidden'); 
-                alert("Error jaringan: " + e.message); 
-            });
+            setupModalRiwayat(`${pakan} | ${gudang}`, `${SUPA_URL}/rest/v1/view_buku_besar_stok?gudang=eq.${gudang}&pakan=eq.${pakan}&order=tanggal.desc,waktu_input.desc,id_transaksi.desc`);
         }
 
         function simpanKeAntrianLokal(payload) {
