@@ -4076,7 +4076,7 @@
             }
 
             // 🚀 UBAH ALAMAT FETCH KE BUKU BESAR BARU
-            fetch(`${SUPA_URL}/rest/v1/view_buku_besar_stok?batch_id=eq.${batchId}&order=tanggal.asc,waktu_input.asc,urutan_logika.asc`, {
+            fetch(`${SUPA_URL}/rest/v1/view_buku_besar_stok?batch_id=eq.${batchId}&order=tanggal.asc,waktu_input.asc,id_transaksi.asc`, {
                 headers: {
                     'apikey': SUPA_ANON_KEY,
                     'Authorization': `Bearer ${SUPA_ANON_KEY}`
@@ -4127,7 +4127,7 @@
             }
 
             // 🚀 UBAH ALAMAT FETCH KE BUKU BESAR BARU
-            fetch(`${SUPA_URL}/rest/v1/view_buku_besar_stok?gudang=eq.${gudang}&blok=eq.${blok}&pakan=eq.${pakan}&order=tanggal.asc,waktu_input.asc,urutan_logika.asc`, {
+            fetch(`${SUPA_URL}/rest/v1/view_buku_besar_stok?gudang=eq.${gudang}&blok=eq.${blok}&pakan=eq.${pakan}&order=tanggal.asc,waktu_input.asc,id_transaksi.asc`, {
                 headers: {
                     'apikey': SUPA_ANON_KEY,
                     'Authorization': `Bearer ${SUPA_ANON_KEY}`
@@ -4179,7 +4179,7 @@
             }
 
             // 🚀 UBAH ALAMAT FETCH KE BUKU BESAR BARU
-            fetch(`${SUPA_URL}/rest/v1/view_buku_besar_stok?gudang=eq.${gudang}&pakan=eq.${pakan}&order=tanggal.asc,waktu_input.asc,urutan_logika.asc`, {
+            fetch(`${SUPA_URL}/rest/v1/view_buku_besar_stok?gudang=eq.${gudang}&pakan=eq.${pakan}&order=tanggal.asc,waktu_input.asc,id_transaksi.asc`, {
                 headers: { 'apikey': SUPA_ANON_KEY, 'Authorization': `Bearer ${SUPA_ANON_KEY}` }
             })
             .then(r => r.json())
