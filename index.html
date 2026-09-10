@@ -4226,7 +4226,26 @@
             try {
                 localStorage.setItem('antrian_pakan', JSON.stringify(antrian));
             } catch (e) {
-                throw new Error("Memori antrean di HP kepenuhan (Maksimal 5MB). Silakan klik ikon 'Sinyal WiFi/Awan' di bagian atas aplikasi untuk Menghapus Antrean Macet.");
+                // SULAP AUTO-VACUUM: Bantai semua cache raksasa (Analitik & Rekap) untuk kasih jalan VIP buat Laporan!
+                console.warn("Memori sesak! Mengaktifkan Auto-Vacuum...");
+                
+                // Daftar kunci memori yang HARUS diselamatkan
+                let safeKeys = ['antrian_pakan', 'cbl_app_version', 'history_input_v2', 'stok_live_ptcbl', 'pending_master_data'];
+                
+                for (let i = localStorage.length - 1; i >= 0; i--) {
+                    let key = localStorage.key(i);
+                    // Hapus semua data yang tidak ada di daftar aman (Termasuk data Analitik 1 Tahun)
+                    if (!safeKeys.includes(key)) {
+                        localStorage.removeItem(key); 
+                    }
+                }
+                
+                // Coba simpan ulang antreannya setelah jalanan dibersihkan
+                try {
+                    localStorage.setItem('antrian_pakan', JSON.stringify(antrian));
+                } catch (e2) {
+                    throw new Error("Sistem telah menguras memori, tapi ukuran foto masih terlalu besar. Coba tutup aplikasi dari layar (Recent Apps) lalu buka kembali.");
+                }
             }
 
             try { 
