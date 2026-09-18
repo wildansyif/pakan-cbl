@@ -3601,7 +3601,6 @@
             return allData;
         }
 
-        const USERS = { "1234": "Admin Pusat (Wildan)", "5678": "Petugas Lapangan", "0000": "Pak Agus", "8888": "Petugas SPN (Zulfi)" };
         const KATG_MASUK = ["Bayar Pakan", "Bayar Tunai", "Dll"];
         const KATG_KELUAR = ["Bongkar Muat", "OPR Ekspedisi Pakan", "Perawatan Kendaraan", "OPR Kandang", "Tarik Deposit", "Kasbon", "Lainnya"];
         const ALIAS_MAP = { "Mako S-20": "S20", "Ransum Laktasi": "RL", "Ransum Darbun": "RD", "Mako A-20": "A20", "Mako SP-15": "SP15", "Meal Mix": "MM", "Rapen Kedelai": "RK", "Pongkol Singkong": "PS", "Silase Edamame": "SE", "Bio Smart": "BS", "Mix Calf": "MC", "YD": "YD", "Rapen Kacang Hijau": "RKH", "KFZS": "KFZS", "Silase Jagung": "SJ", "Hay Kangkung": "HK" };
@@ -4522,76 +4521,74 @@ async function prosesAntreanBackground() {
             }
         }
 
-        function cekLogin() {
-            let pin = document.getElementById('pin').value;
-           if (USERS[pin]) {
-                currentLoggedPin = pin;
-                activeUser = USERS[pin]; document.getElementById('nama-petugas').innerText = activeUser;
-                
-                // SULAP HILANGKAN LAYAR LOGIN SECARA PAKSA!
-                document.getElementById('login-screen').style.setProperty('display', 'none', 'important');
-                document.getElementById('app-screen').classList.remove('hidden');
-                
-                // MUNCULKAN MENU NAVIGASI SAAT LOGIN SUKSES
-                let nav = document.getElementById('main-nav');
-                if (nav) nav.classList.remove('hidden');
+        async function cekLogin() {
+    let pinInput = document.getElementById('pin').value;
 
-                let t = new Date();
-                let blnAktif = t.getMonth() + 1;
-                let thnAktif = t.getFullYear();
-
-                document.getElementById('f_bulan').value = blnAktif;
-                document.getElementById('f_tahun').value = thnAktif;
-                document.getElementById('cf_tanggal').valueAsDate = new Date();
-
-                // Auto-set untuk menu Analisa dan Stok Kapling
-                if (document.getElementById('gl_bulan')) document.getElementById('gl_bulan').value = blnAktif;
-                if (document.getElementById('gl_tahun')) document.getElementById('gl_tahun').value = thnAktif;
-                if (document.getElementById('kapling_bulan')) document.getElementById('kapling_bulan').value = ("0" + blnAktif).slice(-2);
-                if (document.getElementById('kapling_tahun')) document.getElementById('kapling_tahun').value = thnAktif;
-
-                // ==========================================
-                // LOGIKA HAK AKSES MENU BAWAH (RBAC)
-                // ==========================================
-
-                // 1. Gembok semua menu khusus terlebih dahulu
-                document.getElementById('nav-rekap-group').classList.add('hidden');
-                document.getElementById('nav-analytics').classList.add('hidden');
-                document.getElementById('nav-piutang').classList.add('hidden');
-                document.getElementById('sub-rekap-harian').classList.add('hidden');
-                document.getElementById('sub-rekap-giling').classList.add('hidden');
-
-                // 2. Buka gembok sesuai PIN
-                if (currentLoggedPin === "1234") {
-                    // Admin Pusat (Wildan): Full Access
-                    document.getElementById('nav-rekap-group').classList.remove('hidden');
-                    document.getElementById('sub-rekap-harian').classList.remove('hidden');
-                    document.getElementById('sub-rekap-giling').classList.remove('hidden');
-                    
-                    document.getElementById('nav-analytics').classList.remove('hidden');
-                    document.getElementById('nav-piutang').classList.remove('hidden');
-                }
-                else if (currentLoggedPin === "0000") {
-                    // PAK AGUS: Hanya Rekap Harian
-                    document.getElementById('nav-rekap-group').classList.remove('hidden');
-                    document.getElementById('sub-rekap-harian').classList.remove('hidden');
-                }
-                else if (currentLoggedPin === "8888") {
-                    // Petugas SPN (Zulfi): Hanya Rekap Giling
-                    document.getElementById('nav-rekap-group').classList.remove('hidden');
-                    document.getElementById('sub-rekap-giling').classList.remove('hidden');
-                }
-                else {
-                    // PETUGAS LAPANGAN LAINNYA
-                    document.getElementById('nav-rekap-group').classList.remove('hidden');
-                    document.getElementById('sub-rekap-harian').classList.remove('hidden');
-                }
-
-                updateStatusKoneksi(); gantiLokasi();
-                if (typeof updateKategoriCashflow === 'function') updateKategoriCashflow();
-                fetchMasterRelasi();
-            } else { document.getElementById('login-error').style.display = 'block'; }
+    let res = await fetch(`${SUPA_URL}/rest/v1/users_app?pin=eq.${pinInput}&select=*`, {
+        headers: { 
+            'apikey': SUPA_ANON_KEY, 
+            'Authorization': `Bearer ${SUPA_ANON_KEY}` 
         }
+    });
+    let data = await res.json();
+
+    if (data.length > 0) {
+        let user = data[0];
+        activeUser = user.nama;
+        currentRole = user.role; // gunakan role untuk membatasi menu, bukan mengecek string PIN
+        document.getElementById('nama-petugas').innerText = activeUser;
+
+        document.getElementById('login-screen').style.setProperty('display', 'none', 'important');
+        document.getElementById('app-screen').classList.remove('hidden');
+        document.getElementById('main-nav').classList.remove('hidden');
+
+        aturAksesMenu(user.role);
+    } else {
+        document.getElementById('login-error').style.display = 'block';
+    }
+}
+
+        // Fungsi baru untuk mengatur visibilitas menu berdasarkan Role dari Supabase
+function aturAksesMenu(role) {
+    // 1. Gembok semua menu khusus terlebih dahulu (Default State)
+    document.getElementById('nav-rekap-group').classList.add('hidden');
+    document.getElementById('nav-analytics').classList.add('hidden');
+    document.getElementById('nav-piutang').classList.add('hidden');
+    document.getElementById('sub-rekap-harian').classList.add('hidden');
+    document.getElementById('sub-rekap-giling').classList.add('hidden');
+
+    // 2. Buka gembok sesuai 'role' yang diterima dari database Supabase
+    if (role === 'admin') {
+        // Admin Pusat (Wildan): Full Access
+        document.getElementById('nav-rekap-group').classList.remove('hidden');
+        document.getElementById('sub-rekap-harian').classList.remove('hidden');
+        document.getElementById('sub-rekap-giling').classList.remove('hidden');
+        
+        document.getElementById('nav-analytics').classList.remove('hidden');
+        document.getElementById('nav-piutang').classList.remove('hidden');
+    }
+    else if (role === 'petugas PM') {
+        // Pak Agus: Hanya Rekap Harian
+        document.getElementById('nav-rekap-group').classList.remove('hidden');
+        document.getElementById('sub-rekap-harian').classList.remove('hidden');
+    }
+    else if (role === 'petugas SPN') {
+        // Petugas SPN (Zulfi): Hanya Rekap Giling
+        document.getElementById('nav-rekap-group').classList.remove('hidden');
+        document.getElementById('sub-rekap-giling').classList.remove('hidden');
+    }
+    else if (role === 'lapangan') {
+        // Petugas Lapangan Lainnya
+        document.getElementById('nav-rekap-group').classList.remove('hidden');
+        document.getElementById('sub-rekap-harian').classList.remove('hidden');
+    }
+
+    // 3. Jalankan fungsi bawaan sistem setelah menu siap
+    updateStatusKoneksi(); 
+    gantiLokasi();
+    if (typeof updateKategoriCashflow === 'function') updateKategoriCashflow();
+    fetchMasterRelasi();
+}
 
         function pindahMenu(menu) {
             // Lapisan Keamanan Ekstra (Mencegah Akses Paksa)
