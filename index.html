@@ -4433,7 +4433,8 @@ async function prosesAntreanBackground() {
                     'Authorization': `Bearer ${SUPA_ANON_KEY}`,
                     'Content-Type': 'application/json',
                     // 🔥 SOLUSI 2: Tambahkan resolution=ignore-duplicates
-                    'Prefer': 'return=minimal, resolution=ignore-duplicates'
+                    'Prefer': 'return=minimal, resolution=ignore-duplicates',
+                    'x-pin-karyawan': currentLoggedPin // <--- TAMBAHKAN BARIS INI
                 },
                 body: JSON.stringify(supabaseRows),
                 signal: uploadAbortController.signal
@@ -4450,7 +4451,7 @@ async function prosesAntreanBackground() {
             }
         }
 
-        // 🚀 TEMBAK KE TABEL CASHFLOW (BONGKAR MUAT)
+       // 🚀 TEMBAK KE TABEL CASHFLOW (BONGKAR MUAT)
         if (cashflowRows.length > 0) {
             let resCF = await fetch(`${SUPA_URL}/rest/v1/cashflow`, {
                 method: 'POST',
@@ -4458,8 +4459,8 @@ async function prosesAntreanBackground() {
                     'apikey': SUPA_ANON_KEY,
                     'Authorization': `Bearer ${SUPA_ANON_KEY}`,
                     'Content-Type': 'application/json',
-                    // 🔥 SOLUSI 2: Tambahkan juga di sini
-                    'Prefer': 'return=minimal, resolution=ignore-duplicates'
+                    'Prefer': 'return=minimal, resolution=ignore-duplicates',
+                    'x-pin-karyawan': currentLoggedPin // <--- TAMBAHKAN BARIS INI
                 },
                 body: JSON.stringify(cashflowRows)
             });
