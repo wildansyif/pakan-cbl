@@ -4535,6 +4535,7 @@ async function prosesAntreanBackground() {
 
     if (data.length > 0) {
         let user = data[0];
+        currentLoggedPin = user.pin; // <--- BARIS INI WAJIB DITAMBAHKAN
         activeUser = user.nama;
         currentRole = user.role; // gunakan role untuk membatasi menu, bukan mengecek string PIN
         document.getElementById('nama-petugas').innerText = activeUser;
