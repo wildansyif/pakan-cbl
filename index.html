@@ -6239,9 +6239,10 @@ async function prosesAntreanBackground() {
 
             Promise.all([
                 fetchSupabaseAll(`${SUPA_URL}/rest/v1/master_relasi?nama=eq.${encodeURIComponent(namaRelasi)}&select=*`),
-                fetchSupabaseAll(`${SUPA_URL}/rest/v1/view_mutasi_piutang_detail?relasi=eq.${encodeURIComponent(namaRelasi)}&order=tanggal.asc`)
+                fetchSupabaseAll(`${SUPA_URL}/rest/v1/view_mutasi_piutang_detail?relasi=eq.${encodeURIComponent(namaRelasi)}&order=tanggal.asc`),
+                fetchSupabaseAll(`${SUPA_URL}/rest/v1/view_rekap_piutang?relasi=eq.${encodeURIComponent(namaRelasi)}&select=sisa_piutang`)
             ])
-            .then(([profilData, mutasiData]) => {
+            .then(([profilData, mutasiData, rekapData]) => {
                 document.getElementById('analytics-loader').classList.add('hidden');
                 if (mutasiData.error) throw new Error(mutasiData.message);
 
@@ -6331,7 +6332,7 @@ async function prosesAntreanBackground() {
                 let sumBayarLayar = 0;
                 bayarArr.forEach(b => { sumBayarLayar += b.nominal; });
                 
-                let sisaPiutangDBData = dataPiutangLokal[namaRelasi] ? dataPiutangLokal[namaRelasi].total_sisa : 0;
+                let sisaPiutangDBData = (rekapData && rekapData.length > 0) ? parseFloat(rekapData[0].sisa_piutang) : 0;
                 let sisaHutangTersembunyi = (sisaPiutangDBData + sumBayarLayar) - sumTagihanLayar;
                 if (sisaHutangTersembunyi < 0) sisaHutangTersembunyi = 0;
 
