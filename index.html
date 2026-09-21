@@ -1737,6 +1737,7 @@
                             <option value="Keluar" selected>Keluar</option>
                             <option value="Masuk">Masuk</option>
                         </select>
+
                     </div>
                 </div>
 
@@ -1758,9 +1759,15 @@
                 </div>
 
                 <div class="form-row">
-                    <div><label>Alamat</label><input type="text" id="ekor" placeholder="Cth: 10 atau Jln.."></div>
+                    <div><label id="label-ekor">Ekor / Alamat</label><input type="text" id="ekor" placeholder="Cth: 10 atau Jln.."></div>
                     <div><label>Ongkir/Dari (Opsional)</label><input type="text" id="ongkir"
                             placeholder="Keterangan ongkir..." oninput="formatOngkir(this)"></div>
+                </div>
+                
+                <div id="container-tarik-po" class="hidden" style="margin-top:15px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                    <button class="btn-submit" style="background:#1a5c40; padding:8px 12px; font-size:12px; border-radius:8px; margin:0; flex-shrink:0;" onclick="bukaModalTarikPO()">
+                        <span class="material-symbols-outlined" style="font-size:14px; vertical-align:middle;">download</span> Tarik dari PO
+                    </button>
                 </div>
 
                 <hr style="border: 0; border-top: 1px dashed #DBE4C9; margin: 20px 0;">
@@ -2119,6 +2126,73 @@
                     </div>
                 </div>
 
+            </div>
+        </div>
+
+        <!-- LAYAR BUKU PO -->
+        <div id="page-po" class="container hidden">
+            <h2>Buku PO</h2>
+            <div class="sub-header">Manajemen Pesanan Pabrik</div>
+
+            <div class="analytics-tabs">
+                <button class="tab-btn active" id="tab-po-buat" onclick="switchTabPO('buat')">BUAT PO</button>
+                <button class="tab-btn" id="tab-po-menunggu" onclick="switchTabPO('menunggu')">MENUNGGU</button>
+                <button class="tab-btn" id="tab-po-selesai" onclick="switchTabPO('selesai')">SELESAI</button>
+            </div>
+
+            <!-- VIEW BUAT PO -->
+            <div id="view-po-buat">
+                <div class="form-group">
+                    <label>Tanggal PO</label>
+                    <input type="date" id="po-tanggal">
+                </div>
+                <div class="form-group">
+                    <label>Pilih Pakan (Alias)</label>
+                    <div class="autocomplete-wrapper">
+                        <input type="text" id="po-pakan-alias" placeholder="Cari / Pilih Pakan..." onfocus="bukaAutocompletePO()" oninput="filterAutocompletePO()" autocomplete="off">
+                        <div id="po-autocomplete-list" class="autocomplete-items hidden"></div>
+                    </div>
+                    <small id="po-supplier-hint" class="alamat-hint"></small>
+                </div>
+                <div class="form-group">
+                    <label>Qty Pesanan</label>
+                    <div class="counter-box">
+                        <button class="btn-qty" onclick="ubahQtyPO(-1000)">-</button>
+                        <input type="number" id="po-qty" class="qty-input" style="width:80px;" value="0">
+                        <button class="btn-qty" onclick="ubahQtyPO(1000)">+</button>
+                        <span id="po-satuan-hint" style="font-size:12px; font-weight:bold; color:#8AA624; margin-left:5px;">Kg</span>
+                    </div>
+                </div>
+                
+                <button class="btn-submit" onclick="tambahItemPO()" style="background:#4a699c; margin-bottom:15px; border-radius:8px; padding:10px;">
+                    <span class="material-symbols-outlined" style="margin-right:5px; vertical-align:middle; font-size:18px;">add_shopping_cart</span> Tambah ke Pesanan
+                </button>
+
+                <div id="po-cart-container" style="background:#f9f9f9; padding:10px; border-radius:8px; border:1px dashed #ccc; margin-bottom:15px;">
+                    <div style="font-size:12px; color:#888; text-align:center;">Belum ada item pesanan</div>
+                </div>
+
+                <div class="form-group">
+                    <label>Catatan (Opsional)</label>
+                    <textarea id="po-catatan" rows="3" placeholder="Tulis catatan untuk pabrik..."></textarea>
+                </div>
+                <button class="btn-submit" onclick="siapkanPreviewPO()" id="btn-buat-po">
+                    <span class="material-symbols-outlined" style="margin-right:5px; vertical-align:middle;">send</span> Buat & Kirim PO
+                </button>
+            </div>
+
+            <!-- VIEW MENUNGGU -->
+            <div id="view-po-menunggu" class="hidden">
+                <div id="po-menunggu-list">
+                    <div class="loader">Memuat Data PO...</div>
+                </div>
+            </div>
+
+            <!-- VIEW SELESAI -->
+            <div id="view-po-selesai" class="hidden">
+                <div id="po-selesai-list">
+                    <div class="loader">Memuat Data PO...</div>
+                </div>
             </div>
         </div>
 
@@ -3242,6 +3316,10 @@
                 <span class="material-symbols-outlined nav-icon">space_dashboard</span><span>Rekap</span>
             </div>
             
+            <div class="nav-item" id="nav-po" onclick="pindahMenu('po')">
+                <span class="material-symbols-outlined nav-icon">local_shipping</span><span>Buku PO</span>
+            </div>
+
             <div class="nav-item" id="nav-analytics" onclick="pindahMenu('analytics')">
                 <span class="material-symbols-outlined nav-icon">analytics</span><span>Analisa</span>
             </div>
@@ -3557,6 +3635,215 @@
         </div>
     </div>
 
+        <!-- MODAL TARIK PO -->
+        <div id="modal-tarik-po" style="position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:9999; display:none; justify-content:center; align-items:center; padding:15px;">
+            <div style="background:white; width:100%; max-width:400px; border-radius:12px; padding:20px; max-height:80vh; display:flex; flex-direction:column;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:1px solid #eee; padding-bottom:10px;">
+                    <h3 style="margin:0; color:#8AA624; font-size:16px;">Tarik Data PO (Menunggu)</h3>
+                    <span class="material-symbols-outlined" style="cursor:pointer; color:#888;" onclick="tutupModalTarikPO()">close</span>
+                </div>
+                <div id="list-tarik-po" style="overflow-y:auto; flex:1;">
+                    <div class="loader">Mencari PO...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TEMPLATE CETAK PO (Tersembunyi) -->
+        <style>
+            #po-print-template {
+                font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                font-size: 12px;
+                line-height: 1.5;
+                color: #000;
+                width: 559px;
+                min-height: 794px;
+                padding: 15mm;
+                margin: 0;
+                background: #fff;
+                box-sizing: border-box;
+            }
+            .po-header {
+                display: flex;
+                align-items: center;
+                border-bottom: 2px solid #000;
+                padding-bottom: 10px;
+                margin-bottom: 15px;
+            }
+            .po-company-name {
+                font-size: 18px;
+                font-weight: bold;
+                margin: 0 0 5px 0;
+            }
+            .po-company-address {
+                font-size: 9px;
+                margin: 0;
+                max-width: 350px;
+            }
+            .po-title {
+                text-align: center;
+                font-size: 16px;
+                font-weight: bold;
+                text-decoration: underline;
+                margin: 15px 0;
+            }
+            .po-meta-info {
+                display: flex;
+                justify-content: flex-end;
+                margin-bottom: 15px;
+            }
+            .po-meta-info table {
+                width: auto;
+                font-size: 11px;
+            }
+            .po-meta-info td {
+                padding: 2px 5px;
+                font-weight: bold;
+            }
+            .po-recipient {
+                margin-bottom: 15px;
+                font-size: 11px;
+            }
+            .po-content-text {
+                margin-bottom: 10px;
+                font-size: 7px;
+            }
+            .po-items-table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-bottom: 20px;
+                font-size: 11px;
+            }
+            .po-items-table th, .po-items-table td {
+                border: 0.5px solid #000;
+                padding: 6px;
+                text-align: center;
+                height: 22px;
+            }
+            .po-items-table th {
+                background-color: #0f2c59 !important;
+                color: white !important;
+                font-weight: bold;
+                -webkit-print-color-adjust: exact;
+            }
+            .po-items-table td.left-align {
+                text-align: left;
+            }
+            .po-footer {
+                display: flex;
+                justify-content: space-between;
+                margin-top: 30px;
+                font-size: 11px;
+            }
+            .po-notes {
+                width: 55%;
+            }
+            .po-notes-box {
+                min-height: 60px;
+                border: 1px solid #000;
+                padding: 5px;
+                margin-top: 5px;
+            }
+            .po-signature {
+                width: 35%;
+                text-align: center;
+            }
+            .po-signature-space {
+                height: 60px;
+            }
+        </style>
+        <!-- PREVIEW MODAL PO -->
+        <div id="modal-preview-po" class="hidden" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:10000; display:flex; flex-direction:column; padding:15px; padding-top:40px; box-sizing:border-box;">
+            <h3 style="color:white; text-align:center; margin-top:0; margin-bottom:15px;">Preview Purchase Order</h3>
+            
+            <div class="po-wrapper" style="width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch; flex:1; display:flex; justify-content:center; align-items:flex-start; margin-bottom:20px; border-radius:8px;">
+                <div id="po-print-template" style="flex-shrink:0;">
+                    <!-- Bagian Kop Surat -->
+                <div class="po-header">
+                    <img src="https://raw.githubusercontent.com/wildansyif/pakan-cbl/2e732398572a6ac7d3512559c4344d40ab0902f9/Logo%20CBL.png" style="width:100px; height:auto; margin-right:15px;">
+                    <div>
+                        <div class="po-company-name">PT CITA BENGGALA LESTARI</div>
+                        <p class="po-company-address">Cikahuripan RT.04/RW.10, Kec. Lembang, Kabupaten Bandung Barat, Kabupaten Bandung, Jawa Barat 40391</p>
+                    </div>
+                </div>
+
+                <!-- Judul Dokumen -->
+                <div class="po-title">PURCHASE ORDER (PO)</div>
+
+                <!-- Bagian Nomor & Tanggal -->
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:15px;">
+                    <!-- Bagian Penerima -->
+                    <div class="po-recipient" style="margin-bottom:0;">
+                        Kepada Yth,<br>
+                        <strong id="po-print-supplier" style="font-size:12px;"></strong><br>
+                        <span id="po-print-alamat"></span>
+                    </div>
+
+                    <div class="po-meta-info" style="margin-bottom:0;">
+                        <table>
+                            <tr>
+                                <td>No. PO</td>
+                                <td>:</td>
+                                <td id="po-print-no"></td>
+                            </tr>
+                            <tr>
+                                <td>Tanggal PO</td>
+                                <td>:</td>
+                                <td id="po-print-tanggal"></td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Paragraf Pembuka -->
+                <div class="po-content-text">
+                    Dengan Hormat,<br>
+                    Bersama ini kami sampaikan Purchase Order kepada Bapak/Ibu dengan perincian sebagai berikut:
+                </div>
+
+                <!-- Bagian Tabel Rincian -->
+                <table class="po-items-table">
+                    <thead>
+                        <tr>
+                            <th width="10%">NO.</th>
+                            <th width="45%">ITEM / Deskripsi</th>
+                            <th width="25%">Qty</th>
+                            <th width="20%">SATUAN</th>
+                        </tr>
+                    </thead>
+                    <tbody id="po-print-items">
+                        <!-- Dinamis via JS -->
+                    </tbody>
+                </table>
+
+                <!-- Paragraf Penutup -->
+                <div class="po-content-text">
+                    Demikian Purchase Order ini kami sampaikan, Atas perhatian Bapak/Ibu kami ucapkan terima kasih.
+                </div>
+
+                <!-- Bagian Bawah (Catatan & Tanda Tangan) -->
+                <div class="po-footer">
+                    <div class="po-notes">
+                        <strong>CATATAN:</strong>
+                        <div class="po-notes-box" id="po-print-catatan"></div>
+                    </div>
+                    <div class="po-signature">
+                        <span id="po-print-ttd-tgl"></span><br><br>
+                        TTD<br>
+                        <div class="po-signature-space"></div>
+                        <strong>Ahmad Baehaqi A.</strong>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="display:flex; gap:10px; justify-content:center; padding-bottom: 20px;">
+                <button onclick="document.getElementById('modal-preview-po').classList.add('hidden')" style="background:#dc3545; color:white; border:none; padding:12px 20px; border-radius:8px; font-weight:bold; flex:1;">Batal</button>
+                <button onclick="konfirmasiBuatPO()" id="btn_konfirmasi_po" style="background:#8AA624; color:white; border:none; padding:12px 20px; border-radius:8px; font-weight:bold; display:flex; align-items:center; justify-content:center; gap:5px; flex:2;">
+                    <span class="material-symbols-outlined" style="font-size:18px;">print</span> Cetak & Kirim PO
+                </button>
+            </div>
+        </div>
+        
+        <script src="po_logic.js"></script>
     <script>
         const APP_VERSION = "v5.7";
         if (localStorage.getItem('cbl_app_version') !== APP_VERSION) {
@@ -4376,7 +4663,8 @@ async function prosesAntreanBackground() {
                     harga_satuan: harga,
                     catatan: extraCatatan.trim(),
                     hash_str: pl.hashStr + '_' + pakanName,
-                    device_id: pl.device_id    // <--- TAMBAHKAN BARIS INI
+                    device_id: pl.device_id,
+                    po_id: pl.po_id
                 });
             }
 
@@ -4439,6 +4727,11 @@ async function prosesAntreanBackground() {
                 body: JSON.stringify(supabaseRows),
                 signal: uploadAbortController.signal
             });
+
+            if (resPakan.ok) {
+                let payloads = payloadsToProcess;
+                await cekUpdateStatusPOLinked(payloads);
+            }
 
             if (!resPakan.ok) {
                 // Obat tambahan jaga-jaga kalau server masih kirim 409
@@ -4605,6 +4898,7 @@ function aturAksesMenu(role) {
             if (menu === 'rekap' && !navigator.onLine && rawMasterGlobal.length === 0) { alert("⚠️ Menu Dashboard membutuhkan koneksi internet untuk tarik data pertama kali."); return; }
             document.querySelectorAll('.container').forEach(p => p.classList.add('hidden')); document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
             document.getElementById('page-' + menu).classList.remove('hidden'); document.getElementById('nav-' + menu).classList.add('active'); tutupKeyboard();
+            if (menu === 'po') { document.getElementById('po-tanggal').valueAsDate = new Date(); muatDaftarPO('MENUNGGU'); }
             if (menu === 'rekap') tarikDataRekapDB(false);
             if (menu === 'analytics' && !cacheDataGlobal) tarikDataGlobal(false);
             if (menu === 'piutang') tarikDataPiutang();
@@ -7707,14 +8001,17 @@ function renderLiveStokDiInput() {
             if (status === 'Masuk') {
                 document.getElementById('container-sj').classList.remove('hidden');
                 document.getElementById('group-bongkar').classList.remove('hidden');
+                if (document.getElementById('container-tarik-po')) document.getElementById('container-tarik-po').classList.remove('hidden');
                 labelElement.innerHTML = '<span class="material-symbols-outlined" style="font-size:16px;">description</span> Lampiran Surat Jalan';
             } else if (status === 'Keluar' && lokasiAktif === '/spn') {
                 document.getElementById('container-sj').classList.remove('hidden');
                 document.getElementById('group-bongkar').classList.add('hidden');
+                if (document.getElementById('container-tarik-po')) document.getElementById('container-tarik-po').classList.add('hidden');
                 labelElement.innerHTML = '<span class="material-symbols-outlined" style="font-size:16px;">description</span> Lampiran Catatan Giling';
             } else {
                 document.getElementById('container-sj').classList.add('hidden');
                 document.getElementById('group-bongkar').classList.add('hidden');
+                if (document.getElementById('container-tarik-po')) document.getElementById('container-tarik-po').classList.add('hidden');
                 hapusSJ();
             }
         }
@@ -8005,7 +8302,8 @@ function renderLiveStokDiInput() {
                 detail_items: {},
                 fileSJ: ((statusPilihan === 'Masuk' || (statusPilihan === 'Keluar' && lokasiTerpilih === '/spn')) && fileBase64_SJ) ? { base64: fileBase64_SJ, mime: fileMime_SJ } : null,
                 isPending: true,
-                uangBongkar: document.getElementById('uangBongkar') ? document.getElementById('uangBongkar').checked : false
+                uangBongkar: document.getElementById('uangBongkar') ? document.getElementById('uangBongkar').checked : false,
+                po_id: window.currentLinkedPOId
             };
 
             if (!payload.relasi) { alert("Relasi kosong!"); return; }
