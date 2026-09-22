@@ -587,15 +587,18 @@ window.batalTarikPO = function() {
 };
 
 // Intercept setelah transaksi_pakan berhasil di-upload
-async function cekUpdateStatusPOLinked(payloads) {
+async function cekUpdateStatusPOLinked(payloads, abortSignal = null) {
     for (let pl of payloads) {
         if (pl.status === 'Masuk' && pl.po_id) {
             try {
-                await fetch(`${SUPA_URL}/rest/v1/data_po?id=eq.${pl.po_id}`, {
+                let opt = {
                     method: 'PATCH',
                     headers: { 'apikey': SUPA_ANON_KEY, 'Authorization': `Bearer ${SUPA_ANON_KEY}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ status: 'SELESAI', tanggal_selesai: new Date().toISOString() })
-                });
+                };
+                if (abortSignal) opt.signal = abortSignal;
+
+                await fetch(`${SUPA_URL}/rest/v1/data_po?id=eq.${pl.po_id}`, opt);
             } catch (e) { console.error("Gagal update status PO", e); }
         }
     }

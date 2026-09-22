@@ -4620,7 +4620,7 @@ async function prosesAntreanBackground() {
                 
                 try {
                     // Upload ke Supabase pakai nama file tanpa spasi!
-                    let actualUrl = await uploadGambarKeSupabase(pl.fileSJ.base64, pl.fileSJ.mime, targetFolder, namaFile);
+                    let actualUrl = await uploadGambarKeSupabase(pl.fileSJ.base64, pl.fileSJ.mime, targetFolder, namaFile, uploadAbortController.signal);
                     urlSJ = actualUrl; 
                 } catch (err) {
                     console.error(`Gagal upload ${namaTeksUI}`, err);
@@ -4730,7 +4730,7 @@ async function prosesAntreanBackground() {
 
             if (resPakan.ok) {
                 let payloads = payloadsToProcess;
-                await cekUpdateStatusPOLinked(payloads);
+                await cekUpdateStatusPOLinked(payloads, uploadAbortController.signal);
             }
 
             if (!resPakan.ok) {
@@ -4755,7 +4755,8 @@ async function prosesAntreanBackground() {
                     'Prefer': 'return=minimal, resolution=ignore-duplicates',
                     'x-pin-karyawan': currentLoggedPin // <--- TAMBAHKAN BARIS INI
                 },
-                body: JSON.stringify(cashflowRows)
+                body: JSON.stringify(cashflowRows),
+                signal: uploadAbortController.signal
             });
             if (!resCF.ok && resCF.status !== 409) console.error("Gagal insert cashflow");
         }
@@ -10709,12 +10710,11 @@ function base64ToBlob(base64, mimeType) {
     return new Blob([byteArray], { type: mimeType });
 }
 
-async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName) {
+async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName, abortSignal = null) {
     let blob = base64ToBlob(base64Data, mimeType);
     let path = `${folderName}/${fileName}`;
     
-    // Tembak ke API Storage Supabase
-    let res = await fetch(`${SUPA_URL}/storage/v1/object/berkas_cbl/${path}`, {
+    let opt = {
         method: 'POST',
         headers: {
             'apikey': SUPA_ANON_KEY,
@@ -10722,7 +10722,11 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
             'Content-Type': mimeType
         },
         body: blob
-    });
+    };
+    if (abortSignal) opt.signal = abortSignal;
+
+    // Tembak ke API Storage Supabase
+    let res = await fetch(`${SUPA_URL}/storage/v1/object/berkas_cbl/${path}`, opt);
 
     if (res.ok) {
         // Jika sukses, kembalikan URL Public-nya
