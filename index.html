@@ -6153,7 +6153,7 @@ function aturAksesMenu(role) {
             }
 
             Promise.all([
-                fetchSupabaseAll(`${SUPA_URL}/rest/v1/view_rekap_piutang?sisa_piutang=neq.0&select=*`),
+                fetchSupabaseAll(`${SUPA_URL}/rest/v1/view_rekap_piutang?select=*`),
                 fetchSupabaseAll(`${SUPA_URL}/rest/v1/view_mutasi_piutang_detail?order=tanggal.asc`)
             ])
             .then(([rekapData, mutasiData]) => {
@@ -6366,13 +6366,15 @@ function aturAksesMenu(role) {
                         let hariIni = new Date(); hariIni.setHours(0,0,0,0);
                         arrNota.forEach(nota => {
                             let sisaNyata = nota.sisaNyata;
-                            if (Math.abs(sisaNyata) > 0.01) {
-                                let parts = nota.tgl.split('-');
-                                let tglFormated = parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : nota.tgl;
-                                let dTrx = parts.length === 3 ? new Date(parts[0], parts[1] - 1, parts[2]) : new Date();
-                                dTrx.setHours(0, 0, 0, 0); 
+                            let parts = nota.tgl.split('-');
+                            let tglFormated = parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : nota.tgl;
+                            let dTrx = parts.length === 3 ? new Date(parts[0], parts[1] - 1, parts[2]) : new Date();
+                            dTrx.setHours(0, 0, 0, 0); 
 
-                                let ageDays = Math.floor((hariIni.getTime() - dTrx.getTime()) / (1000 * 60 * 60 * 24));
+                            let ageDays = Math.floor((hariIni.getTime() - dTrx.getTime()) / (1000 * 60 * 60 * 24));
+                            
+                            // Tampilkan jika belum lunas ATAU (Lunas dan umur <= 30 hari)
+                            if (Math.abs(sisaNyata) > 0.01 || ageDays <= 30) {
                                 
                                 if (ageDays <= 15) serverData[namaRelasi].aging.sehat += sisaNyata;
                                 else if (ageDays >= 16 && ageDays <= 30) serverData[namaRelasi].aging.t15 += sisaNyata;
@@ -6385,6 +6387,12 @@ function aturAksesMenu(role) {
                                 let selisihHari = Math.ceil((jtDate.getTime() - hariIni.getTime()) / (1000 * 60 * 60 * 24));
                                 let telatNih = selisihHari < 0;
                                 let statusJtTxt = selisihHari < 0 ? `Terlambat ${Math.abs(selisihHari)} hari` : (selisihHari === 0 ? `Jatuh Tempo Hari Ini` : `H-${selisihHari}`);
+
+                                // Jika ternyata sudah lunas (potong deposit)
+                                if (Math.abs(sisaNyata) <= 0.01) {
+                                    statusJtTxt = "Lunas / Potong Deposit";
+                                    telatNih = false;
+                                }
 
                                 // 🔥 LEMPAR potonganMasuk KE DALAM CACHE
                                 serverData[namaRelasi].dates[tglFormated] = { isLokal: false, tgl: tglFormated, tagihan: nota.totalTagihan, dp: nota.terbayar_display, sisaNyata: sisaNyata, jt: statusJtTxt, isTelat: telatNih, items: nota.items, potonganMasuk: nota.potonganMasuk };
@@ -7306,7 +7314,7 @@ function aturAksesMenu(role) {
             }
 
             let actionButtons = "";
-            if (totalSisaKalkulasi > 0 && htmlItems !== "") {
+            if (htmlItems !== "") {
                 actionButtons = `
                 <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-size:11px; font-weight:bold;">
                     <span style="color:#8AA624; cursor:pointer; padding:5px 8px; border:1px solid #8AA624; border-radius:4px;" onclick="toggleSelectSemua('${safeClass}', true)"><span class="material-symbols-outlined" style="font-size:14px; vertical-align:middle;">check_box</span> Pilih Semua</span>
@@ -7423,7 +7431,7 @@ function aturAksesMenu(role) {
                 // JIKA SELARAS (Kasus Rumini / Mulki) -> Cetak rincian dengan urutan DP
                 if (parsed.potonganMasuk && parsed.potonganMasuk.length > 0 && Math.abs(sumPotongan - parsed.dp) < 1) {
                     parsed.potonganMasuk.forEach((pot, indexPot) => {
-                        let prefix = pot.metode === "Retur Barang" ? `[Potongan Retur: ${pot.pakanRetur || 'Pakan'}]` : `[Potongan DP ${indexPot + 1}]`;
+                        let prefix = pot.metode === "Retur Barang" ? `[Potongan Retur: ${pot.pakanRetur || 'Pakan'}]` : `[Potong Deposit]`;
                         let teksTgl = pot.tglBayar ? ` Uang masuk tgl ${pot.tglBayar}` : "";
                         
                         itemInvoiceTerpilih.push({
@@ -7447,7 +7455,7 @@ function aturAksesMenu(role) {
                     itemInvoiceTerpilih.push({
                         tgl: parsed.tgl, // 🔥 KUNCI MUTLAK: Tetap pakai Tanggal DO Pengambilan
                         isPotongan: true,
-                        pakan: `[Potongan DP / Bayar Sebagian]${tglTeks}`, 
+                        pakan: `[Potong Deposit / Bayar Sebagian]${tglTeks}`, 
                         qty: 0,
                         satuan: '-',
                         nominal: -Math.abs(parsed.dp)
@@ -7539,12 +7547,62 @@ function aturAksesMenu(role) {
             }
 
             let ket = document.getElementById('inv_input_ket').value || "-";
+            
+            let currentSisaPiutang = dataPiutangLokal[namaKonsumenAktif] ? dataPiutangLokal[namaKonsumenAktif].total_sisa : 0;
+            if (currentSisaPiutang < -0.01) {
+                let depositUpdate = Math.abs(currentSisaPiutang) + diskon;
+                if (ket === "-") ket = "";
+                else ket += "\n\n";
+                ket += `Info: Sisa Saldo/Deposit: Rp ${nf.format(depositUpdate)}`;
+            }
 
             document.getElementById('inv_pdf_no').innerText = displayNoInv; document.getElementById('inv_pdf_tgl').innerText = tglText; document.getElementById('inv_pdf_nama').innerText = namaKonsumenAktif.split('-')[0].trim(); document.getElementById('inv_pdf_alamat').innerText = alamatStr || "-";
             let pad = "6px"; let fSize = "11px"; let lHeight = "1.4"; let headSize = "11px"; let len = itemInvoiceTerpilih.length; let printArea = document.getElementById('area-cetak-invoice'); printArea.style.padding = "30px 40px";
             if (len > 6) { pad = "4px"; fSize = "10px"; lHeight = "1.3"; headSize = "10px"; } if (len > 10) { pad = "3px"; fSize = "9px"; lHeight = "1.2"; headSize = "9px"; printArea.style.padding = "25px 40px"; } if (len > 14) { pad = "2px"; fSize = "8px"; lHeight = "1.1"; headSize = "8px"; printArea.style.padding = "15px 30px"; } if (len > 18) { pad = "1px"; fSize = "7px"; lHeight = "1.0"; headSize = "7px"; printArea.style.padding = "10px 20px"; }
 
             let ths = document.querySelectorAll('.inv-table th'); ths.forEach(th => { th.style.padding = pad; th.style.fontSize = headSize; });
+            
+            // --- ADJUST POTONGAN DEPOSIT SECARA DINAMIS JIKA ADA DISKON ---
+            if (diskon > 0) {
+                let feedSubtotal = 0;
+                itemInvoiceTerpilih.forEach(it => {
+                    if (!it.isPotongan && !it.isSisa) {
+                        let qty = parseFloat(it.qty) || 1;
+                        if (!it.hargaSatuan && window.currentItems && window.currentItems.length > 0) {
+                            let matchPakan = window.currentItems.find(x => x.nama.toLowerCase() === it.pakan.toLowerCase());
+                            if (matchPakan && matchPakan.harga > 0) {
+                                feedSubtotal += matchPakan.harga * qty;
+                            } else {
+                                feedSubtotal += it.nominal;
+                            }
+                        } else {
+                            feedSubtotal += it.nominal;
+                        }
+                    }
+                });
+                
+                let realTagihan = feedSubtotal - diskon;
+                let totalPotongan = 0;
+                itemInvoiceTerpilih.forEach(it => {
+                    if (it.isPotongan) totalPotongan += Math.abs(it.nominal);
+                });
+
+                if (totalPotongan > realTagihan && realTagihan >= 0) {
+                    let kelebihan = totalPotongan - realTagihan;
+                    for (let i = 0; i < itemInvoiceTerpilih.length; i++) {
+                        let it = itemInvoiceTerpilih[i];
+                        if (it.isPotongan) {
+                            let nom = Math.abs(it.nominal);
+                            if (kelebihan > 0) {
+                                let potongIni = Math.min(nom, kelebihan);
+                                it.nominal = -(nom - potongIni);
+                                kelebihan -= potongIni;
+                            }
+                        }
+                    }
+                }
+            }
+
             let subtotal = 0;
 
             let htmlItems = itemInvoiceTerpilih.map((it, i) => {
@@ -7627,9 +7685,12 @@ function aturAksesMenu(role) {
 
                 statusLabel.innerText = "Menyimpan arsip Invoice ke Database...";
 
-                // -- TANGKAP INPUT AUTO CASH-IN --
+                // -- TANGKAP INPUT AUTO CASH-IN & DISKON --
                 let isCashIn = document.getElementById('inv_input_cash').checked;
                 let nominalCashIn = isCashIn ? (parseInt(document.getElementById('inv_nominal_cash').value.replace(/[^0-9]/g, '')) || 0) : 0;
+                
+                let isDiskonChecked = document.getElementById('inv_input_diskon').checked;
+                let diskonInv = isDiskonChecked ? (parseInt(document.getElementById('inv_pdf_diskon').innerText.replace(/[^0-9]/g, '')) || 0) : 0;
 
                 // 1. Upload PDF ke Supabase Storage (Berjalan di background)
                 let pdfPath = `invoice/${fileNameInv.replace(/[^a-zA-Z0-9-_]/g, '_')}.pdf`;
@@ -7644,17 +7705,24 @@ function aturAksesMenu(role) {
                     linkPdfSupa = `${SUPA_URL}/storage/v1/object/public/berkas_cbl/${pdfPath}`;
                 }
 
-                // 2. Jika ada Cash In, tembak langsung ke Cashflow Supabase
-                if (isCashIn && nominalCashIn > 0) {
+                // 2. Jika ada Cash In ATAU Diskon, tembak langsung ke Cashflow Supabase
+                if ((isCashIn && nominalCashIn > 0) || (isDiskonChecked && diskonInv > 0)) {
+                    let ketText = `Pembayaran tunai via Cetak Invoice ${noInv}`;
+                    if (isCashIn && nominalCashIn > 0 && isDiskonChecked && diskonInv > 0) {
+                        ketText = `Pembayaran Tunai + Diskon via Cetak Invoice ${noInv}`;
+                    } else if (isDiskonChecked && diskonInv > 0 && (!isCashIn || nominalCashIn === 0)) {
+                        ketText = `Pemberian Diskon Otomatis via Cetak Invoice ${noInv}`;
+                    }
+
                     let cfPayload = {
                         tanggal: new Date().toISOString().split('T')[0],
                         jenis: "Masuk",
                         metode: "Cash",
                         kategori: "Bayar Pakan",
-                        relasi: namaKonsumenAktif,
+                        relasi: namaKonsumenAktif.split('-')[0].trim(),
                         nominal: nominalCashIn,
-                        diskon: 0,
-                        keterangan: `Pembayaran tunai via Cetak Invoice ${noInv}`,
+                        diskon: diskonInv,
+                        keterangan: ketText,
                         bukti_url: linkPdfSupa, 
                         petugas: activeUser || 'Admin'
                     };
@@ -7674,11 +7742,27 @@ function aturAksesMenu(role) {
                         periodeTgl = (tglAwal === tglAkhir) ? tglAwal : `${tglAwal} - ${tglAkhir}`;
                     }
 
-                    let pesanWA = `Yth. Bapak/Ibu ${namaP},\nBerikut kami lampirkan invoice tagihan pakan dengan rincian:\n• Nama Peternak: *${namaP}*\n• Total Tagihan: *Rp ${nf.format(totalTagihan)}*\n• Periode Pengambilan: *${periodeTgl}*\nMohon kesediaannya untuk mengecek lampiran tersebut. Silakan konfirmasi jika terdapat kekeliruan data. Terima kasih.`;
+                    let currentSisa = dataPiutangLokal[namaKonsumenAktif] ? dataPiutangLokal[namaKonsumenAktif].total_sisa : 0;
+                    
+                    let tagihanAsli = 0;
+                    if (itemInvoiceTerpilih) {
+                        itemInvoiceTerpilih.forEach(it => {
+                            if (!it.isPotongan && !it.isSisa) tagihanAsli += it.nominal;
+                        });
+                    }
+                    tagihanAsli -= diskonInv;
+                    if (tagihanAsli < 0) tagihanAsli = 0;
+
+                    let pesanWA = `Yth. Bapak/Ibu ${namaP},\nBerikut kami lampirkan invoice tagihan pakan dengan rincian:\n• Nama Peternak: *${namaP}*\n• Total Tagihan: *Rp ${nf.format(tagihanAsli)}*\n• Periode Pengambilan: *${periodeTgl}*\nMohon kesediaannya untuk mengecek lampiran tersebut. Silakan konfirmasi jika terdapat kekeliruan data. Terima kasih.`;
+
+                    if (currentSisa < -0.01) {
+                        let depositUpdate = Math.abs(currentSisa) + diskonInv;
+                        pesanWA += `\n\n*(Info: Sisa Saldo/Deposit Anda saat ini adalah Rp ${nf.format(depositUpdate)})*`;
+                    }
 
                     // Tambahin info lunas kalau dia bayar tunai full
-                    if (isCashIn && nominalCashIn == totalTagihan) {
-                        pesanWA = `Yth. Bapak/Ibu ${namaP},\nBerikut kami lampirkan Invoice sekaligus kwitansi lunas atas pengambilan pakan periode *${periodeTgl}* senilai *Rp ${nf.format(totalTagihan)}*. Terima kasih banyak atas pembayarannya.`;
+                    if (isCashIn && nominalCashIn > 0 && nominalCashIn == tagihanAsli) {
+                        pesanWA = `Yth. Bapak/Ibu ${namaP},\nBerikut kami lampirkan Invoice sekaligus kwitansi lunas atas pengambilan pakan periode *${periodeTgl}* senilai *Rp ${nf.format(tagihanAsli)}*. Terima kasih banyak atas pembayarannya.`;
                     }
 
                     await navigator.share({ title: 'Invoice Pakan CBL', text: pesanWA, files: [filePdf] });
@@ -8178,7 +8262,8 @@ function renderLiveStokDiInput() {
     let deskripsi = document.getElementById('cf_deskripsi').value.trim();
 
     if (!relasi) return alert("Relasi tidak boleh kosong!");
-    if (nominal <= 0) return alert("Nominal harus lebih dari 0!");
+    if (nominal === 0 && diskon === 0) return alert("Nominal atau Diskon harus diisi (lebih dari 0)!");
+    if (nominal < 0 || diskon < 0) return alert("Angka tidak boleh minus!");
     if (!navigator.onLine) return alert("Wajib online untuk input Cashflow!");
 
     let btn = document.getElementById('btn-kirim-cf');
