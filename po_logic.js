@@ -397,39 +397,128 @@ async function muatDaftarPO(statusFilter) {
             return;
         }
 
-        let html = '';
+        let htmlRows = '';
         data.forEach(po => {
-            let itemsHtml = '';
-            po.items.forEach(i => {
-                itemsHtml += `<div>${i.alias} - <b>${i.qty} ${i.satuan}</b></div>`;
-            });
+            // Tgl Buat (Created At)
+            let dBuat = new Date(po.created_at);
+            let tglBuat = ("0" + dBuat.getDate()).slice(-2) + "-" + ("0" + (dBuat.getMonth() + 1)).slice(-2) + "-" + dBuat.getFullYear();
             
-            html += `
-            <div style="background:white; border:1px solid #DBE4C9; border-radius:12px; padding:15px; margin-bottom:15px; box-shadow:0 4px 6px rgba(0,0,0,0.05);">
-                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
-                    <div>
-                        <div style="font-size:14px; font-weight:bold; color:#8AA624;">${po.no_po}</div>
-                        <div style="font-size:11px; color:#555;">${po.tanggal_pesan} | <b>${po.supplier}</b></div>
-                    </div>
-                    <span style="font-size:10px; background:${statusFilter==='MENUNGGU'?'#FEA405':'#8AA624'}; color:white; padding:4px 8px; border-radius:10px; font-weight:bold;">${statusFilter}</span>
-                </div>
-                <div style="font-size:13px; color:#333; margin-bottom:10px;">
-                    ${itemsHtml}
-                </div>
-                ${po.catatan ? `<div style="font-size:11px; color:#666; background:#f9f9f9; padding:8px; border-radius:6px; margin-bottom:10px;">Catatan: ${po.catatan}</div>` : ''}
+            // Tgl Pesan
+            let dPesan = new Date(po.tanggal_pesan);
+            let tglPesan = ("0" + dPesan.getDate()).slice(-2) + "-" + ("0" + (dPesan.getMonth() + 1)).slice(-2) + "-" + dPesan.getFullYear();
+
+            // Status H- / H+ untuk MENUNGGU
+            let htmlStatus = '';
+            if (statusFilter === 'MENUNGGU') {
+                let today = new Date();
+                today.setHours(0,0,0,0);
+                let tDate = new Date(po.tanggal_pesan);
+                tDate.setHours(0,0,0,0);
+                let diff = Math.ceil((today - tDate) / (1000*60*60*24));
                 
+                if (diff < 0) {
+                    htmlStatus = `<span style="color:#2196F3; font-weight:bold;">H${diff}</span>`; // H-
+                } else if (diff > 0) {
+                    htmlStatus = `<span style="color:#F44336; font-weight:bold;">H+${diff}</span>`; // H+
+                } else {
+                    htmlStatus = `<span style="color:#4CAF50; font-weight:bold;">Hari H</span>`;
+                }
+            } else {
+                htmlStatus = `<span style="color:#8AA624; font-weight:bold;">Selesai</span>`;
+            }
+
+            // Render Items
+            let itemsText = '';
+            po.items.forEach(i => {
+                let selisihHtml = '';
+                if (typeof i.selisih !== 'undefined') {
+                    if (i.selisih < 0) selisihHtml = ` <span style="color:red; font-size:11px; font-weight:bold;">(Kurang ${Math.abs(i.selisih)})</span>`;
+                    else if (i.selisih > 0) selisihHtml = ` <span style="color:green; font-size:11px; font-weight:bold;">(Lebih ${i.selisih})</span>`;
+                    else selisihHtml = ` <span style="color:#8AA624; font-size:11px; font-weight:bold;">(Pas)</span>`;
+                }
+                
+                if (typeof i.qty_masuk !== 'undefined') {
+                    itemsText += `<div style="margin-bottom:4px;">${i.alias}<br><span style="font-size:10px; color:#555;">Pesan: <b>${i.qty}</b> | Dtg: <b>${i.qty_masuk} ${i.satuan}</b>${selisihHtml}</span></div>`;
+                } else {
+                    itemsText += `<div style="margin-bottom:4px;">${i.alias} - <b>${i.qty} ${i.satuan}</b></div>`;
+                }
+            });
+
+            // Tgl Masuk untuk SELESAI
+            let tglMasukHtml = '';
+            if (statusFilter === 'SELESAI' && po.tanggal_selesai) {
+                let d2 = new Date(po.tanggal_selesai);
+                tglMasukHtml = ("0" + d2.getDate()).slice(-2) + "-" + ("0" + (d2.getMonth() + 1)).slice(-2) + "-" + d2.getFullYear();
+            }
+
+            htmlRows += `
+            <tr style="border-bottom:1px solid #ddd; background:white;">
+                <td style="padding:10px; border:1px solid #ddd; white-space:nowrap; vertical-align:top;">${tglBuat}</td>
+                <td style="padding:10px; border:1px solid #ddd; white-space:nowrap; font-weight:bold; color:#0f2c59; vertical-align:top;">${po.no_po}</td>
+                <td style="padding:10px; border:1px solid #ddd; white-space:nowrap; vertical-align:top;">${tglPesan}</td>
+                ${statusFilter === 'SELESAI' ? `<td style="padding:10px; border:1px solid #ddd; white-space:nowrap; vertical-align:top;">${tglMasukHtml}</td>` : ''}
+                <td style="padding:10px; border:1px solid #ddd; vertical-align:top;"><b>${po.supplier}</b></td>
+                <td style="padding:10px; border:1px solid #ddd; vertical-align:top;">
+                    ${itemsText}
+                    ${po.catatan ? `<div style="font-size:10px; background:#fff3cd; padding:4px; margin-top:4px; border-radius:4px;">Catatan: ${po.catatan}</div>` : ''}
+                </td>
+                <td style="padding:10px; border:1px solid #ddd; text-align:center; vertical-align:top;">${htmlStatus}</td>
                 ${statusFilter === 'MENUNGGU' ? `
-                <div style="display:flex; gap:10px; margin-top:10px; border-top:1px dashed #eee; padding-top:10px;">
-                    <button onclick="voidPO('${po.id}')" style="flex:1; padding:8px; background:white; color:#e65100; border:1px solid #e65100; border-radius:6px; font-size:11px; font-weight:bold; cursor:pointer;">Batalkan (Void)</button>
-                    <button onclick="kirimUlangPDF('${po.id}')" style="flex:1; padding:8px; background:#4A90E2; color:white; border:none; border-radius:6px; font-size:11px; font-weight:bold; cursor:pointer;">Share Ulang</button>
-                </div>
+                <td style="padding:10px; border:1px solid #ddd; text-align:center; vertical-align:top;">
+                    <div style="display:flex; flex-direction:column; gap:6px;">
+                        <button onclick="voidPO('${po.id}')" style="background:white; color:#F44336; border:1px solid #F44336; padding:6px; border-radius:6px; font-size:10px; font-weight:bold; cursor:pointer; width:100%;">Batal</button>
+                        <button onclick="kirimUlangPDF('${po.id}')" style="background:#4A90E2; color:white; border:none; padding:6px; border-radius:6px; font-size:10px; font-weight:bold; cursor:pointer; width:100%;">Share</button>
+                    </div>
+                </td>
                 ` : ''}
-            </div>
+            </tr>
             `;
         });
-        container.innerHTML = html;
+
+        let fullHtml = `
+        <div style="margin-bottom:15px;">
+            <input type="text" id="search-po-${statusFilter}" placeholder="Cari Kode PO, Supplier, atau Jenis Pakan..." style="width:100%; padding:12px; border-radius:8px; border:1px solid #ccc; font-size:13px; box-sizing:border-box;" onkeyup="filterTablePO(this, 'table-po-${statusFilter}')">
+        </div>
+        <div style="overflow-x:auto; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.05);">
+            <table id="table-po-${statusFilter}" style="width:100%; border-collapse:collapse; font-size:12px; min-width:800px;">
+                <thead>
+                    <tr>
+                        <th style="padding:12px; border:1px solid #ddd; white-space:nowrap; background:#0f2c59; color:white; text-align:center;">Tgl Buat</th>
+                        <th style="padding:12px; border:1px solid #ddd; white-space:nowrap; background:#0f2c59; color:white; text-align:center;">Kode PO</th>
+                        <th style="padding:12px; border:1px solid #ddd; white-space:nowrap; background:#0f2c59; color:white; text-align:center;">Tgl Pesan</th>
+                        ${statusFilter === 'SELESAI' ? '<th style="padding:12px; border:1px solid #ddd; white-space:nowrap; background:#0f2c59; color:white; text-align:center;">Tgl Masuk</th>' : ''}
+                        <th style="padding:12px; border:1px solid #ddd; min-width:150px; background:#0f2c59; color:white; text-align:center;">Supplier</th>
+                        <th style="padding:12px; border:1px solid #ddd; min-width:200px; background:#0f2c59; color:white; text-align:center;">Item Pakan</th>
+                        <th style="padding:12px; border:1px solid #ddd; white-space:nowrap; background:#0f2c59; color:white; text-align:center;">Status</th>
+                        ${statusFilter === 'MENUNGGU' ? '<th style="padding:12px; border:1px solid #ddd; background:#0f2c59; color:white; text-align:center;">Aksi</th>' : ''}
+                    </tr>
+                </thead>
+                <tbody>
+                    ${htmlRows}
+                </tbody>
+            </table>
+        </div>
+        `;
+        
+        container.innerHTML = fullHtml;
     } catch (e) {
         container.innerHTML = `<div style="color:red; font-size:12px; text-align:center;">Gagal memuat: ${e.message}</div>`;
+    }
+}
+
+window.filterTablePO = function(input, tableId) {
+    let filter = input.value.toLowerCase();
+    let table = document.getElementById(tableId);
+    if (!table) return;
+    let trs = table.getElementsByTagName("tbody")[0].getElementsByTagName("tr");
+    
+    for (let i = 0; i < trs.length; i++) {
+        let text = trs[i].textContent || trs[i].innerText;
+        if (text.toLowerCase().indexOf(filter) > -1) {
+            trs[i].style.display = "";
+        } else {
+            trs[i].style.display = "none";
+        }
     }
 }
 
@@ -587,15 +676,54 @@ window.batalTarikPO = function() {
 };
 
 // Intercept setelah transaksi_pakan berhasil di-upload
-async function cekUpdateStatusPOLinked(payloads) {
+async function cekUpdateStatusPOLinked(payloads, abortSignal = null) {
     for (let pl of payloads) {
         if (pl.status === 'Masuk' && pl.po_id) {
             try {
-                await fetch(`${SUPA_URL}/rest/v1/data_po?id=eq.${pl.po_id}`, {
-                    method: 'PATCH',
-                    headers: { 'apikey': SUPA_ANON_KEY, 'Authorization': `Bearer ${SUPA_ANON_KEY}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ status: 'SELESAI', tanggal_selesai: new Date().toISOString() })
-                });
+                // 1. Ambil data PO aslinya dulu untuk melihat json items-nya
+                let getOpt = { headers: { 'apikey': SUPA_ANON_KEY, 'Authorization': `Bearer ${SUPA_ANON_KEY}` } };
+                if (abortSignal) getOpt.signal = abortSignal;
+                
+                let res = await fetch(`${SUPA_URL}/rest/v1/data_po?id=eq.${pl.po_id}`, getOpt);
+                if (!res.ok) continue;
+                let data = await res.json();
+                
+                if (data && data.length > 0) {
+                    let po = data[0];
+                    let currentItems = po.items || [];
+                    
+                    // 2. Suntikkan qty_masuk dan hitung selisih
+                    let newItems = currentItems.map(item => {
+                        let itemNameTarget = (item.nama_asli || item.alias || "").trim().toLowerCase();
+                        
+                        // Cari pakan di keranjang Laporan Harian (pl.items) yang sesuai
+                        let matchedKey = Object.keys(pl.items).find(k => k.trim().toLowerCase() === itemNameTarget);
+                        
+                        let qtyMasuk = matchedKey ? (parseFloat(pl.items[matchedKey]) || 0) : 0;
+                        let qtyPesan = parseFloat(item.qty) || 0;
+                        let selisih = qtyMasuk - qtyPesan;
+
+                        return {
+                            ...item,
+                            qty_masuk: qtyMasuk,
+                            selisih: selisih
+                        };
+                    });
+
+                    // 3. Update status & json items kembali ke tabel PO
+                    let patchOpt = {
+                        method: 'PATCH',
+                        headers: { 'apikey': SUPA_ANON_KEY, 'Authorization': `Bearer ${SUPA_ANON_KEY}`, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            status: 'SELESAI', 
+                            tanggal_selesai: pl.tanggal ? new Date(pl.tanggal).toISOString() : new Date().toISOString(),
+                            items: newItems
+                        })
+                    };
+                    if (abortSignal) patchOpt.signal = abortSignal;
+
+                    await fetch(`${SUPA_URL}/rest/v1/data_po?id=eq.${pl.po_id}`, patchOpt);
+                }
             } catch (e) { console.error("Gagal update status PO", e); }
         }
     }
