@@ -3724,6 +3724,7 @@
                 color: white !important;
                 font-weight: bold;
                 -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
             }
             .po-items-table td.left-align {
                 text-align: left;
@@ -4663,8 +4664,8 @@ async function prosesAntreanBackground() {
                     harga_satuan: harga,
                     catatan: extraCatatan.trim(),
                     hash_str: pl.hashStr + '_' + pakanName,
-                    device_id: pl.device_id,
-                    po_id: pl.po_id
+                    device_id: pl.device_id || null,
+                    po_id: pl.po_id || null
                 });
             }
 
@@ -4688,7 +4689,8 @@ async function prosesAntreanBackground() {
                     harga_satuan: ongkirVal,           
                     catatan: 'Biaya Pengiriman',
                     hash_str: (pl.hashStr || '') + '_ONGKIR',
-                    device_id: pl.device_id    // <--- DAN TAMBAHKAN JUGA DI SINI
+                    device_id: pl.device_id || null,
+                    po_id: pl.po_id || null
                 });
             }
 
