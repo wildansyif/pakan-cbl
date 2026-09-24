@@ -4737,6 +4737,15 @@ async function prosesAntreanBackground() {
                 // Obat tambahan jaga-jaga kalau server masih kirim 409
                 if (resPakan.status === 409) {
                     console.warn("Data duplikat diabaikan server. Antrean dianggap sukses.");
+                } else if (resPakan.status === 400) {
+                    let errText = await resPakan.text();
+                    console.error("Payload Ditolak Server (400):", errText, supabaseRows);
+                    
+                    let errorLog = JSON.parse(localStorage.getItem('antrian_error_log') || "[]");
+                    errorLog.push({ waktu: new Date().toISOString(), error: errText, payload: supabaseRows });
+                    localStorage.setItem('antrian_error_log', JSON.stringify(errorLog));
+                    
+                    console.warn("Item dilewati karena ditolak server permanen (Poison Pill).");
                 } else {
                     const err = await resPakan.json();
                     throw new Error("Pakan Error: " + err.message);
