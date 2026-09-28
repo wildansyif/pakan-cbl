@@ -844,7 +844,7 @@
         #area-cetak-invoice {
             width: 794px;
             min-width: 794px;
-            height: 559px;
+            height: auto;
             min-height: 559px;
             padding: 30px 40px;
             box-sizing: border-box;
@@ -3226,7 +3226,7 @@
                             <tbody id="inv_pdf_items" style="color:#000000; font-weight:500;"></tbody>
                         </table>
 
-                        <div style="display:flex; justify-content:space-between; margin-top: 5px;">
+                        <div style="display:flex; justify-content:space-between; margin-top: 5px; page-break-inside: avoid; break-inside: avoid;">
                             <div
                                 style="width: 50%; background:#f9f9f9; padding:8px; font-size:9px; border:0.5px solid #000; height:fit-content; color:#000000;">
                                 <b>Catatan:</b><br>
@@ -7211,6 +7211,12 @@ function aturAksesMenu(role) {
                 return dA - dB;
             });
 
+            // Filter: Jika peternak tidak punya deposit (total_sisa >= 0),
+            // maka SEMBUNYIKAN pengambilan pakan yang sudah lunas (sisaNyata <= 0)
+            if (d.total_sisa >= 0) {
+                arrDates = arrDates.filter(nota => nota.sisaNyata > 0);
+            }
+
             arrDates.forEach(nota => {
                 totalSisaKalkulasi += nota.sisaNyata;
                 let rincianHtml = nota.items.map(it => {
@@ -7251,7 +7257,7 @@ function aturAksesMenu(role) {
                 htmlItems += `<div style="padding:10px 0; border-bottom:1px solid #eee;">
                   <div style="display:flex; justify-content:space-between; align-items:flex-start;">
                       <div style="display:flex; align-items:flex-start; gap:8px;">
-                          <input type="checkbox" id="chk_${safeClass}_${nota.tgl.replace(/\//g,'')}" class="chk-inv-${safeClass}" value='${valStr}' data-nominal="${nota.sisaNyata}" style="width:20px; height:20px; margin-top:2px;" checked onchange="hitungPreviewSubtotal('${safeClass}')">
+                          <input type="checkbox" id="chk_${safeClass}_${nota.tgl.replace(/\//g,'')}" class="chk-inv-${safeClass}" value='${valStr}' data-nominal="${nota.sisaNyata}" style="width:20px; height:20px; margin-top:2px;" ${nota.sisaNyata > 0 ? 'checked' : ''} onchange="hitungPreviewSubtotal('${safeClass}')">
                           <div style="cursor:pointer; line-height:1.2;" onclick="document.getElementById('rincian_${safeClass}_${nota.tgl.replace(/\//g,'')}').classList.toggle('hidden')">
                               <b style="color:#8AA624; font-size:13px;">${lampu} ${nota.tgl}</b><br>
                               <span style="font-size:10px; font-weight:bold; color:${warnaJT};">${nota.jt}</span><br>
@@ -7568,8 +7574,10 @@ function aturAksesMenu(role) {
             }
 
             document.getElementById('inv_pdf_no').innerText = displayNoInv; document.getElementById('inv_pdf_tgl').innerText = tglText; document.getElementById('inv_pdf_nama').innerText = namaKonsumenAktif.split('-')[0].trim(); document.getElementById('inv_pdf_alamat').innerText = alamatStr || "-";
-            let pad = "6px"; let fSize = "11px"; let lHeight = "1.4"; let headSize = "11px"; let len = itemInvoiceTerpilih.length; let printArea = document.getElementById('area-cetak-invoice'); printArea.style.padding = "30px 40px";
-            if (len > 6) { pad = "4px"; fSize = "10px"; lHeight = "1.3"; headSize = "10px"; } if (len > 10) { pad = "3px"; fSize = "9px"; lHeight = "1.2"; headSize = "9px"; printArea.style.padding = "25px 40px"; } if (len > 14) { pad = "2px"; fSize = "8px"; lHeight = "1.1"; headSize = "8px"; printArea.style.padding = "15px 30px"; } if (len > 18) { pad = "1px"; fSize = "7px"; lHeight = "1.0"; headSize = "7px"; printArea.style.padding = "10px 20px"; }
+            let pad = "6px"; let fSize = "11px"; let lHeight = "1.4"; let headSize = "11px"; let len = itemInvoiceTerpilih.length; let printArea = document.getElementById('area-cetak-invoice'); 
+            printArea.style.padding = "25px 40px 10px 40px";
+            if (len > 6) { pad = "4px"; fSize = "10px"; lHeight = "1.3"; headSize = "10px"; } 
+            if (len > 10) { pad = "3px"; fSize = "9px"; lHeight = "1.2"; headSize = "9px"; printArea.style.padding = "20px 35px 10px 35px"; } 
 
             let ths = document.querySelectorAll('.inv-table th'); ths.forEach(th => { th.style.padding = pad; th.style.fontSize = headSize; });
             
@@ -7614,58 +7622,86 @@ function aturAksesMenu(role) {
                 }
             }
 
-            let subtotal = 0;
-
-            let htmlItems = itemInvoiceTerpilih.map((it, i) => {
-                let dynamicNominal = it.nominal;
-                let hargaSatuanStr = "";
-
-                if (it.isPotongan) {
-                    subtotal += dynamicNominal; // Minus akan otomatis mengurangi subtotal
-                    return `<tr style="font-size:${fSize}; line-height:${lHeight}; color:#c62828; font-weight:500; font-style:italic;">
-                            <td style="padding:${pad}; border:0.5px solid #000; text-align:center;">${i + 1}</td>
-                            <td style="padding:${pad}; border:0.5px solid #000; text-align:center;">${it.tgl}</td>
-                            <td colspan="4" style="padding:${pad}; border:0.5px solid #000; text-align:left;">Potongan: ${it.pakan}</td>
-                            <td style="padding:${pad}; border:0.5px solid #000; text-align:right;">${nf.format(dynamicNominal)}</td>
-                        </tr>`;
-                } else if (it.isSisa) {
-                    // Fallback jadul (Abaikan saja jika tidak terpakai)
-                    subtotal += dynamicNominal;
-                    let deskripsiSisa = `Sisa Piutang (Total Rp ${nf.format(it.tagihan)} - Ter-DP Rp ${nf.format(it.dp)})`;
-                    return `<tr style="font-size:${fSize}; line-height:${lHeight}; color:#000000; font-weight:500;">
-                            <td style="padding:${pad}; border:0.5px solid #000; text-align:center;">${i + 1}</td>
-                            <td style="padding:${pad}; border:0.5px solid #000; text-align:center;">${it.tgl}</td>
-                            <td colspan="4" style="padding:${pad}; border:0.5px solid #000; text-align:left; font-style:italic;">${deskripsiSisa}</td>
-                            <td style="padding:${pad}; border:0.5px solid #000; text-align:right;">${nf.format(dynamicNominal)}</td>
-                        </tr>`;
+            let groupedItems = {};
+            itemInvoiceTerpilih.forEach(it => {
+                if (!groupedItems[it.tgl]) groupedItems[it.tgl] = { pakanItems: [], potonganItems: [], totalAsli: 0, totalPotongan: 0 };
+                if (it.isPotongan || it.isSisa) {
+                    groupedItems[it.tgl].potonganItems.push(it);
+                    groupedItems[it.tgl].totalPotongan += Math.abs(it.nominal);
                 } else {
-                    // Update Harga Live
+                    groupedItems[it.tgl].pakanItems.push(it);
+                    
+                    let dynamicNominal = it.nominal;
                     if (!it.hargaSatuan && window.currentItems && window.currentItems.length > 0) {
                         let matchPakan = window.currentItems.find(x => x.nama.toLowerCase() === it.pakan.toLowerCase());
                         if (matchPakan && matchPakan.harga > 0) {
                             let qty = parseFloat(it.qty) || 1;
                             dynamicNominal = matchPakan.harga * qty;
                             it.nominal = dynamicNominal; 
-                            hargaSatuanStr = nf.format(matchPakan.harga);
+                            it.hargaSatuan = matchPakan.harga;
                         }
                     }
+                    groupedItems[it.tgl].totalAsli += dynamicNominal;
+                }
+            });
 
-                    if (hargaSatuanStr === "") {
-                        hargaSatuanStr = it.hargaSatuan > 0 ? nf.format(it.hargaSatuan) : nf.format(dynamicNominal / (it.qty || 1));
+            let subtotal = 0;
+            let barisIndex = 1;
+            let uniqueTgls = [...new Set(itemInvoiceTerpilih.map(it => it.tgl))];
+            
+            let htmlItems = uniqueTgls.map(tgl => {
+                let group = groupedItems[tgl];
+                if (group.pakanItems.length === 0 && group.potonganItems.length === 0) return "";
+                
+                let sisaBersih = group.totalAsli - group.totalPotongan;
+                subtotal += sisaBersih;
+                
+                if (group.totalPotongan > 0) {
+                    let rincianArr = group.pakanItems.map(it => {
+                        let harga = it.hargaSatuan > 0 ? it.hargaSatuan : (it.nominal / (it.qty || 1));
+                        let safeSatuan = it.satuan || (it.pakan.toLowerCase().includes('ongkir') ? 'Rit' : 'Kg');
+                        if (it.pakan.toLowerCase().includes('ongkir')) {
+                            return `(${it.pakan} Rp ${nf.format(harga)})`;
+                        }
+                        return `(${it.pakan} ${it.qty}${safeSatuan} x @${nf.format(harga)})`;
+                    });
+                    let deskripsi = rincianArr.join(" + ");
+                    
+                    let ketList = group.potonganItems.map(p => {
+                        let pName = p.pakan.replace(/\[.*?\]/g, '').trim(); 
+                        return pName;
+                    }).filter(Boolean);
+                    let uniqueKets = [...new Set(ketList)].join(", ");
+                    
+                    let labelPotongan = sisaBersih > 0 ? "DP" : "Potong Deposit";
+                    let infoKeterangan = uniqueKets ? `(${labelPotongan} ${uniqueKets})` : `(${labelPotongan})`;
+                    
+                    if (deskripsi === "") {
+                         deskripsi = `<b>Total: Rp ${nf.format(group.totalAsli)} - Rp ${nf.format(group.totalPotongan)} ${infoKeterangan}</b>`;
+                    } else {
+                         deskripsi += `<br><span style="color:#000; font-size:0.9em;"><b>Total: Rp ${nf.format(group.totalAsli)} - Rp ${nf.format(group.totalPotongan)} ${infoKeterangan}</b></span>`;
                     }
 
-                    subtotal += dynamicNominal;
-
-                    let safeSatuan = it.satuan || (it.pakan.toLowerCase().includes('ongkir') ? 'Rit' : 'Kg');
-                    return `<tr style="font-size:${fSize}; line-height:${lHeight}; color:#000000; font-weight:500;">
-                            <td style="padding:${pad}; border:0.5px solid #000; text-align:center;">${i + 1}</td>
-                            <td style="padding:${pad}; border:0.5px solid #000; text-align:center;">${it.tgl}</td>
-                            <td style="padding:${pad}; border:0.5px solid #000; text-align:left;">${it.pakan}</td>
-                            <td style="padding:${pad}; border:0.5px solid #000; text-align:right;">${nf.format(it.qty)}</td>
-                            <td style="padding:${pad}; border:0.5px solid #000; text-align:center;">${safeSatuan}</td>
-                            <td style="padding:${pad}; border:0.5px solid #000; text-align:right;">${hargaSatuanStr}</td>
-                            <td style="padding:${pad}; border:0.5px solid #000; text-align:right;">${nf.format(dynamicNominal)}</td>
+                    return `<tr style="page-break-inside: avoid; break-inside: avoid; font-size:${fSize}; line-height:${lHeight}; color:#000000; font-weight:500;">
+                            <td style="padding:${pad}; border:0.5px solid #000; text-align:center;">${barisIndex++}</td>
+                            <td style="padding:${pad}; border:0.5px solid #000; text-align:center;">${tgl}</td>
+                            <td colspan="4" style="padding:${pad}; border:0.5px solid #000; text-align:left;">${deskripsi}</td>
+                            <td style="padding:${pad}; border:0.5px solid #000; text-align:right;">${nf.format(sisaBersih)}</td>
                         </tr>`;
+                } else {
+                    return group.pakanItems.map(it => {
+                        let harga = it.hargaSatuan > 0 ? it.hargaSatuan : (it.nominal / (it.qty || 1));
+                        let safeSatuan = it.satuan || (it.pakan.toLowerCase().includes('ongkir') ? 'Rit' : 'Kg');
+                        return `<tr style="page-break-inside: avoid; break-inside: avoid; font-size:${fSize}; line-height:${lHeight}; color:#000000; font-weight:500;">
+                                <td style="padding:${pad}; border:0.5px solid #000; text-align:center;">${barisIndex++}</td>
+                                <td style="padding:${pad}; border:0.5px solid #000; text-align:center;">${tgl}</td>
+                                <td style="padding:${pad}; border:0.5px solid #000; text-align:left;">${it.pakan}</td>
+                                <td style="padding:${pad}; border:0.5px solid #000; text-align:right;">${nf.format(it.qty)}</td>
+                                <td style="padding:${pad}; border:0.5px solid #000; text-align:center;">${safeSatuan}</td>
+                                <td style="padding:${pad}; border:0.5px solid #000; text-align:right;">${nf.format(harga)}</td>
+                                <td style="padding:${pad}; border:0.5px solid #000; text-align:right;">${nf.format(it.nominal)}</td>
+                            </tr>`;
+                    }).join('');
                 }
             }).join('');
 
@@ -7679,13 +7715,54 @@ function aturAksesMenu(role) {
             if (!navigator.onLine) return alert("Wajib online untuk generate PDF!");
             let btn = document.getElementById('btn_cetak_inv'); let statusLabel = document.getElementById('inv_status_upload'); let noInv = document.getElementById('modal-invoice').getAttribute('data-no'); let fileNameInv = document.getElementById('modal-invoice').getAttribute('data-filename'); let totalTagihan = document.getElementById('modal-invoice').getAttribute('data-total'); let nf = new Intl.NumberFormat('id-ID');
 
+            // -- TANGKAP INPUT AUTO CASH-IN & DISKON --
+            let isCashIn = document.getElementById('inv_input_cash').checked;
+            let nominalCashIn = isCashIn ? (parseInt(document.getElementById('inv_nominal_cash').value.replace(/[^0-9]/g, '')) || 0) : 0;
+            let isDiskonChecked = document.getElementById('inv_input_diskon').checked;
+            let diskonInv = isDiskonChecked ? (parseInt(document.getElementById('inv_pdf_diskon').innerText.replace(/[^0-9]/g, '')) || 0) : 0;
+
+            // -- BENTUK PESAN WA & COPY DI AWAL (Solusi untuk bug Safari Clipboard) --
+            let namaP = namaKonsumenAktif.split('-')[0].trim();
+            let periodeTgl = "-";
+            if (itemInvoiceTerpilih && itemInvoiceTerpilih.length > 0) {
+                let tglAwal = itemInvoiceTerpilih[0].tgl;
+                let tglAkhir = itemInvoiceTerpilih[itemInvoiceTerpilih.length - 1].tgl;
+                periodeTgl = (tglAwal === tglAkhir) ? tglAwal : `${tglAwal} - ${tglAkhir}`;
+            }
+            let currentSisa = dataPiutangLokal[namaKonsumenAktif] ? dataPiutangLokal[namaKonsumenAktif].total_sisa : 0;
+            let tagihanAsli = parseFloat(totalTagihan) || 0;
+            if (tagihanAsli < 0) tagihanAsli = 0;
+
+            let pesanWA = `Yth. Bapak/Ibu ${namaP},\nBerikut kami lampirkan invoice tagihan pakan dengan rincian:\n• Nama Peternak: *${namaP}*\n• Total Tagihan: *Rp ${nf.format(tagihanAsli)}*\n• Periode Pengambilan: *${periodeTgl}*\nMohon kesediaannya untuk mengecek lampiran tersebut. Silakan konfirmasi jika terdapat kekeliruan data. Terima kasih.`;
+            
+            if (currentSisa < -0.01) {
+                let depositUpdate = Math.abs(currentSisa) + diskonInv;
+                pesanWA += `\n\n*(Info: Sisa Saldo/Deposit Anda saat ini adalah Rp ${nf.format(depositUpdate)})*`;
+            }
+            if (isCashIn && nominalCashIn > 0 && nominalCashIn == tagihanAsli) {
+                pesanWA = `Yth. Bapak/Ibu ${namaP},\nBerikut kami lampirkan Invoice sekaligus kwitansi lunas atas pengambilan pakan periode *${periodeTgl}* senilai *Rp ${nf.format(tagihanAsli)}*. Terima kasih banyak atas pembayarannya.`;
+            }
+            
+            try {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(pesanWA);
+                }
+            } catch (err) {}
+
             btn.innerHTML = `<span class="material-symbols-outlined" style="font-size:18px;">hourglass_empty</span> Memproses...`; btn.disabled = true; statusLabel.innerText = "Mengekstrak dokumen A5...";
 
             let cetakArea = document.getElementById('area-cetak-invoice'); let modal = document.getElementById('modal-invoice'); let wrapper = document.querySelector('.invoice-wrapper');
             let oriModalPos = modal.style.position; let oriWrapperOverflow = wrapper.style.overflowX; let oriWrapperScrolling = wrapper.style.WebkitOverflowScrolling;
             modal.style.position = 'absolute'; wrapper.style.overflowX = 'visible'; wrapper.style.WebkitOverflowScrolling = 'auto'; window.scrollTo(0, 0);
 
-            let opt = { margin: 0, filename: `${fileNameInv}.pdf`, image: { type: 'jpeg', quality: 1 }, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'mm', format: 'a5', orientation: 'landscape' } };
+            let opt = { 
+                margin: 0, 
+                filename: `${fileNameInv}.pdf`, 
+                image: { type: 'jpeg', quality: 1 }, 
+                html2canvas: { scale: 2, useCORS: true }, 
+                jsPDF: { unit: 'mm', format: 'a5', orientation: 'landscape' },
+                pagebreak: { mode: ['css', 'legacy'] }
+            };
 
             try {
                 await new Promise(r => setTimeout(r, 500));
@@ -7695,13 +7772,6 @@ function aturAksesMenu(role) {
                 const byteArray = new Uint8Array(byteNumbers); const pdfBlob = new Blob([byteArray], { type: 'application/pdf' }); const filePdf = new File([pdfBlob], `${fileNameInv}.pdf`, { type: 'application/pdf' });
 
                 statusLabel.innerText = "Menyimpan arsip Invoice ke Database...";
-
-                // -- TANGKAP INPUT AUTO CASH-IN & DISKON --
-                let isCashIn = document.getElementById('inv_input_cash').checked;
-                let nominalCashIn = isCashIn ? (parseInt(document.getElementById('inv_nominal_cash').value.replace(/[^0-9]/g, '')) || 0) : 0;
-                
-                let isDiskonChecked = document.getElementById('inv_input_diskon').checked;
-                let diskonInv = isDiskonChecked ? (parseInt(document.getElementById('inv_pdf_diskon').innerText.replace(/[^0-9]/g, '')) || 0) : 0;
 
                 // 1. Upload PDF ke Supabase Storage (Berjalan di background)
                 let pdfPath = `invoice/${fileNameInv.replace(/[^a-zA-Z0-9-_]/g, '_')}.pdf`;
@@ -7745,40 +7815,10 @@ function aturAksesMenu(role) {
                 }
 
                 if (navigator.share) {
-                    let namaP = namaKonsumenAktif.split('-')[0].trim();
-                    let periodeTgl = "-";
-                    if (itemInvoiceTerpilih && itemInvoiceTerpilih.length > 0) {
-                        let tglAwal = itemInvoiceTerpilih[0].tgl;
-                        let tglAkhir = itemInvoiceTerpilih[itemInvoiceTerpilih.length - 1].tgl;
-                        periodeTgl = (tglAwal === tglAkhir) ? tglAwal : `${tglAwal} - ${tglAkhir}`;
-                    }
-
-                    let currentSisa = dataPiutangLokal[namaKonsumenAktif] ? dataPiutangLokal[namaKonsumenAktif].total_sisa : 0;
-                    
-                    let tagihanAsli = 0;
-                    if (itemInvoiceTerpilih) {
-                        itemInvoiceTerpilih.forEach(it => {
-                            if (!it.isPotongan && !it.isSisa) tagihanAsli += it.nominal;
-                        });
-                    }
-                    tagihanAsli -= diskonInv;
-                    if (tagihanAsli < 0) tagihanAsli = 0;
-
-                    let pesanWA = `Yth. Bapak/Ibu ${namaP},\nBerikut kami lampirkan invoice tagihan pakan dengan rincian:\n• Nama Peternak: *${namaP}*\n• Total Tagihan: *Rp ${nf.format(tagihanAsli)}*\n• Periode Pengambilan: *${periodeTgl}*\nMohon kesediaannya untuk mengecek lampiran tersebut. Silakan konfirmasi jika terdapat kekeliruan data. Terima kasih.`;
-
-                    if (currentSisa < -0.01) {
-                        let depositUpdate = Math.abs(currentSisa) + diskonInv;
-                        pesanWA += `\n\n*(Info: Sisa Saldo/Deposit Anda saat ini adalah Rp ${nf.format(depositUpdate)})*`;
-                    }
-
-                    // Tambahin info lunas kalau dia bayar tunai full
-                    if (isCashIn && nominalCashIn > 0 && nominalCashIn == tagihanAsli) {
-                        pesanWA = `Yth. Bapak/Ibu ${namaP},\nBerikut kami lampirkan Invoice sekaligus kwitansi lunas atas pengambilan pakan periode *${periodeTgl}* senilai *Rp ${nf.format(tagihanAsli)}*. Terima kasih banyak atas pembayarannya.`;
-                    }
 
                     await navigator.share({ title: 'Invoice Pakan CBL', text: pesanWA, files: [filePdf] });
-                    statusLabel.innerText = "Berhasil dibagikan!"; 
-                    setTimeout(() => { document.getElementById('modal-invoice').classList.add('hidden'); }, 2000);
+                    statusLabel.innerText = "Berhasil dibagikan! (Pesan teks otomatis disalin, silakan Paste di WA)"; 
+                    setTimeout(() => { document.getElementById('modal-invoice').classList.add('hidden'); }, 3500);
                 } else { 
                     alert("Browser tidak mendukung share file langsung."); 
                 }
