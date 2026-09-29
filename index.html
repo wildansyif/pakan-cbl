@@ -10879,12 +10879,22 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
                     'apikey': SUPA_ANON_KEY, 
                     'Authorization': `Bearer ${SUPA_ANON_KEY}`,
                     'Content-Type': 'application/json',
-                    'Prefer': 'return=minimal'
+                    'Prefer': 'return=representation',
+                    'x-pin-karyawan': currentLoggedPin
                 },
                 body: JSON.stringify({ qty: baru, catatan: catatanFinal, waktu_input: new Date().toISOString() })
             })
-            .then(res => {
+            .then(async res => {
                 if (res.ok) {
+                    let updatedRows = await res.json();
+                    
+                    if (updatedRows.length === 0) {
+                        alert("Koreksi ditolak oleh sistem keamanan database (PIN tidak valid atau batas waktu terlewati).");
+                        document.getElementById('modal-edit-transaksi').classList.add('hidden');
+                        renderListReviewHarian(); // revert UI ke asli
+                        return;
+                    }
+
                     let tIndex = globalTransaksiHariIni.findIndex(x => x.id == id);
                     if (tIndex !== -1) {
                         globalTransaksiHariIni[tIndex].qty = baru;
@@ -10893,7 +10903,9 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
                     renderListReviewHarian();
                     document.getElementById('modal-edit-transaksi').classList.add('hidden');
                     alert("✅ Koreksi berhasil disimpan ke database!");
-                } else { alert("Gagal menyimpan koreksi!"); }
+                } else { 
+                    alert("Gagal menyimpan koreksi!"); 
+                }
             }).catch(e => { alert("Error jaringan: " + e.message); })
             .finally(() => { btn.innerHTML = "Simpan"; btn.disabled = false; });
         }
