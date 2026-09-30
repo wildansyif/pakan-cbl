@@ -5773,10 +5773,8 @@ function aturAksesMenu(role) {
             let gudangQty = { "PM": { jual: 0, pakai: 0, giling: 0, masuk: 0, mutasi: 0 }, "RPH": { jual: 0, pakai: 0, giling: 0, masuk: 0, mutasi: 0 }, "SPN": { jual: 0, pakai: 0, giling: 0, masuk: 0, mutasi: 0 } };
             let lossGainMap = {};
 
-            let targetPakan = ["Mako S-20", "Mako C-20", "Mako A-20", "Mako SP-15", "Kopra", "Meal Mix", "Rapen Kedelai", "Pongkol Singkong"];
+            let allTrends = {};
             let trendPakan = {};
-            targetPakan.forEach(p => trendPakan[p] = Array(12).fill(0));
-            trendPakan["Lainnya"] = Array(12).fill(0);
 
             let isFiltered = (fM !== 'ALL');
             let prevM = fM - 1; if (prevM < 1) prevM = 12;
@@ -5797,9 +5795,8 @@ function aturAksesMenu(role) {
                             chartBln[bKey].o += row.o;
                             chartBln[bKey].q += row.q;
 
-                            let match = targetPakan.find(tp => p.toLowerCase() === tp.toLowerCase());
-                            let keyPakan = match ? match : "Lainnya";
-                            trendPakan[keyPakan][row.b - 1] += row.q;
+                            if (!allTrends[p]) allTrends[p] = Array(12).fill(0);
+                            allTrends[p][row.b - 1] += row.q;
                         }
                     }
 
@@ -5877,11 +5874,21 @@ function aturAksesMenu(role) {
             }).sort((a, b) => b.qty - a.qty);
 
             let dnLabel = [], dnData = [], otherVal = 0;
+            
+            // Build Tren Pakan Dinamis berdasarkan Top 10 bulan aktif
+            let sortedProducts = arrProdFull.slice(0, 10).map(p => p.name);
+            sortedProducts.forEach(p => { trendPakan[p] = allTrends[p] || Array(12).fill(0); });
+            trendPakan["Lainnya"] = Array(12).fill(0);
+            for (let p in allTrends) {
+                if (!sortedProducts.includes(p)) {
+                    for (let i = 0; i < 12; i++) trendPakan["Lainnya"][i] += allTrends[p][i];
+                }
+            }
             arrProdFull.forEach((p, i) => { if (i < 5) { dnLabel.push(p.name); dnData.push(p.qty); } else { otherVal += p.qty; } });
             if (otherVal > 0) { dnLabel.push("Lainnya"); dnData.push(otherVal); }
 
-            let colorsTrend = ['#8AA624', '#4A90E2', '#FEA405', '#9C27B0', '#795548', '#FF9800', '#009688', '#E91E63'];
-            let datasetsTrend = targetPakan.map((name, i) => ({
+            let colorsTrend = ['#8AA624', '#4A90E2', '#FEA405', '#9C27B0', '#795548', '#FF9800', '#009688', '#E91E63', '#3F51B5', '#607D8B'];
+            let datasetsTrend = sortedProducts.map((name, i) => ({
                 label: name, data: trendPakan[name],
                 borderColor: colorsTrend[i], backgroundColor: colorsTrend[i], tension: 0.3, fill: false, pointRadius: 2, borderWidth: 2
             }));
