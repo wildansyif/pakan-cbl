@@ -5637,8 +5637,10 @@ function aturAksesMenu(role) {
                     let rawKP = [];
                     for (let r in ptgCache) {
                         let item = ptgCache[r];
-                        if (item.totalTelat > 0) rawKP.push({ nominal: item.totalTelat, isTelat: true });
-                        if (item.totalSehat > 0) rawKP.push({ nominal: item.totalSehat, isTelat: false });
+                        let tTelat = item.totalTelat || item.total_telat || 0;
+                        let tSehat = item.totalSehat || item.total_sehat || 0;
+                        if (tTelat > 0) rawKP.push({ nominal: tTelat, isTelat: true });
+                        if (tSehat > 0) rawKP.push({ nominal: tSehat, isTelat: false });
                     }
                     rawData.kp = rawKP; // Suntikkan data piutang segar ke memori analitik
 
@@ -5732,8 +5734,10 @@ function aturAksesMenu(role) {
                 let rawKP = [];
                 for (let r in ptgCache) {
                     let item = ptgCache[r];
-                    if (item.totalTelat > 0) rawKP.push({ nominal: item.totalTelat, isTelat: true });
-                    if (item.totalSehat > 0) rawKP.push({ nominal: item.totalSehat, isTelat: false });
+                    let tTelat = item.totalTelat || item.total_telat || 0;
+                    let tSehat = item.totalSehat || item.total_sehat || 0;
+                    if (tTelat > 0) rawKP.push({ nominal: tTelat, isTelat: true });
+                    if (tSehat > 0) rawKP.push({ nominal: tSehat, isTelat: false });
                 }
 
                 // 4. BUNGKUS DAN RENDER (DENGAN TRY CATCH)
