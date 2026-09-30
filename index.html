@@ -3306,6 +3306,38 @@
             </div>
         </div>
 
+        <!-- MODAL ONGKIR -->
+        <div id="modal-ongkir" class="hidden"
+            style="position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.6); z-index:9999; display:flex; justify-content:center; align-items:center; padding:20px; backdrop-filter: blur(2px);">
+            <div
+                style="background:#fff; border-radius:16px; width:100%; max-width:340px; overflow:hidden; box-shadow:0 10px 25px rgba(0,0,0,0.2); animation: slideUp 0.3s ease;">
+                <div style="background:#8AA624; padding:20px 15px 15px; text-align:center; color:white;">
+                    <div
+                        style="background:white; width:50px; height:50px; border-radius:50%; display:flex; justify-content:center; align-items:center; margin:0 auto 10px;">
+                        <span class="material-symbols-outlined"
+                            style="font-size:30px; color:#8AA624;">local_shipping</span>
+                    </div>
+                    <h3 style="margin:0; font-size:18px;">Konfirmasi Pengiriman</h3>
+                    <p style="margin:5px 0 0; font-size:11px; opacity:0.9;">Apakah orderan ini dikirim menggunakan armada kantor?</p>
+                </div>
+                <div
+                    style="padding:15px; display:flex; flex-direction:column; gap:8px; background:#fff; border-top:1px solid #eee;">
+                    <button class="btn-submit" onclick="prosesOngkirKirim()"
+                        style="margin:0; background:#8AA624; padding:10px;">
+                        Ya, Dikirim Armada Kantor
+                    </button>
+                    <button class="btn-submit" onclick="prosesOngkirAmbil()"
+                        style="margin:0; background:#FEA405; padding:10px;">
+                        Tidak, Diambil Sendiri
+                    </button>
+                    <button class="btn-submit" onclick="document.getElementById('modal-ongkir').classList.add('hidden')"
+                        style="margin:0; background:#fff; color:#F44336; border:1px solid #F44336; padding:10px;">
+                        Batal
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <div class="bottom-nav hidden" id="main-nav">
             <div class="nav-item active" id="nav-input" onclick="pindahMenu('input')">
                 <span class="material-symbols-outlined nav-icon">edit_document</span><span>Laporan</span>
@@ -4673,7 +4705,7 @@ async function prosesAntreanBackground() {
             // 3. JIKA ADA ONGKIR (KHUSUS KELUAR)
             // ===============================================
             let ongkirVal = parseFloat(String(pl.ongkir || "0").replace(/[^0-9]/g, ''));
-            if (ongkirVal > 0 && pl.status === "Keluar") {
+            if (pl.ongkir !== "" && pl.ongkir !== undefined && pl.ongkir !== null && pl.status === "Keluar") {
                 supabaseRows.push({
                     tanggal: pl.tanggal || new Date().toISOString().split('T')[0],
                     waktu_input: new Date().toISOString(),
@@ -8401,7 +8433,37 @@ function renderLiveStokDiInput() {
         let pendingTeksWA = "";
         let pendingStatusPilihan = "";
 
-        function kirimData(mode = 'langsung') {
+        window.tempKirimMode = null;
+        function prosesOngkirKirim() {
+            // Hitung total tonase (Kg) dari form yang diinput
+            let grandTotalKg = 0;
+            if (typeof currentItems !== 'undefined') {
+                currentItems.forEach(function (item, index) {
+                    let el = document.getElementById('qty-' + index);
+                    if (el) {
+                        let qty = parseFloat(el.getAttribute('data-total')) || 0;
+                        grandTotalKg += qty;
+                    }
+                });
+            }
+
+            // Rumus Otomatis Ongkir (Kelipatan 1.500 Kg = 50rb)
+            let multiples = Math.ceil(grandTotalKg / 1500);
+            if (multiples < 1) multiples = 1; // Minimal hitungan 1 rit
+            let calculatedOngkir = multiples * 50000;
+
+            let inputOngkirEl = document.getElementById('ongkir');
+            inputOngkirEl.value = calculatedOngkir;
+            document.getElementById('modal-ongkir').classList.add('hidden');
+            if (typeof formatOngkir === 'function') formatOngkir(inputOngkirEl);
+            kirimData(window.tempKirimMode, true);
+        }
+        function prosesOngkirAmbil() {
+            document.getElementById('modal-ongkir').classList.add('hidden');
+            kirimData(window.tempKirimMode, true);
+        }
+
+        function kirimData(mode = 'langsung', skipOngkirModal = false) {
             tutupKeyboard();
             let inputVal = document.getElementById('ekor').value.trim();
             let isAngka = !isNaN(inputVal) && inputVal !== "";
@@ -8410,6 +8472,15 @@ function renderLiveStokDiInput() {
             let valRelasi = isKandang ? document.getElementById('relasi_kandang').value : document.getElementById('relasi').value.trim();
             let statusPilihan = document.getElementById('status').value;
             let isMutasiKandang = valRelasi.toLowerCase().includes('kandang');
+
+            // --- TAMBAHAN POP-UP KONFIRMASI ONGKIR (CUSTOM MODAL) ---
+            let inputOngkirEl = document.getElementById('ongkir');
+            if (!skipOngkirModal && statusPilihan === 'Keluar' && inputOngkirEl.value.trim() === "") {
+                window.tempKirimMode = mode;
+                document.getElementById('modal-ongkir').classList.remove('hidden');
+                return;
+            }
+            // -----------------------------------------
 
             if (isKandang && (!isAngka || parseFloat(inputVal) <= 0)) {
                 alert("⚠️ Jumlah Ekor wajib diisi untuk fasilitas Kandang!");
@@ -8991,7 +9062,7 @@ function renderLiveStokDiInput() {
                     let ongkirVal = parseFloat(String(payload.ongkir || "0").replace(/[^0-9]/g, ''));
                     if (isNaN(ongkirVal)) ongkirVal = 0;
 
-                    if (ongkirVal > 0) {
+                    if (payload.ongkir !== "" && payload.ongkir !== undefined && payload.ongkir !== null) {
                         totalNominalTrans += ongkirVal;
                         piutangCache[pRelasi].dates[tglPiutang].items.push({
                             pakan: "Ongkir Pengiriman",
