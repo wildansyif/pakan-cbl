@@ -6015,7 +6015,114 @@ function aturAksesMenu(role) {
             });
 
             if (chGudang) chGudang.destroy();
-            chGudang = new Chart(document.getElementById('chartGudang').getContext('2d'), { type: 'bar', data: { labels: ['PM', 'RPH', 'SPN'], datasets: [{ label: 'Masuk', data: [d.gudangData.PM.masuk, d.gudangData.RPH.masuk, d.gudangData.SPN.masuk], backgroundColor: '#FEA405' }, { label: 'Mutasi', data: [d.gudangData.PM.mutasi, d.gudangData.RPH.mutasi, d.gudangData.SPN.mutasi], backgroundColor: '#8AA624' }, { label: 'Jual', data: [d.gudangData.PM.jual, d.gudangData.RPH.jual, d.gudangData.SPN.jual], backgroundColor: '#DBE4C9' }, { label: 'Pakai', data: [d.gudangData.PM.pakai, d.gudangData.RPH.pakai, d.gudangData.SPN.pakai], backgroundColor: '#4A90E2' }, { label: 'Giling', data: [d.gudangData.PM.giling, d.gudangData.RPH.giling, d.gudangData.SPN.giling], backgroundColor: '#9C27B0' }] }, plugins: [ChartDataLabels], options: { responsive: true, maintainAspectRatio: false, layout: { padding: { top: 20 } }, scales: { y: { beginAtZero: true, ticks: { display: true, font: { size: 9 } } } }, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } }, datalabels: { display: function (context) { return context.dataset.data[context.dataIndex] > 0; }, anchor: 'end', align: 'top', font: { size: 9, weight: 'bold' }, color: '#555', formatter: (val) => nf.format(val) } } } });
+            chGudang = new Chart(document.getElementById('chartGudang').getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: ['MASUK', 'JUAL', 'PAKAI', 'GILING', 'MUTASI'],
+                    datasets: [
+                        {
+                            label: 'PM',
+                            data: [d.gudangData.PM.masuk, d.gudangData.PM.jual, d.gudangData.PM.pakai, d.gudangData.PM.giling, d.gudangData.PM.mutasi],
+                            backgroundColor: '#2196F3' // Biru
+                        },
+                        {
+                            label: 'RPH',
+                            data: [d.gudangData.RPH.masuk, d.gudangData.RPH.jual, d.gudangData.RPH.pakai, d.gudangData.RPH.giling, d.gudangData.RPH.mutasi],
+                            backgroundColor: '#8AA624' // Hijau Khas Tema
+                        },
+                        {
+                            label: 'SPN',
+                            data: [d.gudangData.SPN.masuk, d.gudangData.SPN.jual, d.gudangData.SPN.pakai, d.gudangData.SPN.giling, d.gudangData.SPN.mutasi],
+                            backgroundColor: '#F44336' // Merah
+                        }
+                    ]
+                },
+                plugins: [ChartDataLabels, {
+                    id: 'totalLabelsPlugin',
+                    afterDatasetsDraw(chart, args, options) {
+                        const { ctx, data } = chart;
+                        ctx.save();
+                        ctx.font = 'bold 9px sans-serif';
+                        ctx.fillStyle = '#333';
+                        ctx.textAlign = 'left';
+                        ctx.textBaseline = 'middle';
+
+                        for(let i = 0; i < data.labels.length; i++) {
+                            let sum = 0;
+                            data.datasets.forEach(dataset => { sum += dataset.data[i] || 0; });
+                            
+                            if (sum > 0) {
+                                let maxX = 0;
+                                let yPos = 0;
+                                data.datasets.forEach((dataset, datasetIndex) => {
+                                    const meta = chart.getDatasetMeta(datasetIndex);
+                                    if (!meta.hidden && meta.data[i]) {
+                                        const element = meta.data[i];
+                                        if (element.x > maxX) {
+                                            maxX = element.x;
+                                            yPos = element.y;
+                                        }
+                                    }
+                                });
+                                
+                                if (maxX > 0) {
+                                    ctx.fillText(nf.format(sum) + ' Kg', maxX + 5, yPos);
+                                }
+                            }
+                        }
+                        ctx.restore();
+                    }
+                }],
+                options: {
+                    indexAxis: 'y', // Horizontal Bar
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: { padding: { right: 60 } },
+                    scales: {
+                        x: { 
+                            stacked: true, 
+                            beginAtZero: true, 
+                            ticks: { font: { size: 9 }, callback: (val) => (val / 1000) + 't' } 
+                        },
+                        y: { 
+                            stacked: true, 
+                            ticks: { font: { size: 9, weight: 'bold' } } 
+                        }
+                    },
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } },
+                        datalabels: {
+                            display: function (context) { 
+                                let val = context.dataset.data[context.dataIndex];
+                                let sum = 0;
+                                context.chart.data.datasets.forEach(dataset => { sum += dataset.data[context.dataIndex] || 0; });
+                                return (val > 0 && sum > 0 && (val / sum) >= 0.04); 
+                            },
+                            color: '#fff',
+                            anchor: 'center',
+                            align: 'center',
+                            font: { size: 9, weight: 'bold' },
+                            formatter: (val, ctx) => {
+                                let sum = 0;
+                                ctx.chart.data.datasets.forEach(dataset => { sum += dataset.data[ctx.dataIndex] || 0; });
+                                let percentage = (val * 100 / sum).toFixed(1) + "%";
+                                return [nf.format(val), percentage];
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let val = context.raw;
+                                    let sum = 0;
+                                    context.chart.data.datasets.forEach(dataset => { sum += dataset.data[context.dataIndex] || 0; });
+                                    let percentage = sum > 0 ? (val * 100 / sum).toFixed(1) + "%" : "0%";
+                                    return context.dataset.label + ': ' + nf.format(val) + ' Kg (' + percentage + ')';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
 
             if (d.isFiltered) {
                 document.getElementById('cardDailyGlobal').classList.remove('hidden');
