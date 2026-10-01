@@ -1770,6 +1770,29 @@
                     </button>
                 </div>
 
+                <div id="container-blok" class="hidden" style="margin-top:15px;">
+                    <label style="font-size: 11px; opacity: 0.9; margin-bottom: 5px; display:block;">Blok Penyimpanan</label>
+                    <div class="radio-group">
+                        <input type="radio" id="blok-a" name="blok_radio" value="Blok A">
+                        <label for="blok-a">Blok A</label>
+                        
+                        <input type="radio" id="blok-b" name="blok_radio" value="Blok B">
+                        <label for="blok-b">Blok B</label>
+                        
+                        <input type="radio" id="blok-c" name="blok_radio" value="Blok C">
+                        <label for="blok-c">Blok C</label>
+                        
+                        <input type="radio" id="blok-tanpa" name="blok_radio" value="" checked>
+                        <label for="blok-tanpa">Tanpa Blok</label>
+                    </div>
+                </div>
+                
+                <hr style="border: 0; border-top: 2px solid #DBE4C9; margin: 15px 0;">
+                <button class="btn-submit" id="btn-tutup-shift" onclick="bukaReviewHarian()"
+                    style="background:#1a5c40; margin-top:0;">
+                    <span class="material-symbols-outlined">fact_check</span> Tutup Shift & Bikin Laporan WA
+                </button>
+
                 <hr style="border: 0; border-top: 1px dashed #DBE4C9; margin: 20px 0;">
                 <label
                     style="font-size: 13px; text-transform: uppercase; color:#8AA624; display:flex; align-items:center; gap:5px;">
@@ -1862,11 +1885,6 @@
                     style="background:#e65100; margin-top:10px; grid-column: 1 / -1;">
                     <span class="material-symbols-outlined">warning</span> Menu Koreksi & Reject
                 </button>
-                <hr style="border: 0; border-top: 2px solid #DBE4C9; margin: 15px 0; grid-column: 1 / -1;">
-                <button class="btn-submit" id="btn-tutup-shift" onclick="bukaReviewHarian()"
-                    style="background:#1a5c40; margin-top:0; grid-column: 1 / -1;">
-                    <span class="material-symbols-outlined">fact_check</span> Review & Laporan Rekap Hari Ini
-                </button>
             </div>
 
             <!-- LAYAR MODAL 1: DAFTAR REVIEW HARIAN -->
@@ -1879,7 +1897,9 @@
                     <div id="review-loader" class="loader">Menarik data hari ini...</div>
                     <div id="review-list" style="flex:1; overflow-y:auto; padding:15px; background:#f4f7f0;"></div>
                     <div style="padding:15px; border-top:1px solid #eee; background:#fff; border-radius:0 0 12px 12px;">
-                        <button class="btn-submit" onclick="generateWALaporanHarian()" style="margin:0; background:#2196F3; width:100%;"><span class="material-symbols-outlined">send_to_mobile</span> Cetak Rekap ke WA</button>
+                        <button class="btn-submit" onclick="generateWALaporanHarian()" style="margin:0; background:#2196F3; width:100%; font-size:14px; font-weight:bold;">
+                            <span class="material-symbols-outlined" style="vertical-align:middle;">send_to_mobile</span> Kirim Laporan ke WA Wildan
+                        </button>
                     </div>
                 </div>
             </div>
@@ -4695,6 +4715,7 @@ async function prosesAntreanBackground() {
                     satuan: satuan,
                     harga_satuan: harga,
                     catatan: extraCatatan.trim(),
+                    blok: pl.blok_penyimpanan || null,
                     hash_str: pl.hashStr + '_' + pakanName,
                     device_id: pl.device_id || null,
                     po_id: pl.po_id || null
@@ -8287,16 +8308,19 @@ function renderLiveStokDiInput() {
                 document.getElementById('container-sj').classList.remove('hidden');
                 document.getElementById('group-bongkar').classList.remove('hidden');
                 if (document.getElementById('container-tarik-po')) document.getElementById('container-tarik-po').classList.remove('hidden');
+                if (document.getElementById('container-blok')) document.getElementById('container-blok').classList.remove('hidden');
                 labelElement.innerHTML = '<span class="material-symbols-outlined" style="font-size:16px;">description</span> Lampiran Surat Jalan';
             } else if (status === 'Keluar' && lokasiAktif === '/spn') {
                 document.getElementById('container-sj').classList.remove('hidden');
                 document.getElementById('group-bongkar').classList.add('hidden');
                 if (document.getElementById('container-tarik-po')) document.getElementById('container-tarik-po').classList.add('hidden');
+                if (document.getElementById('container-blok')) document.getElementById('container-blok').classList.add('hidden');
                 labelElement.innerHTML = '<span class="material-symbols-outlined" style="font-size:16px;">description</span> Lampiran Catatan Giling';
             } else {
                 document.getElementById('container-sj').classList.add('hidden');
                 document.getElementById('group-bongkar').classList.add('hidden');
                 if (document.getElementById('container-tarik-po')) document.getElementById('container-tarik-po').classList.add('hidden');
+                if (document.getElementById('container-blok')) document.getElementById('container-blok').classList.add('hidden');
                 hapusSJ();
             }
         }
@@ -8623,6 +8647,7 @@ function renderLiveStokDiInput() {
                 alamat: !isAngka ? inputVal : "",
                 ongkir: document.getElementById('ongkir').value,
                 catatan: document.getElementById('catatan').value,
+                blok_penyimpanan: document.querySelector('input[name="blok_radio"]:checked') ? document.querySelector('input[name="blok_radio"]:checked').value : "",
                 items: {},
                 detail_items: {},
                 fileSJ: ((statusPilihan === 'Masuk' || (statusPilihan === 'Keluar' && lokasiTerpilih === '/spn')) && fileBase64_SJ) ? { base64: fileBase64_SJ, mime: fileMime_SJ } : null,
