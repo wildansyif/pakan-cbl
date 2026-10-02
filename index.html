@@ -1566,6 +1566,131 @@
     </div>
 
     <div id="app-screen" class="hidden">
+<!-- MODAL RADAR STOK (TARGET KELUAR) -->
+    <div id="modal-radar-stok" class="hidden" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:10000; display:flex; justify-content:center; align-items:center; padding:15px; box-sizing:border-box;">
+        <div style="background:#fff; border-radius:12px; width:100%; max-width:500px; max-height:85vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 10px 25px rgba(0,0,0,0.2);">
+            <div style="background:#1a5c40; padding:15px; color:white; display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <h3 style="margin:0; font-size:16px;">Radar Stok (Target Keluar)</h3>
+                    <div id="radar-subtitle" style="font-size:11px; opacity:0.9;"></div>
+                </div>
+                <span class="material-symbols-outlined" style="cursor:pointer;" onclick="document.getElementById('modal-radar-stok').classList.add('hidden')">close</span>
+            </div>
+            
+            <div style="padding:15px; background:#f4f7f0; border-bottom:1px solid #ddd;">
+                <button onclick="setTargetKeluar(null, 'Otomatis FIFO')" style="width:100%; padding:10px; background:#8AA624; color:white; border:none; border-radius:8px; font-weight:bold; font-size:13px; cursor:pointer; box-shadow:0 2px 5px rgba(0,0,0,0.1);">
+                    <span class="material-symbols-outlined" style="vertical-align:middle; font-size:16px;">autorenew</span> RESET KE OTOMATIS (FIFO GLOBAL)
+                </button>
+            </div>
+            
+            <div id="radar-content" style="overflow-y:auto; flex:1; padding:15px; background:#fafafa;">
+                <!-- Content will be injected here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let radarActivePakan = "";
+        let radarActiveIndex = -1;
+
+        function bukaRadarStok(namaPakan, index) {
+            
+            try {
+                radarActivePakan = namaPakan;
+                radarActiveIndex = index;
+                document.getElementById('radar-subtitle').innerText = namaPakan;
+                
+                let html = "";
+                let batches = globalDetailStok[namaPakan] || [];
+                
+                if (batches.length === 0) {
+                    html = "<div style='text-align:center; padding:20px; color:#777;'>Stok Kosong.</div>";
+                } else {
+                    // Group by blok
+                    let grouped = {};
+                    batches.forEach(b => {
+                        let blk = b.blok || 'Tanpa Blok';
+                        if (!grouped[blk]) grouped[blk] = [];
+                        grouped[blk].push(b);
+                    });
+                    
+                    let nf = new Intl.NumberFormat('id-ID');
+                    
+                    for (let blk in grouped) {
+                        let totBlok = grouped[blk].reduce((s, x) => s + x.qty_sisa, 0);
+                        html += `<div style="background:#fff; border:1px solid #ddd; border-radius:8px; margin-bottom:10px; overflow:hidden;">
+                                    <div style="background:#e8f0d8; padding:8px 12px; font-weight:bold; color:#1a5c40; font-size:12px; border-bottom:1px solid #ddd;">
+                                        ${blk} (Total: ${nf.format(totBlok)} Kg)
+                                    </div>
+                                    <div style="padding:10px;">`;
+                                    
+                        grouped[blk].forEach(b => {
+                            // format tanggal
+                            let tglStr = b.tanggal_masuk || 'N/A';
+                            if (tglStr !== 'N/A') {
+                                let ds = tglStr.split('T')[0].split('-');
+                                if (ds.length === 3) tglStr = `${ds[2]}/${ds[1]}`;
+                            }
+                            
+                            html += `<div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px dashed #eee;">
+                                        <div>
+                                            <div style="font-size:12px; font-weight:bold; color:#333;">Batch: ${tglStr}</div>
+                                            <div style="font-size:10px; color:#777;">Sisa: ${nf.format(b.qty_sisa)} Kg</div>
+                                        </div>
+                                        <button onclick="setTargetKeluar(${b.id}, 'Tgl ${tglStr} (${blk})')" style="padding:5px 10px; background:#2196F3; color:white; border:none; border-radius:4px; font-size:10px; font-weight:bold; cursor:pointer;">
+                                            PILIH
+                                        </button>
+                                     </div>`;
+                        });
+                        html += `</div></div>`;
+                    }
+                }
+                
+                document.getElementById('radar-content').innerHTML = html;
+                document.getElementById('modal-radar-stok').classList.remove('hidden');
+                document.getElementById('modal-radar-stok').style.display = 'flex';
+            } catch (err) {
+                alert("Error buka modal: " + err.message);
+            }
+        }
+
+        function setTargetKeluar(batch_id, labelTarget) {
+            let pakan = radarActivePakan;
+            let idx = radarActiveIndex;
+            
+            if (batch_id === null) {
+                globalTargetKeluar[pakan] = { type: 'auto', batch_id: null, label: labelTarget };
+            } else {
+                globalTargetKeluar[pakan] = { type: 'manual', batch_id: batch_id, label: labelTarget };
+            }
+            
+            // Render text
+            let finalBadgeText = '';
+            if (batch_id === null) {
+                let autoBlockText = 'Auto FIFO';
+                if (globalDetailStok[pakan] && globalDetailStok[pakan].length > 0) {
+                    let tertua = globalDetailStok[pakan][0];
+                    let blokNama = tertua.blok || 'Tanpa Blok';
+                    let blokTotal = globalDetailStok[pakan].filter(x => x.blok == tertua.blok).reduce((s, x) => s + x.qty_sisa, 0);
+                    autoBlockText = `Auto FIFO: ${blokNama} [${new Intl.NumberFormat('id-ID').format(blokTotal)}]`;
+                }
+                finalBadgeText = autoBlockText;
+            } else {
+                finalBadgeText = `Batch Aktif: ${labelTarget}`;
+            }
+            
+            let bdg = document.getElementById('target-badge-' + idx);
+            if (bdg) {
+                bdg.innerHTML = `${finalBadgeText} ▼`;
+                bdg.style.background = batch_id ? '#e3f2fd' : '#e8f0d8';
+                bdg.style.color = batch_id ? '#1565c0' : '#1a5c40';
+                bdg.style.borderColor = batch_id ? '#90caf9' : '#c8d8b4';
+            }
+            
+            document.getElementById('modal-radar-stok').classList.add('hidden');
+        }
+    </script>
+
 
         <div id="page-registration" class="container hidden"
             style="padding-top: 30px; min-height: 100vh; background: #fff;">
@@ -4551,7 +4676,14 @@
         }
 
         function cekRiwayatPakan(pakan) {
-            let gudang = (getLokasiAktif() === "/kandang" || getLokasiAktif() === "/spn_kandang") ? (getLokasiAktif() === "/kandang" ? "Kandang PM" : "Kandang SPN") : "PM";
+            let loc = getLokasiAktif();
+            let gudang;
+            if (loc === "/kandang") gudang = "Kandang PM";
+            else if (loc === "/spn_kandang") gudang = "Kandang SPN";
+            else if (loc === "/spn") gudang = "SPN";
+            else if (loc === "/rph") gudang = "RPH";
+            else gudang = "PM";
+
             setupModalRiwayat(`${pakan} | ${gudang}`, `${SUPA_URL}/rest/v1/view_buku_besar_stok?gudang=eq.${gudang}&pakan=eq.${pakan}&order=tanggal.desc,waktu_input.desc,id_transaksi.desc`);
         }
 
@@ -4718,7 +4850,8 @@ async function prosesAntreanBackground() {
                     blok: pl.blok_penyimpanan || null,
                     hash_str: pl.hashStr + '_' + pakanName,
                     device_id: pl.device_id || null,
-                    po_id: pl.po_id || null
+                    po_id: pl.po_id || null,
+                    target_batch_id: detail && detail.target_batch_id ? detail.target_batch_id : null
                 });
             }
 
@@ -8113,6 +8246,8 @@ function aturAksesMenu(role) {
 
         // Variabel global baru untuk menampung stok live di form input
 let globalStokAktif = {};
+let globalTargetKeluar = {}; // { pakan: { type: 'auto'|'manual', batch_id: 123, label: 'BLOK A' } }
+let globalDetailStok = {}; // { pakan: [ {id, tanggal_masuk, blok, qty_sisa} ] }
 
 async function tarikStokAktifUntukInput() {
     let lokasi = getLokasiAktif(); // Cek user sedang pilih lokasi apa
@@ -8121,20 +8256,36 @@ async function tarikStokAktifUntukInput() {
 
     try {
         // Tembak data ke stok_batch khusus untuk gudang yang sedang dipilih
-        let res = await fetch(`${SUPA_URL}/rest/v1/stok_batch?cabang=eq.${cabangAktif}&qty_sisa=gt.0&select=pakan,qty_sisa`, {
+        let res = await fetch(`${SUPA_URL}/rest/v1/stok_batch?cabang=eq.${cabangAktif}&qty_sisa=gt.0&select=id,tanggal_masuk,pakan,blok,qty_sisa&order=tanggal_masuk.asc`, {
             headers: { 'apikey': SUPA_ANON_KEY, 'Authorization': `Bearer ${SUPA_ANON_KEY}` }
         });
         let data = await res.json();
         
+        if (!Array.isArray(data)) {
+            alert("Error dari Supabase: " + JSON.stringify(data));
+            return;
+        }
+        
         globalStokAktif = {};
+        globalDetailStok = {};
         data.forEach(item => {
-            if(!globalStokAktif[item.pakan]) globalStokAktif[item.pakan] = 0;
+            if(!globalStokAktif[item.pakan]) {
+                globalStokAktif[item.pakan] = 0;
+                globalDetailStok[item.pakan] = [];
+            }
             globalStokAktif[item.pakan] += item.qty_sisa;
+            globalDetailStok[item.pakan].push(item);
+            
+            // Auto target
+            if (!globalTargetKeluar[item.pakan]) {
+                globalTargetKeluar[item.pakan] = { type: 'auto', batch_id: null, label: 'Otomatis FIFO' };
+            }
         });
         
         renderLiveStokDiInput();
     } catch(e) {
-        console.error("Gagal tarik stok live form:", e);
+        alert("Gagal tarik stok live: " + e.message);
+        console.error("Gagal tarik stok live", e);
     }
 }
 
@@ -8159,6 +8310,36 @@ function renderLiveStokDiInput() {
             infoEl.style.color = warnaStok;
             infoEl.style.backgroundColor = bgStok;
             infoEl.innerHTML = `<span class="material-symbols-outlined" style="font-size:12px;">history</span> Sisa: ${new Intl.NumberFormat('id-ID').format(sisaStok)} Kg`;
+        }
+        // Update target badge also
+        let bdg = document.getElementById('target-badge-' + index);
+        if (bdg) {
+            let tgt = globalTargetKeluar[item.nama] || { type: 'auto', batch_id: null, label: 'Auto FIFO' };
+            
+            // Force reset to auto if switching warehouses or syncing
+            if (tgt.type === 'auto' || !tgt.batch_id) {
+                let autoBlockText = 'Auto FIFO';
+                if (globalDetailStok[item.nama] && globalDetailStok[item.nama].length > 0) {
+                    let tertua = globalDetailStok[item.nama][0];
+                    let blokNama = tertua.blok || 'Tanpa Blok';
+                    let blokTotal = globalDetailStok[item.nama].filter(x => x.blok == tertua.blok).reduce((s, x) => s + x.qty_sisa, 0);
+                    autoBlockText = `Auto FIFO: ${blokNama} [${new Intl.NumberFormat('id-ID').format(blokTotal)}]`;
+                }
+                tgt.label = autoBlockText;
+                tgt.type = 'auto';
+                tgt.batch_id = null;
+                globalTargetKeluar[item.nama] = tgt;
+                
+                bdg.innerHTML = `${autoBlockText} ▼`;
+                bdg.style.background = '#e8f0d8';
+                bdg.style.color = '#1a5c40';
+                bdg.style.borderColor = '#c8d8b4';
+            } else {
+                bdg.innerHTML = `Batch Aktif: ${tgt.label} ▼`;
+                bdg.style.background = '#e3f2fd';
+                bdg.style.color = '#1565c0';
+                bdg.style.borderColor = '#90caf9';
+            }
         }
         
         // 3. Panggil kalkulasi ulang untuk memicu alarm merah di kotak input (jika angka sedang diketik)
@@ -8226,6 +8407,17 @@ function renderLiveStokDiInput() {
                     let textHarga = item.harga > 0 ? `Rp ${formatHarga} / Kg` : ``;
                     let divHargaStok = `<div class="item-price" style="display:flex; align-items:center; flex-wrap:wrap; margin-top:5px;">${textHarga} ${infoStok}</div>`;
                     let divWarning = `<div id="warn-stok-${index}" style="font-size:9px; color:#c62828; font-weight:bold; display:none; margin-top:5px; padding:4px 8px; background:#ffebee; border-radius:6px; border:1px dashed #ef9a9a; width:fit-content;">⚠️ Melebihi batas sisa stok!</div>`;
+                    let autoBlockText = 'Auto FIFO';
+                    if (globalDetailStok[item.nama] && globalDetailStok[item.nama].length > 0) {
+                        let tertua = globalDetailStok[item.nama][0];
+                        let blokNama = tertua.blok || 'Tanpa Blok';
+                        let blokTotal = globalDetailStok[item.nama].filter(x => x.blok == tertua.blok).reduce((s, x) => s + x.qty_sisa, 0);
+                        autoBlockText = `Auto FIFO: ${blokNama} [${new Intl.NumberFormat('id-ID').format(blokTotal)}]`;
+                    }
+                    let tgt = globalTargetKeluar[item.nama] || {type:'auto'};
+                    let labelTgt = tgt.type === 'auto' ? autoBlockText : `Batch Aktif: ${tgt.label}`;
+                    let divTarget = `<div id="target-badge-${index}" class="target-keluar-badge hidden" onclick="bukaRadarStok('${item.nama}', ${index})" style="font-size:10px; color:#1a5c40; background:#e8f0d8; padding:3px 6px; border-radius:4px; margin-top:8px; margin-bottom:8px; cursor:pointer; width:fit-content; border:1px solid #c8d8b4; box-shadow:0 1px 3px rgba(0,0,0,0.1);">${labelTgt} ▼</div>`;
+                    divWarning = divTarget + divWarning;
 
                     if (item.kemasan > 0) {
                         let stepValue = item.kemasan;
@@ -8261,7 +8453,7 @@ function renderLiveStokDiInput() {
                     }
                 });
             }
-            document.getElementById('product-list').innerHTML = html;
+            document.getElementById('product-list').innerHTML = html; setTimeout(cekStatusSJ, 100);
         }
         
         function fetchMasterRelasi() {
@@ -8309,18 +8501,22 @@ function renderLiveStokDiInput() {
                 document.getElementById('group-bongkar').classList.remove('hidden');
                 if (document.getElementById('container-tarik-po')) document.getElementById('container-tarik-po').classList.remove('hidden');
                 if (document.getElementById('container-blok')) document.getElementById('container-blok').classList.remove('hidden');
+                document.querySelectorAll('.target-keluar-badge').forEach(el => el.classList.add('hidden'));
                 labelElement.innerHTML = '<span class="material-symbols-outlined" style="font-size:16px;">description</span> Lampiran Surat Jalan';
             } else if (status === 'Keluar' && lokasiAktif === '/spn') {
                 document.getElementById('container-sj').classList.remove('hidden');
                 document.getElementById('group-bongkar').classList.add('hidden');
                 if (document.getElementById('container-tarik-po')) document.getElementById('container-tarik-po').classList.add('hidden');
                 if (document.getElementById('container-blok')) document.getElementById('container-blok').classList.add('hidden');
+                document.querySelectorAll('.target-keluar-badge').forEach(el => el.classList.remove('hidden'));
                 labelElement.innerHTML = '<span class="material-symbols-outlined" style="font-size:16px;">description</span> Lampiran Catatan Giling';
             } else {
                 document.getElementById('container-sj').classList.add('hidden');
                 document.getElementById('group-bongkar').classList.add('hidden');
                 if (document.getElementById('container-tarik-po')) document.getElementById('container-tarik-po').classList.add('hidden');
                 if (document.getElementById('container-blok')) document.getElementById('container-blok').classList.add('hidden');
+                if (status === 'Keluar') document.querySelectorAll('.target-keluar-badge').forEach(el => el.classList.remove('hidden'));
+                else document.querySelectorAll('.target-keluar-badge').forEach(el => el.classList.add('hidden'));
                 hapusSJ();
             }
         }
@@ -8664,7 +8860,8 @@ function renderLiveStokDiInput() {
                 let qty = parseFloat(el.getAttribute('data-total')) || 0;
                 if (qty > 0) {
                     payload.items[item.nama] = qty;
-                    payload.detail_items[item.nama] = { harga: item.harga, satuan: item.satuan };
+                    let tbi = (globalTargetKeluar[item.nama] && globalTargetKeluar[item.nama].batch_id) ? globalTargetKeluar[item.nama].batch_id : null;
+                    payload.detail_items[item.nama] = { harga: item.harga, satuan: item.satuan, target_batch_id: tbi };
                     totalItem++;
                     grandTotalKg += qty;
                 }
@@ -12000,3 +12197,5 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
             });
         }
     </script>
+
+    
