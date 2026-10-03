@@ -4874,9 +4874,11 @@ async function prosesAntreanBackground() {
                     satuan: 'Rit',                     
                     harga_satuan: ongkirVal,           
                     catatan: 'Biaya Pengiriman',
+                    blok: null,
                     hash_str: (pl.hashStr || '') + '_ONGKIR',
                     device_id: pl.device_id || null,
-                    po_id: pl.po_id || null
+                    po_id: pl.po_id || null,
+                    target_batch_id: null
                 });
             }
 
