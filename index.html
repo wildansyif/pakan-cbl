@@ -2762,7 +2762,7 @@
                     <div id="view-ringkasan-relasi">
                         <div class="rekap-card">
                             <div class="rekap-title"><span class="material-symbols-outlined"
-                                    style="font-size:18px;">account_balance_wallet</span> Status Kewajiban / Piutang
+                                    style="font-size:18px;">account_balance_wallet</span> Status Kewajiban / Hutang
                             </div>
                             <div style="font-size:11px; color:#888; margin-top:2px;">Total Pakan Diambil: <span
                                     id="an_qty" style="font-weight:bold; color:#333;">0 Kg</span></div>
@@ -2775,7 +2775,7 @@
                             <div
                                 style="display:flex; justify-content:space-between; margin-top: 10px; border-top: 1px solid #DBE4C9; padding-top: 10px;">
                                 <div style="text-align:left; flex:1; border-right:1px dashed #DBE4C9;">
-                                    <div style="font-size:10px; color:#FEA405; font-weight:bold;">PIUTANG BERJALAN</div>
+                                    <div style="font-size:10px; color:#FEA405; font-weight:bold;">HUTANG BERJALAN</div>
                                     <div id="lbl_nm_sehat" style="font-size:12px; font-weight:bold; color:#333;">-</div>
                                     <div id="lbl_sehat" style="font-size:11px; color:#666;">0%</div>
                                 </div>
@@ -2806,7 +2806,7 @@
 
                         <div class="rekap-card" style="margin-top:15px; border-left: 4px solid #FEA405;">
                             <div class="rekap-title"><span class="material-symbols-outlined"
-                                    style="font-size:18px;">shopping_cart</span> Detail Piutang Aktif</div>
+                                    style="font-size:18px;">shopping_cart</span> Detail Hutang Aktif</div>
                             <div id="an_piutang_aktif" class="rank-list"
                                 style="border:none; padding-top:0; max-height: 250px; overflow-y: auto; padding-right:5px;">
                             </div>
@@ -3747,7 +3747,7 @@
 
             <div class="avoid-break" style="text-align: center; margin-bottom: 15px;">
                 <h3 style="margin: 0; font-size: 16px; letter-spacing: 1px; text-decoration: underline;">E-STATEMENT
-                    MUTASI PIUTANG</h3>
+                    MUTASI HUTANG</h3>
             </div>
 
             <table class="avoid-break" style="width: 100%; font-size: 11px; margin-bottom: 15px; border: none;">
@@ -3790,7 +3790,7 @@
                             id="es-total-bayar"></td>
                     </tr>
                     <tr style="border: none;">
-                        <td style="font-weight: bold; padding-top: 10px; border: none;">SISA PIUTANG SAAT INI</td>
+                        <td style="font-weight: bold; padding-top: 10px; border: none;">SISA HUTANG SAAT INI</td>
                         <td style="text-align: right; font-weight: bold; color: #b91c1c; padding-top: 10px; border: none;"
                             id="es-saldo-akhir"></td>
                     </tr>
@@ -8463,8 +8463,8 @@ function renderLiveStokDiInput() {
             localStorage.removeItem('data_relasi_cbl'); 
             
             if (navigator.onLine) {
-                // 🚀 TEMBAK LANGSUNG KE MASTER RELASI SUPABASE
-                fetch(`${SUPA_URL}/rest/v1/master_relasi?select=*`, {
+                // 🚀 TEMBAK LANGSUNG KE MASTER RELASI SUPABASE (Hanya ambil kolom aman)
+                fetch(`${SUPA_URL}/rest/v1/master_relasi?select=nama,kategori,alamat`, {
                     headers: {
                         'apikey': SUPA_ANON_KEY,
                         'Authorization': `Bearer ${SUPA_ANON_KEY}`
@@ -8475,10 +8475,10 @@ function renderLiveStokDiInput() {
                     globalRelasi = data.map(r => ({
                         nama: r.nama,
                         kategori: r.kategori || 'Umum',
-                        wa: r.wa || '',
+                        wa: '',     // 🔴 Dikosongkan demi privasi
                         alamat: r.alamat || '',
-                        lat: r.lat || 0,
-                        lng: r.lng || 0
+                        lat: 0,     // 🔴 Dikosongkan demi privasi
+                        lng: 0      // 🔴 Dikosongkan demi privasi
                     }));
                     
                     globalRelasi.sort((a, b) => a.nama.localeCompare(b.nama));
