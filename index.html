@@ -10083,7 +10083,8 @@ function renderLiveStokDiInput() {
                     'apikey': SUPA_ANON_KEY,
                     'Authorization': `Bearer ${SUPA_ANON_KEY}`,
                     'Content-Type': 'application/json',
-                    'Prefer': 'resolution=merge-duplicates' // Jika nama sudah ada, lakukan UPDATE (Timpa)
+                    'Prefer': 'resolution=merge-duplicates', // Jika nama sudah ada, lakukan UPDATE (Timpa)
+                    'x-pin-karyawan': (typeof currentLoggedPin !== 'undefined' && currentLoggedPin) ? currentLoggedPin : '1234'
                 },
                 body: JSON.stringify(supaPayload)
             })
