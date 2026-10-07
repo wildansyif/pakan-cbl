@@ -8813,7 +8813,7 @@ function renderLiveStokDiInput() {
             let dCF = tgl ? new Date(tgl) : new Date();
             let tglCF = ("0" + dCF.getDate()).slice(-2) + "-" + ("0" + (dCF.getMonth() + 1)).slice(-2) + "-" + dCF.getFullYear();
             
-            let rawNamaCF = `${tglCF}-${relasi}-${nominal}`;
+            let rawNamaCF = `${tglCF}-${relasi}-${nominal}-${Date.now()}`;
             // Bersihkan karakter ilegal (seperti spasi ekstra, titik di nama PT, dll) agar aman
             let namaFile = rawNamaCF.replace(/[^a-zA-Z0-9 \-]/g, '_') + '.jpg';
             buktiUrl = await uploadGambarKeSupabase(fileBase64_Global, fileMime_Global, 'cashflow', namaFile);
@@ -8823,7 +8823,7 @@ function renderLiveStokDiInput() {
         status.innerText = "Menyimpan data transaksi...";
         
         let payloadSupa = {
-            tanggal: tgl,
+            tanggal: tgl || new Date().toISOString().split('T')[0],
             jenis: jenis,
             metode: metode,
             kategori: perkiraan,
@@ -11683,7 +11683,8 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
         headers: {
             'apikey': SUPA_ANON_KEY,
             'Authorization': `Bearer ${SUPA_ANON_KEY}`,
-            'Content-Type': mimeType
+            'Content-Type': mimeType,
+            'x-upsert': 'true'
         },
         body: blob
     });
