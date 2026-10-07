@@ -1567,6 +1567,85 @@
 
     <div id="app-screen" class="hidden">
 <!-- MODAL RADAR STOK (TARGET KELUAR) -->
+    <!-- MODAL PENGATURAN CETAK E-STATEMENT -->
+    <div id="modal-pengaturan-cetak-es" class="hidden" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:9999; display:flex; justify-content:center; align-items:center; padding:15px; box-sizing:border-box;">
+        <div style="background:#fff; border-radius:12px; width:100%; max-width:400px; box-shadow:0 10px 25px rgba(0,0,0,0.2); overflow:hidden; font-family:'Inter', sans-serif;">
+            <div style="background:#4A90E2; padding:15px 20px; display:flex; justify-content:space-between; align-items:center;">
+                <h3 style="margin:0; color:#fff; font-size:16px; display:flex; align-items:center; gap:8px;">
+                    <span class="material-symbols-outlined">print</span> Pengaturan Cetak Laporan
+                </h3>
+                <span class="material-symbols-outlined" style="color:#fff; cursor:pointer;" onclick="document.getElementById('modal-pengaturan-cetak-es').classList.add('hidden')">close</span>
+            </div>
+            <div style="padding:20px;">
+                <div id="es-cetak-format-container" style="display:none;">
+                    <label style="display:block; font-size:12px; font-weight:bold; color:#555; margin-bottom:8px;">Format Cetakan</label>
+                    <select id="es-cetak-format" style="width:100%; padding:10px; border-radius:6px; border:1px solid #ddd; margin-bottom:15px; font-size:14px; outline:none;">
+                        <option value="detail">Detail (Rekening Koran)</option>
+                        <option value="simple">Simple (Kartu Piutang)</option>
+                    </select>
+                </div>
+
+                <label style="display:block; font-size:12px; font-weight:bold; color:#555; margin-bottom:8px;">Tipe Periode</label>
+                <select id="es-cetak-tipe" onchange="toggleInputCetakES()" style="width:100%; padding:10px; border-radius:6px; border:1px solid #ddd; margin-bottom:15px; font-size:14px; outline:none;">
+                    <option value="tahun">1 Tahun Penuh</option>
+                    <option value="bulan">Per Bulan Spesifik</option>
+                    <option value="rentang">Rentang Tanggal Custom</option>
+                </select>
+
+                <div id="es-cetak-input-tahun" style="display:block;">
+                    <label style="display:block; font-size:12px; font-weight:bold; color:#555; margin-bottom:8px;">Pilih Tahun</label>
+                    <select id="es-cetak-tahun" style="width:100%; padding:10px; border-radius:6px; border:1px solid #ddd; margin-bottom:15px; font-size:14px; outline:none;">
+                        <option value="2025">2025</option>
+                        <option value="2026" selected>2026</option>
+                        <option value="2027">2027</option>
+                        <option value="2028">2028</option>
+                        <option value="2029">2029</option>
+                        <option value="2030">2030</option>
+                    </select>
+                </div>
+
+                <div id="es-cetak-input-bulan" style="display:none; gap:10px;">
+                    <div style="flex:1;">
+                        <label style="display:block; font-size:12px; font-weight:bold; color:#555; margin-bottom:8px;">Bulan</label>
+                        <select id="es-cetak-bulan" style="width:100%; padding:10px; border-radius:6px; border:1px solid #ddd; margin-bottom:15px; font-size:14px; outline:none;">
+                            <option value="1">Januari</option><option value="2">Februari</option><option value="3">Maret</option>
+                            <option value="4">April</option><option value="5">Mei</option><option value="6">Juni</option>
+                            <option value="7">Juli</option><option value="8">Agustus</option><option value="9">September</option>
+                            <option value="10">Oktober</option><option value="11">November</option><option value="12">Desember</option>
+                        </select>
+                    </div>
+                    <div style="flex:1;">
+                        <label style="display:block; font-size:12px; font-weight:bold; color:#555; margin-bottom:8px;">Tahun</label>
+                        <select id="es-cetak-bulan-tahun" style="width:100%; padding:10px; border-radius:6px; border:1px solid #ddd; margin-bottom:15px; font-size:14px; outline:none;">
+                            <option value="2025">2025</option><option value="2026" selected>2026</option><option value="2027">2027</option>
+                            <option value="2028">2028</option><option value="2029">2029</option><option value="2030">2030</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="es-cetak-input-rentang" style="display:none; gap:10px;">
+                    <div style="flex:1;">
+                        <label style="display:block; font-size:12px; font-weight:bold; color:#555; margin-bottom:8px;">Dari Tanggal</label>
+                        <input type="date" id="es-cetak-start" style="width:100%; padding:10px; border-radius:6px; border:1px solid #ddd; margin-bottom:15px; font-size:14px; outline:none; box-sizing:border-box;">
+                    </div>
+                    <div style="flex:1;">
+                        <label style="display:block; font-size:12px; font-weight:bold; color:#555; margin-bottom:8px;">Sampai Tanggal</label>
+                        <input type="date" id="es-cetak-end" style="width:100%; padding:10px; border-radius:6px; border:1px solid #ddd; margin-bottom:15px; font-size:14px; outline:none; box-sizing:border-box;">
+                    </div>
+                </div>
+
+                <div style="display:flex; gap:10px;">
+                    <button id="btn-terapkan-es" onclick="terapkanPreviewEStatement()" style="flex:1; padding:12px; background:#f1f5f9; color:#4A90E2; border:1px solid #4A90E2; border-radius:6px; font-size:14px; font-weight:bold; cursor:pointer; display:flex; justify-content:center; align-items:center; gap:8px;">
+                        <span class="material-symbols-outlined" style="font-size:18px;">visibility</span> Terapkan Preview
+                    </button>
+                    <button id="btn-proses-cetak-es" onclick="eksekusiCetakEStatement()" style="flex:1; padding:12px; background:#4A90E2; color:white; border:none; border-radius:6px; font-size:14px; font-weight:bold; cursor:pointer; display:flex; justify-content:center; align-items:center; gap:8px;">
+                        <span class="material-symbols-outlined" style="font-size:18px;">download</span> Download PDF
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="modal-radar-stok" class="hidden" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:10000; display:flex; justify-content:center; align-items:center; padding:15px; box-sizing:border-box;">
         <div style="background:#fff; border-radius:12px; width:100%; max-width:500px; max-height:85vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 10px 25px rgba(0,0,0,0.2);">
             <div style="background:#1a5c40; padding:15px; color:white; display:flex; justify-content:space-between; align-items:center;">
@@ -2822,7 +2901,7 @@
                     <div id="view-estatement-relasi" class="hidden">
                         <div class="rekap-card">
                             <div class="rekap-title"><span class="material-symbols-outlined"
-                                    style="font-size:18px;">history</span> Mutasi E-Statement (3 Bln)</div>
+                                    style="font-size:18px;">history</span> Mutasi E-Statement</div>
                             <div id="tabel-preview-estatement"
                                 style="max-height: 350px; overflow-y: auto; margin-bottom: 15px;">
                                 <div style="text-align:center; padding:20px; font-size:12px; color:#888;">Memuat data
@@ -2831,15 +2910,10 @@
 
                             <div
                                 style="display:flex; gap:10px; background:#f9f9f9; padding:12px; border-radius:8px; border:1px solid #DBE4C9; align-items:center;">
-                                <select id="pilihan-tahun-es"
-                                    style="flex:1; padding:10px; border-radius:6px; border:1px solid #DBE4C9; font-size:13px; font-weight:bold; color:#1a5c40; background:#fff; outline:none;">
-                                    <option value="2025">Tahun 2025</option>
-                                    <option value="2026" selected>Tahun 2026</option>
-                                </select>
-                                <button id="btn-cetak-es" class="btn-submit" onclick="pilihTahunCetakES()"
-                                    style="background:#4A90E2; flex:1.5; margin:0; font-size:13px; padding:10px;">
+                                <button id="btn-cetak-es" class="btn-submit" onclick="bukaModalCetakES()"
+                                    style="background:#4A90E2; width:100%; margin:0; font-size:14px; padding:12px; display:flex; justify-content:center; align-items:center; gap:6px;">
                                     <span class="material-symbols-outlined"
-                                        style="font-size:16px;">picture_as_pdf</span> Cetak Full PDF
+                                        style="font-size:18px;">settings</span> Pengaturan Tampilan & Cetak
                                 </button>
                             </div>
                         </div>
@@ -7264,13 +7338,48 @@ function aturAksesMenu(role) {
             
             let prosesRow = (row, detailPotongan = [], sisaDeposit = 0, tagihanTerbayar = 0, isPayment = false, pakanReturName = "") => {
                 let tglObj = new Date(row.tanggal);
-                let rTahun = tglObj.getFullYear();
+                
+                let isBefore = false;
+                let isWithin = false;
+
+                let opt = tahunTarget; // tahunTarget now can be an object
+                if (typeof opt !== 'object') {
+                    // Fallback to old behavior (full year)
+                    if (tglObj.getFullYear() < parseInt(opt)) isBefore = true;
+                    else if (tglObj.getFullYear() === parseInt(opt)) isWithin = true;
+                } else {
+                    if (opt.tipe === 'tahun') {
+                        if (tglObj.getFullYear() < parseInt(opt.tahun)) isBefore = true;
+                        else if (tglObj.getFullYear() === parseInt(opt.tahun)) isWithin = true;
+                    } else if (opt.tipe === 'bulan') {
+                        let optTahun = parseInt(opt.tahun);
+                        let optBulan = parseInt(opt.bulan);
+                        let rTahun = tglObj.getFullYear();
+                        let rBulan = tglObj.getMonth() + 1;
+                        
+                        if (rTahun < optTahun || (rTahun === optTahun && rBulan < optBulan)) {
+                            isBefore = true;
+                        } else if (rTahun === optTahun && rBulan === optBulan) {
+                            isWithin = true;
+                        }
+                    } else if (opt.tipe === 'rentang') {
+                        let start = new Date(opt.startDate);
+                        start.setHours(0,0,0,0);
+                        let end = new Date(opt.endDate);
+                        end.setHours(23,59,59,999);
+                        
+                        if (tglObj < start) isBefore = true;
+                        else if (tglObj >= start && tglObj <= end) isWithin = true;
+                    }
+                }
+
                 let namaPkn = row.pakan_kategori || 'Pakan';
                 let nom = parseFloat(row.tagihan) || parseFloat(row.pembayaran) || parseFloat(row.nominal) || 0;
                 
-                if (rTahun < tahunTarget) {
+                if (isBefore) {
                     saldoAwal += isPayment ? -Math.abs(nom) : Math.abs(nom);
-                } else if (rTahun === parseInt(tahunTarget)) {
+                } else if (isWithin) {
+                    let rTahun = tglObj.getFullYear();
                     let key = row.tanggal + "_" + (isPayment ? "BAYAR" : "DO");
                     if(!groupBulanTgl[key]) {
                         let infoNota = arrNota.find(n => n.tgl === row.tanggal) || { totalTagihan: 0, terbayar: 0 };
@@ -7323,7 +7432,7 @@ function aturAksesMenu(role) {
                 mutasiAkhir.push(g);
             });
 
-            return { saldoAwal: saldoAwal, totalTagihan: totalTagihan, totalBayar: totalBayar, saldoAkhir: runningSaldo, mutasi: mutasiAkhir };
+            return { saldoAwal: saldoAwal, totalTagihan: totalTagihan, totalBayar: totalBayar, saldoAkhir: runningSaldo, mutasi: mutasiAkhir, arrNota: arrNota, bayarArr: bayarArr };
         }
 
         function renderAgingDashboard() {
@@ -10159,7 +10268,7 @@ function renderLiveStokDiInput() {
                 targetContainer.innerHTML = '<div style="text-align:center; padding:20px; font-size:12px; color:#8AA624;"><span class="material-symbols-outlined icon-spin" style="font-size:18px; vertical-align:middle;">sync</span> Menarik riwayat E-Statement...</div>';
             }
 
-            let tahunPilihan = document.getElementById('pilihan-tahun-es') ? document.getElementById('pilihan-tahun-es').value : new Date().getFullYear();
+            let tahunPilihan = window.esCurrentPreviewOptions || new Date().getFullYear();
 
             fetchSupabaseAll(`${SUPA_URL}/rest/v1/view_mutasi_piutang_detail?relasi=eq.${encodeURIComponent(namaKonsumen)}&order=tanggal.asc`)
             .then(resData => {
@@ -10175,7 +10284,24 @@ function renderLiveStokDiInput() {
                 let nf = new Intl.NumberFormat('id-ID');
                 let namaBulan = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
-                let html = `
+                let isSimple = (typeof tahunPilihan === 'object' && tahunPilihan.format === 'simple');
+                
+                let html = "";
+                if (isSimple) {
+                    html = `
+            <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+                <thead>
+                    <tr style="background:#e2e8f0; color:#1e3a8a; border-bottom: 2px solid #DBE4C9;">
+                        <th style="padding:8px 4px; text-align:center; width:15%;">Tgl</th>
+                        <th style="padding:8px 4px; text-align:left; width:35%;">Keterangan</th>
+                        <th style="padding:8px 4px; text-align:right; width:15%;">Tagihan</th>
+                        <th style="padding:8px 4px; text-align:right; width:15%;">Pembayaran</th>
+                        <th style="padding:8px 4px; text-align:right; width:20%;">Saldo</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+                } else {
+                    html = `
             <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
                 <thead>
                     <tr style="background:#e2e8f0; color:#1e3a8a; border-bottom: 2px solid #DBE4C9;">
@@ -10198,9 +10324,84 @@ function renderLiveStokDiInput() {
                     <td style="padding:8px 4px; text-align:right; color:#666;">-</td>
                     <td style="padding:8px 4px; text-align:right; font-size:11px; color:#b91c1c;">${nf.format(data.saldoAwal)}</td>
                 </tr>`;
+                }
 
-                if (data.mutasi.length === 0) {
-                    html += `<tr><td colspan="4" style="padding:15px; text-align:center; color:#888; font-style:italic;">Tidak ada mutasi transaksi dalam tahun ini.</td></tr>`;
+
+                if (data.mutasi.length === 0 && (!data.arrNota || data.arrNota.length === 0)) {
+                    html += `<tr><td colspan="5" style="padding:15px; text-align:center; color:#888; font-style:italic;">Tidak ada data dalam periode ini.</td></tr>`;
+                } else if (isSimple) {
+                    let rowsHTML = "";
+                    let currentSaldo = data.saldoAwal || 0;
+                    
+                    data.arrNota.forEach(nota => {
+                        let tglParts = nota.tgl.split('-');
+                        let tglStr = tglParts.length === 3 ? `${tglParts[2]}/${tglParts[1]}` : nota.tgl; // DD/MM for web
+                        let tglFull = tglParts.length === 3 ? `${tglParts[2]}/${tglParts[1]}/${tglParts[0]}` : nota.tgl;
+                        
+                        nota.items.forEach(item => {
+                            let isWithin = false;
+                            let tglObj = new Date(item.tgl);
+                            let opt = tahunPilihan;
+                            if (opt.tipe === 'tahun') {
+                                if (tglObj.getFullYear() === parseInt(opt.tahun)) isWithin = true;
+                            } else if (opt.tipe === 'bulan') {
+                                if (tglObj.getFullYear() === parseInt(opt.tahun) && tglObj.getMonth() + 1 === parseInt(opt.bulan)) isWithin = true;
+                            } else if (opt.tipe === 'rentang') {
+                                let d1 = new Date(opt.startDate); d1.setHours(0,0,0,0);
+                                let d2 = new Date(opt.endDate); d2.setHours(23,59,59,999);
+                                if (tglObj >= d1 && tglObj <= d2) isWithin = true;
+                            }
+                            
+                            if (isWithin) {
+                                currentSaldo += item.nominal;
+                                rowsHTML += `
+                                <tr style="border-bottom: 1px solid #eee; background: #fff; vertical-align: top;">
+                                    <td style="text-align: center; padding: 6px; color:#666;">${tglStr}</td>
+                                    <td style="padding: 6px;">${item.pakan}<br><span style="font-size:9px; color:#888;">${item.qty} ${item.satuan} x @${nf.format(item.qty > 0 ? (item.nominal / item.qty) : item.nominal)}</span></td>
+                                    <td style="text-align: right; padding: 6px;">${nf.format(item.nominal)}</td>
+                                    <td style="text-align: right; padding: 6px; color:#aaa;">-</td>
+                                    <td style="text-align: right; font-weight: bold; padding: 6px; color:#333; background:#fafafa;">${nf.format(currentSaldo)}</td>
+                                </tr>`;
+                            }
+                        });
+                        
+                        let attachedPayments = data.bayarArr.filter(p => {
+                            if(!p.detailPotongan || p.detailPotongan.length === 0) return false;
+                            let lastPot = p.detailPotongan[p.detailPotongan.length - 1];
+                            return lastPot.tglNota === tglFull;
+                        });
+                        
+                        attachedPayments.forEach(p => {
+                            let pTglObj = new Date(p.tgl);
+                            let isWithin = false;
+                            let opt = tahunPilihan;
+                            if (opt.tipe === 'tahun') {
+                                if (pTglObj.getFullYear() === parseInt(opt.tahun)) isWithin = true;
+                            } else if (opt.tipe === 'bulan') {
+                                if (pTglObj.getFullYear() === parseInt(opt.tahun) && pTglObj.getMonth() + 1 === parseInt(opt.bulan)) isWithin = true;
+                            } else if (opt.tipe === 'rentang') {
+                                let d1 = new Date(opt.startDate); d1.setHours(0,0,0,0);
+                                let d2 = new Date(opt.endDate); d2.setHours(23,59,59,999);
+                                if (pTglObj >= d1 && pTglObj <= d2) isWithin = true;
+                            }
+        
+                            if (isWithin) {
+                                currentSaldo -= p.nominal;
+                                let tglPParts = p.tgl.split('-');
+                                let tglPStr = tglPParts.length === 3 ? `${tglPParts[2]}/${tglPParts[1]}` : p.tgl;
+                                rowsHTML += `
+                                <tr style="border-bottom: 1px solid #eee; background: #f8fafc; vertical-align: top;">
+                                    <td style="text-align: center; padding: 6px; color:#666;">${tglPStr}</td>
+                                    <td style="padding: 6px; font-style:italic;">Pembayaran<br><span style="font-size:9px; color:#888;">${p.metode || 'Cash'}</span></td>
+                                    <td style="text-align: right; padding: 6px; color:#aaa;">-</td>
+                                    <td style="text-align: right; padding: 6px; color:#15803d; font-weight:bold;">${nf.format(p.nominal)}</td>
+                                    <td style="text-align: right; font-weight: bold; padding: 6px; color:#333; background:#fafafa;">${nf.format(currentSaldo)}</td>
+                                </tr>`;
+                            }
+                        });
+                    });
+                    
+                    html += rowsHTML;
                 } else {
                     let currentMonth = -1;
                     let subTagihan = 0, subBayar = 0;
@@ -10323,11 +10524,76 @@ function renderLiveStokDiInput() {
             });
         }
         
-        function pilihTahunCetakES() {
-            let tahunPilihan = document.getElementById('pilihan-tahun-es').value;
-            if (tahunPilihan) {
-                cetakEStatement(tahunPilihan);
+        function toggleInputCetakES() {
+            let tipe = document.getElementById('es-cetak-tipe').value;
+            document.getElementById('es-cetak-input-tahun').style.display = tipe === 'tahun' ? 'block' : 'none';
+            document.getElementById('es-cetak-input-bulan').style.display = tipe === 'bulan' ? 'flex' : 'none';
+            document.getElementById('es-cetak-input-rentang').style.display = tipe === 'rentang' ? 'flex' : 'none';
+        }
+
+        function bukaModalCetakES() {
+            if (!window.isCustomerPortal) {
+                document.getElementById('es-cetak-format-container').style.display = 'block';
+            } else {
+                document.getElementById('es-cetak-format-container').style.display = 'none';
             }
+            document.getElementById('modal-pengaturan-cetak-es').classList.remove('hidden');
+        }
+
+        function terapkanPreviewEStatement() {
+            let formatCetak = document.getElementById('es-cetak-format').value;
+            if (window.isCustomerPortal) formatCetak = 'detail';
+            
+            let tipe = document.getElementById('es-cetak-tipe').value;
+            let options = { tipe: tipe, format: formatCetak };
+            if (tipe === 'tahun') {
+                options.tahun = document.getElementById('es-cetak-tahun').value;
+            } else if (tipe === 'bulan') {
+                options.bulan = document.getElementById('es-cetak-bulan').value;
+                options.tahun = document.getElementById('es-cetak-bulan-tahun').value;
+            } else if (tipe === 'rentang') {
+                options.startDate = document.getElementById('es-cetak-start').value;
+                options.endDate = document.getElementById('es-cetak-end').value;
+                if (!options.startDate || !options.endDate) {
+                    return alert("Harap lengkapi rentang tanggal mulai dan akhir!");
+                }
+                let diff = (new Date(options.endDate) - new Date(options.startDate)) / (1000 * 60 * 60 * 24);
+                if (diff < 0) return alert("Tanggal akhir tidak boleh lebih kecil dari tanggal awal.");
+            }
+
+            document.getElementById('modal-pengaturan-cetak-es').classList.add('hidden');
+            window.esCurrentPreviewOptions = options;
+            window.isEStatementLoaded = false;
+            fetchPreviewEStatement();
+        }
+
+        function eksekusiCetakEStatement() {
+            let formatCetak = document.getElementById('es-cetak-format').value;
+            if (window.isCustomerPortal) formatCetak = 'detail';
+            
+            let tipe = document.getElementById('es-cetak-tipe').value;
+            let options = { tipe: tipe, format: formatCetak };
+            if (tipe === 'tahun') {
+                options.tahun = document.getElementById('es-cetak-tahun').value;
+            } else if (tipe === 'bulan') {
+                options.bulan = document.getElementById('es-cetak-bulan').value;
+                options.tahun = document.getElementById('es-cetak-bulan-tahun').value;
+            } else if (tipe === 'rentang') {
+                options.startDate = document.getElementById('es-cetak-start').value;
+                options.endDate = document.getElementById('es-cetak-end').value;
+                if (!options.startDate || !options.endDate) {
+                    return alert("Harap lengkapi rentang tanggal mulai dan akhir!");
+                }
+                let diff = (new Date(options.endDate) - new Date(options.startDate)) / (1000 * 60 * 60 * 24);
+                if (diff < 0) return alert("Tanggal akhir tidak boleh lebih kecil dari tanggal awal.");
+            }
+
+            document.getElementById('modal-pengaturan-cetak-es').classList.add('hidden');
+            cetakEStatement(options);
+        }
+
+        function pilihTahunCetakES() {
+            // Deprecated, digantikan dengan eksekusiCetakEStatement
         }
 
         function cetakEStatement(tahunPilihan) {
@@ -10345,7 +10611,11 @@ function renderLiveStokDiInput() {
                     alert('Gagal mengambil data: ' + resData.message);
                 } else {
                     let processedData = olahDataEStatement(resData, tahunPilihan);
-                    prosesDanDownloadPDF(processedData, namaKonsumen, tahunPilihan);
+                    if (tahunPilihan.format === 'simple') {
+                        prosesDanDownloadPDFSimple(processedData, namaKonsumen, tahunPilihan);
+                    } else {
+                        prosesDanDownloadPDF(processedData, namaKonsumen, tahunPilihan);
+                    }
                 }
             })
             .catch(err => {
@@ -10357,13 +10627,43 @@ function renderLiveStokDiInput() {
             });
         }
 
-        function prosesDanDownloadPDF(data, namaKonsumen, tahunPilihan) {
+        function prosesDanDownloadPDF(data, namaKonsumen, printOptions) {
             let nf = new Intl.NumberFormat('id-ID');
             let namaBulan = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
             let namaKTP = data.namaLengkap ? data.namaLengkap : namaKonsumen.toUpperCase();
             document.getElementById('es-nama').innerText = namaKTP;
-            document.getElementById('es-tahun').innerText = tahunPilihan;
+            
+            // Format Periode Laporan Dinamis
+            let labelPeriode = "";
+            let labelBoxSummary = "RINGKASAN TAHUN BERJALAN";
+            if (typeof printOptions === 'object') {
+                if (printOptions.tipe === 'tahun') {
+                    labelPeriode = "Tahun " + printOptions.tahun;
+                } else if (printOptions.tipe === 'bulan') {
+                    labelPeriode = namaBulan[parseInt(printOptions.bulan)-1] + " " + printOptions.tahun;
+                    labelBoxSummary = "RINGKASAN PERIODE";
+                } else if (printOptions.tipe === 'rentang') {
+                    let dStart = new Date(printOptions.startDate);
+                    let dEnd = new Date(printOptions.endDate);
+                    let strStart = dStart.getDate() + " " + namaBulan[dStart.getMonth()].substring(0,3) + " " + dStart.getFullYear();
+                    let strEnd = dEnd.getDate() + " " + namaBulan[dEnd.getMonth()].substring(0,3) + " " + dEnd.getFullYear();
+                    labelPeriode = strStart + " - " + strEnd;
+                    labelBoxSummary = "RINGKASAN PERIODE";
+                }
+            } else {
+                labelPeriode = "Tahun " + printOptions; // Fallback
+            }
+            
+            // Update UI label "Tahun Periode" to "Periode Laporan" if not already done in HTML (I'll do it via JS here as well for safety)
+            let elHeaderPeriode = document.getElementById('es-tahun').previousElementSibling;
+            if(elHeaderPeriode && elHeaderPeriode.innerText.includes("Tahun")) elHeaderPeriode.innerText = "Periode Laporan";
+            
+            document.getElementById('es-tahun').innerText = labelPeriode;
+            
+            let elBoxSummary = document.querySelector('#doc-pdf-estatement h4'); // Usually the H4 inside the ringkasan box
+            if (elBoxSummary) elBoxSummary.innerText = labelBoxSummary;
+
             document.getElementById('es-waktu').innerText = new Date().toLocaleString('id-ID');
 
             let relData = globalRelasi.find(r => r.nama.toLowerCase() === namaKonsumen.toLowerCase());
@@ -10377,14 +10677,16 @@ function renderLiveStokDiInput() {
             let tbody = document.getElementById('es-tbody');
             tbody.innerHTML = '';
 
-            tbody.innerHTML += `
-        <tr class="avoid-break" style="background-color: #f1f5f9; font-weight: bold; page-break-inside: avoid !important;">
-            <td style="text-align: center;">01/01</td>
-            <td>SALDO AWAL TAHUN</td>
-            <td style="text-align: right;">-</td>
-            <td style="text-align: right;">-</td>
-            <td style="text-align: right; font-size: 12px;">${nf.format(data.saldoAwal)}</td>
-        </tr>`;
+            if (typeof printOptions !== 'object' || printOptions.tipe === 'tahun') {
+                tbody.innerHTML += `
+            <tr class="avoid-break" style="background-color: #f1f5f9; font-weight: bold; page-break-inside: avoid !important;">
+                <td style="text-align: center;">01/01</td>
+                <td>SALDO AWAL TAHUN</td>
+                <td style="text-align: right;">-</td>
+                <td style="text-align: right;">-</td>
+                <td style="text-align: right; font-size: 12px;">${nf.format(data.saldoAwal)}</td>
+            </tr>`;
+            }
 
             let currentMonth = -1;
             let subTagihan = 0, subBayar = 0;
@@ -10440,13 +10742,13 @@ function renderLiveStokDiInput() {
                         statusHtml = `<div style="margin-top:4px; font-size:9px; color:#2e7d32; font-weight:bold;">[ LUNAS ]</div>`;
                     } else if (m.terbayarNota > 0) {
                         statusHtml = `<div style="margin-top:4px; font-size:9px; color:#e65100; font-weight:bold; line-height:1.2;">
-                                        [ TER-DP: ${txtJT} ]<br>
+                                        [ TER-DP ]<br>
                                         <span style="font-weight:normal; color:#555;">Telah dibayar: Rp ${nf.format(m.terbayarNota)}</span><br>
                                         <b style="color:#c62828;">Sisa Tunggakan: Rp ${nf.format(sisaTagihan)}</b>
                                       </div>`;
                     } else {
                         statusHtml = `<div style="margin-top:4px; font-size:9px; color:#c62828; font-weight:bold; line-height:1.2;">
-                                        [ BELUM DIBAYAR: ${txtJT} ]<br>
+                                        [ BELUM DIBAYAR ]<br>
                                         Sisa Tunggakan: Rp ${nf.format(sisaTagihan)}
                                       </div>`;
                     }
@@ -10524,7 +10826,7 @@ function renderLiveStokDiInput() {
             // 🔥 PERUBAHAN: Scale 1 agar browser HP tidak pingsan saat render 1 tahun penuh!
             let opt = {
                 margin: [0.4, 0, 0.6, 0],
-                filename: 'E-Statement_' + namaKonsumen.replace(/\s+/g, '_') + '_' + tahunPilihan + '.pdf',
+                filename: 'E-Statement_' + namaKonsumen.replace(/\s+/g, '_') + '_' + (typeof printOptions === 'object' ? (printOptions.tipe === 'tahun' ? printOptions.tahun : (printOptions.tipe === 'bulan' ? printOptions.bulan + '_' + printOptions.tahun : 'Custom')) : printOptions) + '.pdf',
                 image: { type: 'jpeg', quality: 0.98 },
                 html2canvas: { scale: 1, useCORS: true, width: 794, windowWidth: 794, scrollY: 0, scrollX: 0 }, 
                 pagebreak: { mode: 'css', avoid: ['tr', 'td', '.avoid-break'] },
@@ -10555,6 +10857,203 @@ function renderLiveStokDiInput() {
                 });
             }, 800);
         }
+        // ============================================
+        // LOGIKA CETAK KARTU PIUTANG (SIMPLE)
+        // ============================================
+        function prosesDanDownloadPDFSimple(data, namaKonsumen, printOptions) {
+            let nf = new Intl.NumberFormat('id-ID');
+            let namaBulan = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'];
+
+            let namaKTP = data.namaLengkap ? data.namaLengkap : namaKonsumen.toUpperCase();
+            
+            let labelPeriode = "";
+            if (typeof printOptions === 'object') {
+                if (printOptions.tipe === 'tahun') {
+                    labelPeriode = "Tahun " + printOptions.tahun;
+                } else if (printOptions.tipe === 'bulan') {
+                    labelPeriode = namaBulan[parseInt(printOptions.bulan)-1] + " " + printOptions.tahun;
+                } else if (printOptions.tipe === 'rentang') {
+                    let dStart = new Date(printOptions.startDate);
+                    let dEnd = new Date(printOptions.endDate);
+                    let strStart = dStart.getDate() + "/" + (dStart.getMonth()+1).toString().padStart(2,'0') + "/" + dStart.getFullYear();
+                    let strEnd = dEnd.getDate() + "/" + (dEnd.getMonth()+1).toString().padStart(2,'0') + "/" + dEnd.getFullYear();
+                    labelPeriode = strStart + " - " + strEnd;
+                }
+            } else {
+                labelPeriode = "Tahun " + printOptions;
+            }
+
+            let rowsHTML = "";
+            let currentSaldo = data.saldoAwal || 0;
+            
+            data.arrNota.forEach(nota => {
+                let tglParts = nota.tgl.split('-');
+                let tglStr = tglParts.length === 3 ? `${tglParts[2]}/${tglParts[1]}/${tglParts[0]}` : nota.tgl;
+                
+                nota.items.forEach(item => {
+                    // Cek apakah item masuk rentang yang dipilih. (Karena arrNota tidak difilter otomatis oleh prosesRow)
+                    // Wait, arrNota is generated BEFORE filtering! So it contains ALL history!
+                    // We need to filter it here based on printOptions!
+                    let isWithin = false;
+                    let tglObj = new Date(item.tgl);
+                    let opt = printOptions;
+                    if (opt.tipe === 'tahun') {
+                        if (tglObj.getFullYear() === parseInt(opt.tahun)) isWithin = true;
+                    } else if (opt.tipe === 'bulan') {
+                        if (tglObj.getFullYear() === parseInt(opt.tahun) && tglObj.getMonth() + 1 === parseInt(opt.bulan)) isWithin = true;
+                    } else if (opt.tipe === 'rentang') {
+                        let d1 = new Date(opt.startDate); d1.setHours(0,0,0,0);
+                        let d2 = new Date(opt.endDate); d2.setHours(23,59,59,999);
+                        if (tglObj >= d1 && tglObj <= d2) isWithin = true;
+                    }
+                    
+                    if (isWithin) {
+                        currentSaldo += item.nominal;
+                        rowsHTML += `
+                        <tr style="border-bottom:1px solid #ddd; page-break-inside: avoid !important;">
+                            <td style="padding:4px; text-align:center;">${tglStr}</td>
+                            <td style="padding:4px;">${namaKTP}</td>
+                            <td style="padding:4px;">${item.pakan}</td>
+                            <td style="padding:4px; text-align:right;">${item.qty}</td>
+                            <td style="padding:4px; text-align:center;">${item.satuan}</td>
+                            <td style="padding:4px; text-align:right;">${nf.format(item.qty > 0 ? (item.nominal / item.qty) : item.nominal)}</td>
+                            <td style="padding:4px; text-align:right;">${nf.format(item.nominal)}</td>
+                            <td style="padding:4px; text-align:right;">-</td>
+                            <td style="padding:4px; text-align:right; font-weight:bold;">${nf.format(currentSaldo)}</td>
+                        </tr>`;
+                    } else {
+                        // Just accumulate balance if before period
+                        // Actually, if it's before period, data.saldoAwal ALREADY includes this!
+                        // So we MUST NOT accumulate currentSaldo for items before period, otherwise it double counts!
+                        // Wait! data.saldoAwal is calculated by prosesRow.
+                        // So currentSaldo should start at data.saldoAwal, and we ONLY add items that are isWithin!
+                        // This logic is perfectly sound.
+                    }
+                });
+                
+                // attach payments
+                let attachedPayments = data.bayarArr.filter(p => {
+                    if(!p.detailPotongan || p.detailPotongan.length === 0) return false;
+                    let lastPot = p.detailPotongan[p.detailPotongan.length - 1];
+                    return lastPot.tglNota === tglStr;
+                });
+                
+                attachedPayments.forEach(p => {
+                    let pTglObj = new Date(p.tgl);
+                    let isWithin = false;
+                    let opt = printOptions;
+                    if (opt.tipe === 'tahun') {
+                        if (pTglObj.getFullYear() === parseInt(opt.tahun)) isWithin = true;
+                    } else if (opt.tipe === 'bulan') {
+                        if (pTglObj.getFullYear() === parseInt(opt.tahun) && pTglObj.getMonth() + 1 === parseInt(opt.bulan)) isWithin = true;
+                    } else if (opt.tipe === 'rentang') {
+                        let d1 = new Date(opt.startDate); d1.setHours(0,0,0,0);
+                        let d2 = new Date(opt.endDate); d2.setHours(23,59,59,999);
+                        if (pTglObj >= d1 && pTglObj <= d2) isWithin = true;
+                    }
+
+                    if (isWithin) {
+                        currentSaldo -= p.nominal;
+                        let tglPParts = p.tgl.split('-');
+                        let tglPStr = tglPParts.length === 3 ? `${tglPParts[2]}/${tglPParts[1]}/${tglPParts[0]}` : p.tgl;
+                        rowsHTML += `
+                        <tr style="border-bottom:1px solid #ddd; background-color:#f8fafc; page-break-inside: avoid !important;">
+                            <td style="padding:4px; text-align:center;">${tglPStr}</td>
+                            <td style="padding:4px;">${namaKTP}</td>
+                            <td style="padding:4px; font-style:italic;">Pembayaran (${p.metode || 'Cash'})</td>
+                            <td style="padding:4px; text-align:right;">-</td>
+                            <td style="padding:4px; text-align:center;">-</td>
+                            <td style="padding:4px; text-align:right;">-</td>
+                            <td style="padding:4px; text-align:right;">-</td>
+                            <td style="padding:4px; text-align:right; color:#15803d; font-weight:bold;">${nf.format(p.nominal)}</td>
+                            <td style="padding:4px; text-align:right; font-weight:bold;">${nf.format(currentSaldo)}</td>
+                        </tr>`;
+                    }
+                });
+            });
+
+            // CREATE TEMPORARY CONTAINER
+            let oriHtmlWidth = document.documentElement.style.width;
+            let oriBodyWidth = document.body.style.width;
+            let oriOverflow = document.body.style.overflow;
+            document.documentElement.style.width = '1123px';
+            document.body.style.width = '1123px';
+            document.body.style.overflow = 'visible';
+
+            let wrapper = document.createElement('div');
+            wrapper.style.cssText = "display:block; position:absolute; top:0; left:0; width:1123px !important; min-width:1123px !important; z-index:999997; background:#fff;";
+            
+            let container = document.createElement('div');
+            container.style.cssText = "padding:20px; box-sizing:border-box; font-family:sans-serif; color:#000; width:100%;";
+            
+            container.innerHTML = `
+                <h2 style="margin:0 0 5px 0;">Kartu Piutang Pakan CBL</h2>
+                <table style="border:none; margin-bottom:15px; font-size:12px;">
+                    <tr><td style="padding-right:20px; font-weight:bold;">Nama Konsumen</td><td>: ${namaKTP}</td></tr>
+                    <tr><td style="padding-right:20px; font-weight:bold;">Periode Tagihan</td><td>: ${labelPeriode}</td></tr>
+                    <tr><td style="padding-right:20px; font-weight:bold;">Total Saldo Akhir</td><td>: Rp ${nf.format(data.saldoAkhir)}</td></tr>
+                </table>
+                <table style="width:100%; border-collapse:collapse; font-size:10px;">
+                    <thead>
+                        <tr style="background-color:#1e3a8a; color:#fff;">
+                            <th style="padding:6px; text-align:center; border:1px solid #ddd;">Tanggal</th>
+                            <th style="padding:6px; text-align:left; border:1px solid #ddd;">Relasi</th>
+                            <th style="padding:6px; text-align:left; border:1px solid #ddd;">Jenis Pakan</th>
+                            <th style="padding:6px; text-align:right; border:1px solid #ddd;">Qty</th>
+                            <th style="padding:6px; text-align:center; border:1px solid #ddd;">Sat</th>
+                            <th style="padding:6px; text-align:right; border:1px solid #ddd;">Harga</th>
+                            <th style="padding:6px; text-align:right; border:1px solid #ddd;">Tagihan</th>
+                            <th style="padding:6px; text-align:right; border:1px solid #ddd;">Pembayaran</th>
+                            <th style="padding:6px; text-align:right; border:1px solid #ddd;">Saldo</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rowsHTML}
+                    </tbody>
+                </table>
+            `;
+            
+            wrapper.appendChild(container);
+            document.body.appendChild(wrapper);
+
+            let tirai = document.createElement('div');
+            tirai.id = 'tirai-pdf-es';
+            tirai.style.cssText = 'position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(255,255,255,1); z-index:999999; display:flex; flex-direction:column; align-items:center; justify-content:center;';
+            tirai.innerHTML = `<span class="material-symbols-outlined icon-spin" style="font-size:40px; color:#8AA624; margin-bottom:10px;">sync</span><strong style="color:#1a5c40; font-size:16px;">Mengekstrak PDF...</strong><span style="font-size:12px; color:#888;">Menyiapkan Kartu Piutang.</span>`;
+            document.body.appendChild(tirai);
+
+            let opt = {
+                margin: [0.5, 0.5, 0.5, 0.5],
+                filename: 'Kartu_Piutang_' + namaKonsumen.replace(/\s+/g, '_') + '.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 1.5, useCORS: true, width: 1123, windowWidth: 1123, scrollY: 0, scrollX: 0 }, 
+                pagebreak: { mode: 'css', avoid: ['tr', 'td'] },
+                jsPDF: { unit: 'in', format: 'a4', orientation: 'landscape' }
+            };
+
+            setTimeout(() => {
+                html2pdf().set(opt).from(container).toPdf().get('pdf').then(function (pdf) {
+                    let totalPages = pdf.internal.getNumberOfPages();
+                    for (let i = 1; i <= totalPages; i++) {
+                        pdf.setPage(i); pdf.setFontSize(9); pdf.setTextColor(120);
+                        pdf.text('Halaman ' + i + ' dari ' + totalPages, pdf.internal.pageSize.getWidth() - 1.5, pdf.internal.pageSize.getHeight() - 0.2);
+                    }
+                }).save().then(() => {
+                    wrapper.remove();
+                    if (document.getElementById('tirai-pdf-es')) document.getElementById('tirai-pdf-es').remove();
+                    document.documentElement.style.width = oriHtmlWidth;
+                    document.body.style.width = oriBodyWidth;
+                    document.body.style.overflow = oriOverflow;
+                }).catch(e => {
+                    container.remove();
+                    if (document.getElementById('tirai-pdf-es')) document.getElementById('tirai-pdf-es').remove();
+                    document.documentElement.style.width = oriHtmlWidth;
+                    document.body.style.width = oriBodyWidth;
+                    document.body.style.overflow = oriOverflow;
+                });
+            }, 800);
+        }
+
         // ============================================
         // LOGIKA UPAH GILING SPN
         // ============================================
