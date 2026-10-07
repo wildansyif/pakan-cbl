@@ -11683,14 +11683,13 @@ async function uploadGambarKeSupabase(base64Data, mimeType, folderName, fileName
         headers: {
             'apikey': SUPA_ANON_KEY,
             'Authorization': `Bearer ${SUPA_ANON_KEY}`,
-            'Content-Type': mimeType,
-            'x-upsert': 'true'
+            'Content-Type': mimeType
         },
         body: blob
     });
 
-    if (res.ok) {
-        // Jika sukses, kembalikan URL Public-nya
+    // Jika sukses (200) atau file sudah ada (400 Duplicate dari retry)
+    if (res.ok || res.status === 400) {
         return `${SUPA_URL}/storage/v1/object/public/berkas_cbl/${path}`;
     } else {
         throw new Error("Gagal mengupload gambar ke server.");
