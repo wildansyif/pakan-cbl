@@ -1580,8 +1580,8 @@
                 <div id="es-cetak-format-container" style="display:none;">
                     <label style="display:block; font-size:12px; font-weight:bold; color:#555; margin-bottom:8px;">Format Cetakan</label>
                     <select id="es-cetak-format" style="width:100%; padding:10px; border-radius:6px; border:1px solid #ddd; margin-bottom:15px; font-size:14px; outline:none;">
-                        <option value="detail">Detail (Rekening Koran)</option>
                         <option value="simple">Simple (Kartu Piutang)</option>
+                        <option value="detail">Detail (Rekening Koran)</option>
                     </select>
                 </div>
 
@@ -10268,7 +10268,7 @@ function renderLiveStokDiInput() {
                 targetContainer.innerHTML = '<div style="text-align:center; padding:20px; font-size:12px; color:#8AA624;"><span class="material-symbols-outlined icon-spin" style="font-size:18px; vertical-align:middle;">sync</span> Menarik riwayat E-Statement...</div>';
             }
 
-            let tahunPilihan = window.esCurrentPreviewOptions || new Date().getFullYear();
+            let tahunPilihan = window.esCurrentPreviewOptions || { tipe: 'tahun', format: 'simple', tahun: new Date().getFullYear() };
 
             fetchSupabaseAll(`${SUPA_URL}/rest/v1/view_mutasi_piutang_detail?relasi=eq.${encodeURIComponent(namaKonsumen)}&order=tanggal.asc`)
             .then(resData => {
@@ -10333,6 +10333,31 @@ function renderLiveStokDiInput() {
                     let rowsHTML = "";
                     let currentSaldo = data.saldoAwal || 0;
                     
+                    let labelPeriodeStr = "";
+                    let optP = tahunPilihan;
+                    if (optP.tipe === 'tahun') {
+                        labelPeriodeStr = "TAHUN " + optP.tahun;
+                    } else if (optP.tipe === 'bulan') {
+                        labelPeriodeStr = namaBulan[parseInt(optP.bulan)-1].toUpperCase() + " " + optP.tahun;
+                    } else if (optP.tipe === 'rentang') {
+                        labelPeriodeStr = "RENTANG TANGGAL";
+                    }
+
+                    rowsHTML += `
+                    <tr style="background-color: #f1f5f9; font-weight: bold; border-bottom: 1px solid #ccc;">
+                        <td style="padding:6px; text-align:center;">-</td>
+                        <td style="padding:6px;">
+                            <span style="color:#1e3a8a;">SALDO AWAL ${labelPeriodeStr}</span><br>
+                            <span style="font-size:9px; color:#666; font-weight:normal; display:block; margin-top:2px; line-height:1.3;">
+                                • Akumulasi Tagihan Bawaan: Rp ${nf.format(data.totalTagihan || 0)}<br>
+                                • Total Pembayaran Bawaan: Rp ${nf.format(data.totalBayar || 0)}
+                            </span>
+                        </td>
+                        <td style="padding:6px; text-align:right; color:#666;">-</td>
+                        <td style="padding:6px; text-align:right; color:#666;">-</td>
+                        <td style="padding:6px; text-align:right; font-size:11px; color:#b91c1c;">${nf.format(data.saldoAwal || 0)}</td>
+                    </tr>`;
+                    
                     data.arrNota.forEach(nota => {
                         let tglParts = nota.tgl.split('-');
                         let tglStr = tglParts.length === 3 ? `${tglParts[2]}/${tglParts[1]}` : nota.tgl; // DD/MM for web
@@ -10358,7 +10383,7 @@ function renderLiveStokDiInput() {
                                 <tr style="border-bottom: 1px solid #eee; background: #fff; vertical-align: top;">
                                     <td style="text-align: center; padding: 6px; color:#666;">${tglStr}</td>
                                     <td style="padding: 6px;">${item.pakan}<br><span style="font-size:9px; color:#888;">${item.qty} ${item.satuan} x @${nf.format(item.qty > 0 ? (item.nominal / item.qty) : item.nominal)}</span></td>
-                                    <td style="text-align: right; padding: 6px;">${nf.format(item.nominal)}</td>
+                                    <td style="text-align: right; padding: 6px; font-weight: bold; color:#333;">${nf.format(item.nominal)}</td>
                                     <td style="text-align: right; padding: 6px; color:#aaa;">-</td>
                                     <td style="text-align: right; font-weight: bold; padding: 6px; color:#333; background:#fafafa;">${nf.format(currentSaldo)}</td>
                                 </tr>`;
@@ -10394,7 +10419,7 @@ function renderLiveStokDiInput() {
                                     <td style="text-align: center; padding: 6px; color:#666;">${tglPStr}</td>
                                     <td style="padding: 6px; font-style:italic;">Pembayaran<br><span style="font-size:9px; color:#888;">${p.metode || 'Cash'}</span></td>
                                     <td style="text-align: right; padding: 6px; color:#aaa;">-</td>
-                                    <td style="text-align: right; padding: 6px; color:#15803d; font-weight:bold;">${nf.format(p.nominal)}</td>
+                                    <td style="text-align: right; padding: 6px; font-weight:bold; color:#333;">${nf.format(p.nominal)}</td>
                                     <td style="text-align: right; font-weight: bold; padding: 6px; color:#333; background:#fafafa;">${nf.format(currentSaldo)}</td>
                                 </tr>`;
                             }
@@ -10542,7 +10567,7 @@ function renderLiveStokDiInput() {
 
         function terapkanPreviewEStatement() {
             let formatCetak = document.getElementById('es-cetak-format').value;
-            if (window.isCustomerPortal) formatCetak = 'detail';
+            if (window.isCustomerPortal) formatCetak = 'simple';
             
             let tipe = document.getElementById('es-cetak-tipe').value;
             let options = { tipe: tipe, format: formatCetak };
@@ -10569,7 +10594,7 @@ function renderLiveStokDiInput() {
 
         function eksekusiCetakEStatement() {
             let formatCetak = document.getElementById('es-cetak-format').value;
-            if (window.isCustomerPortal) formatCetak = 'detail';
+            if (window.isCustomerPortal) formatCetak = 'simple';
             
             let tipe = document.getElementById('es-cetak-tipe').value;
             let options = { tipe: tipe, format: formatCetak };
@@ -10885,6 +10910,23 @@ function renderLiveStokDiInput() {
 
             let rowsHTML = "";
             let currentSaldo = data.saldoAwal || 0;
+            let subTagihan = 0;
+            let subBayar = 0;
+            
+            rowsHTML += `
+            <tr style="border-bottom: 1px solid #ccc; background-color: #f8fafc; font-weight: bold; page-break-inside: avoid !important;">
+                <td style="padding: 6px; text-align: center;">-</td>
+                <td style="padding: 6px;">
+                    <span style="color:#1e3a8a;">SALDO AWAL ${labelPeriode.toUpperCase()}</span><br>
+                    <span style="font-size:9px; color:#666; font-weight:normal; display:block; margin-top:2px; line-height:1.3;">
+                        • Akumulasi Tagihan Bawaan: Rp ${nf.format(data.totalTagihan || 0)}<br>
+                        • Total Pembayaran Bawaan: Rp ${nf.format(data.totalBayar || 0)}
+                    </span>
+                </td>
+                <td style="padding: 6px; text-align: right;">-</td>
+                <td style="padding: 6px; text-align: right;">-</td>
+                <td style="padding: 6px; text-align: right; font-weight: bold; color: #b91c1c;">${nf.format(data.saldoAwal || 0)}</td>
+            </tr>`;
             
             data.arrNota.forEach(nota => {
                 let tglParts = nota.tgl.split('-');
@@ -10909,17 +10951,17 @@ function renderLiveStokDiInput() {
                     
                     if (isWithin) {
                         currentSaldo += item.nominal;
+                        subTagihan += item.nominal;
+                        
+                        let ketHtml = `<b>${item.pakan}</b> <span style="font-size:10px;">(${item.qty} ${item.satuan} x @${nf.format(item.qty > 0 ? (item.nominal / item.qty) : item.nominal)})</span>`;
+                        
                         rowsHTML += `
-                        <tr style="border-bottom:1px solid #ddd; page-break-inside: avoid !important;">
-                            <td style="padding:4px; text-align:center;">${tglStr}</td>
-                            <td style="padding:4px;">${namaKTP}</td>
-                            <td style="padding:4px;">${item.pakan}</td>
-                            <td style="padding:4px; text-align:right;">${item.qty}</td>
-                            <td style="padding:4px; text-align:center;">${item.satuan}</td>
-                            <td style="padding:4px; text-align:right;">${nf.format(item.qty > 0 ? (item.nominal / item.qty) : item.nominal)}</td>
-                            <td style="padding:4px; text-align:right;">${nf.format(item.nominal)}</td>
-                            <td style="padding:4px; text-align:right;">-</td>
-                            <td style="padding:4px; text-align:right; font-weight:bold;">${nf.format(currentSaldo)}</td>
+                        <tr style="border-bottom:1px solid #ddd; page-break-inside: avoid !important; vertical-align: top;">
+                            <td style="padding:6px; text-align:center;">${tglStr}</td>
+                            <td style="padding:6px; line-height:1.4;">${ketHtml}</td>
+                            <td style="padding:6px; text-align:right; font-weight:bold;">${nf.format(item.nominal)}</td>
+                            <td style="padding:6px; text-align:right;">-</td>
+                            <td style="padding:6px; text-align:right; font-weight:bold;">${nf.format(currentSaldo)}</td>
                         </tr>`;
                     } else {
                         // Just accumulate balance if before period
@@ -10954,19 +10996,19 @@ function renderLiveStokDiInput() {
 
                     if (isWithin) {
                         currentSaldo -= p.nominal;
+                        subBayar += p.nominal;
                         let tglPParts = p.tgl.split('-');
                         let tglPStr = tglPParts.length === 3 ? `${tglPParts[2]}/${tglPParts[1]}/${tglPParts[0]}` : p.tgl;
+                        
+                        let ketHtml = `<b>Pembayaran (${p.metode || 'Transfer'})</b>`;
+                        
                         rowsHTML += `
-                        <tr style="border-bottom:1px solid #ddd; background-color:#f8fafc; page-break-inside: avoid !important;">
-                            <td style="padding:4px; text-align:center;">${tglPStr}</td>
-                            <td style="padding:4px;">${namaKTP}</td>
-                            <td style="padding:4px; font-style:italic;">Pembayaran (${p.metode || 'Cash'})</td>
-                            <td style="padding:4px; text-align:right;">-</td>
-                            <td style="padding:4px; text-align:center;">-</td>
-                            <td style="padding:4px; text-align:right;">-</td>
-                            <td style="padding:4px; text-align:right;">-</td>
-                            <td style="padding:4px; text-align:right; color:#15803d; font-weight:bold;">${nf.format(p.nominal)}</td>
-                            <td style="padding:4px; text-align:right; font-weight:bold;">${nf.format(currentSaldo)}</td>
+                        <tr style="border-bottom:1px solid #ddd; background-color:#f8fafc; page-break-inside: avoid !important; vertical-align: top;">
+                            <td style="padding:6px; text-align:center;">${tglPStr}</td>
+                            <td style="padding:6px; line-height:1.4;">${ketHtml}</td>
+                            <td style="padding:6px; text-align:right;">-</td>
+                            <td style="padding:6px; text-align:right; font-weight:bold;">${nf.format(p.nominal)}</td>
+                            <td style="padding:6px; text-align:right; font-weight:bold;">${nf.format(currentSaldo)}</td>
                         </tr>`;
                     }
                 });
@@ -10976,35 +11018,83 @@ function renderLiveStokDiInput() {
             let oriHtmlWidth = document.documentElement.style.width;
             let oriBodyWidth = document.body.style.width;
             let oriOverflow = document.body.style.overflow;
-            document.documentElement.style.width = '1123px';
-            document.body.style.width = '1123px';
+            document.documentElement.style.width = '794px';
+            document.body.style.width = '794px';
             document.body.style.overflow = 'visible';
 
             let wrapper = document.createElement('div');
-            wrapper.style.cssText = "display:block; position:absolute; top:0; left:0; width:1123px !important; min-width:1123px !important; z-index:999997; background:#fff;";
+            wrapper.style.cssText = "display:block; position:absolute; top:0; left:0; width:794px !important; min-width:794px !important; z-index:999997; background:#fff;";
             
             let container = document.createElement('div');
             container.style.cssText = "padding:20px; box-sizing:border-box; font-family:sans-serif; color:#000; width:100%;";
             
+            let dNow = new Date();
+            let waktuCetak = dNow.getDate() + "/" + (dNow.getMonth()+1) + "/" + dNow.getFullYear() + ", " + dNow.getHours() + "." + (dNow.getMinutes() < 10 ? '0' : '') + dNow.getMinutes() + "." + (dNow.getSeconds() < 10 ? '0' : '') + dNow.getSeconds();
+            let alamatStr = (typeof dataPiutangLokal !== 'undefined' && dataPiutangLokal[namaKonsumen] && dataPiutangLokal[namaKonsumen].alamat) ? dataPiutangLokal[namaKonsumen].alamat : "-";
+            let ringkasanJudul = "RINGKASAN " + labelPeriode.toUpperCase();
+
+            let labelFile = "";
+            let optP = printOptions;
+            if (typeof optP === 'object') {
+                if (optP.tipe === 'tahun') {
+                    labelFile = optP.tahun;
+                } else if (optP.tipe === 'bulan') {
+                    labelFile = namaBulan[parseInt(optP.bulan)-1] + "_" + optP.tahun;
+                } else if (optP.tipe === 'rentang') {
+                    let d1 = new Date(optP.startDate);
+                    let d2 = new Date(optP.endDate);
+                    labelFile = d1.getDate() + "-" + d2.getDate() + "_" + namaBulan[d1.getMonth()] + "_" + optP.tahun;
+                }
+            } else {
+                labelFile = optP;
+            }
+
             container.innerHTML = `
-                <h2 style="margin:0 0 5px 0;">Kartu Piutang Pakan CBL</h2>
-                <table style="border:none; margin-bottom:15px; font-size:12px;">
-                    <tr><td style="padding-right:20px; font-weight:bold;">Nama Konsumen</td><td>: ${namaKTP}</td></tr>
-                    <tr><td style="padding-right:20px; font-weight:bold;">Periode Tagihan</td><td>: ${labelPeriode}</td></tr>
-                    <tr><td style="padding-right:20px; font-weight:bold;">Total Saldo Akhir</td><td>: Rp ${nf.format(data.saldoAkhir)}</td></tr>
-                </table>
-                <table style="width:100%; border-collapse:collapse; font-size:10px;">
+            <div style="text-align: center; border-bottom: 2px solid #1e3a8a; padding-bottom: 8px; margin-bottom: 15px;">
+                <h2 style="margin: 0; font-size: 22px; color: #1e3a8a;">PT CITA BENGGALA LESTARI (CBL)</h2>
+                <p style="margin: 5px 0 0; font-size: 12px; font-weight: bold; color: #555;">Cikahuripan RT.04/RW.10,
+                    Kec. Lembang, Kabupaten Bandung Barat, Kabupaten Bandung, Jawa Barat 40391</p>
+            </div>
+
+            <div style="text-align: center; margin-bottom: 15px;">
+                <h3 style="margin: 0; font-size: 16px; letter-spacing: 1px; text-decoration: underline;">E-STATEMENT
+                    MUTASI TAGIHAN</h3>
+            </div>
+
+            <table style="width: 100%; font-size: 11px; margin-bottom: 15px; border: none;">
+                <tr style="border: none;">
+                    <td style="width: 15%; border: none; padding: 2px;"><b>Nama Konsumen</b></td>
+                    <td style="width: 2%; border: none; padding: 2px;">:</td>
+                    <td style="width: 45%; border: none; padding: 2px;"><b>${namaKTP}</b></td>
+                    <td style="width: 15%; border: none; padding: 2px;"><b>Periode Tagihan</b></td>
+                    <td style="width: 2%; border: none; padding: 2px;">:</td>
+                    <td style="width: 21%; border: none; padding: 2px;"><b>${labelPeriode}</b></td>
+                </tr>
+                <tr style="border: none;">
+                    <td style="vertical-align: top; border: none; padding: 2px;"><b>Alamat</b></td>
+                    <td style="vertical-align: top; border: none; padding: 2px;">:</td>
+                    <td style="vertical-align: top; border: none; padding: 2px;">${alamatStr}</td>
+                    <td style="vertical-align: top; border: none; padding: 2px;"><b>Waktu Cetak</b></td>
+                    <td style="vertical-align: top; border: none; padding: 2px;">:</td>
+                    <td style="vertical-align: top; border: none; padding: 2px;">${waktuCetak}</td>
+                </tr>
+            </table>
+
+            <div style="background-color: #e2e8f0; text-align: center; font-weight: bold; padding: 8px; font-size: 11px; margin-bottom: 10px;">
+                --- ${ringkasanJudul} --- <br>
+                <span style="font-size: 10px; font-weight: normal;">
+                Saldo Awal: Rp ${nf.format(data.saldoAwal || 0)} | Total Penambahan: Rp ${nf.format(subTagihan)} | Total Pembayaran: Rp ${nf.format(subBayar)} | Saldo Akhir: <b style="color: #b91c1c;">Rp ${nf.format(data.saldoAkhir)}</b>
+                </span>
+            </div>
+
+            <table id="table-estatement" style="width:100%; border-collapse:collapse; font-size:11px;">
                     <thead>
                         <tr style="background-color:#1e3a8a; color:#fff;">
-                            <th style="padding:6px; text-align:center; border:1px solid #ddd;">Tanggal</th>
-                            <th style="padding:6px; text-align:left; border:1px solid #ddd;">Relasi</th>
-                            <th style="padding:6px; text-align:left; border:1px solid #ddd;">Jenis Pakan</th>
-                            <th style="padding:6px; text-align:right; border:1px solid #ddd;">Qty</th>
-                            <th style="padding:6px; text-align:center; border:1px solid #ddd;">Sat</th>
-                            <th style="padding:6px; text-align:right; border:1px solid #ddd;">Harga</th>
-                            <th style="padding:6px; text-align:right; border:1px solid #ddd;">Tagihan</th>
-                            <th style="padding:6px; text-align:right; border:1px solid #ddd;">Pembayaran</th>
-                            <th style="padding:6px; text-align:right; border:1px solid #ddd;">Saldo</th>
+                            <th style="padding:6px; text-align:center !important; border:1px solid #ddd; width:10%;">Tanggal</th>
+                            <th style="padding:6px; text-align:center !important; border:1px solid #ddd; width:42%;">Keterangan Transaksi</th>
+                            <th style="padding:6px; text-align:center !important; border:1px solid #ddd; width:16%;">Tagihan (+)</th>
+                            <th style="padding:6px; text-align:center !important; border:1px solid #ddd; width:16%;">Pembayaran (-)</th>
+                            <th style="padding:6px; text-align:center !important; border:1px solid #ddd; width:16%;">Saldo</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -11023,12 +11113,12 @@ function renderLiveStokDiInput() {
             document.body.appendChild(tirai);
 
             let opt = {
-                margin: [0.5, 0.5, 0.5, 0.5],
-                filename: 'Kartu_Piutang_' + namaKonsumen.replace(/\s+/g, '_') + '.pdf',
+                margin: [0.4, 0, 0.6, 0],
+                filename: 'E-Statement_' + namaKonsumen.replace(/\s+/g, '_') + '_' + labelFile + '.pdf',
                 image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 1.5, useCORS: true, width: 1123, windowWidth: 1123, scrollY: 0, scrollX: 0 }, 
-                pagebreak: { mode: 'css', avoid: ['tr', 'td'] },
-                jsPDF: { unit: 'in', format: 'a4', orientation: 'landscape' }
+                html2canvas: { scale: 1, useCORS: true, width: 794, windowWidth: 794, scrollY: 0, scrollX: 0 }, 
+                pagebreak: { mode: 'css', avoid: ['tr', 'td', '.avoid-break'] },
+                jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
             };
 
             setTimeout(() => {
@@ -11036,7 +11126,8 @@ function renderLiveStokDiInput() {
                     let totalPages = pdf.internal.getNumberOfPages();
                     for (let i = 1; i <= totalPages; i++) {
                         pdf.setPage(i); pdf.setFontSize(9); pdf.setTextColor(120);
-                        pdf.text('Halaman ' + i + ' dari ' + totalPages, pdf.internal.pageSize.getWidth() - 1.5, pdf.internal.pageSize.getHeight() - 0.2);
+                        pdf.text('E-Statement Konsumen Pakan Ternak CBL', 0.5, pdf.internal.pageSize.getHeight() - 0.4);
+                        pdf.text('Halaman ' + i + ' dari ' + totalPages, pdf.internal.pageSize.getWidth() - 1.3, pdf.internal.pageSize.getHeight() - 0.4);
                     }
                 }).save().then(() => {
                     wrapper.remove();
