@@ -7370,6 +7370,8 @@ function aturAksesMenu(role) {
                         
                         if (tglObj < start) isBefore = true;
                         else if (tglObj >= start && tglObj <= end) isWithin = true;
+                    } else if (opt.tipe === 'semua') {
+                        isWithin = true;
                     }
                 }
 
@@ -10268,7 +10270,18 @@ function renderLiveStokDiInput() {
                 targetContainer.innerHTML = '<div style="text-align:center; padding:20px; font-size:12px; color:#8AA624;"><span class="material-symbols-outlined icon-spin" style="font-size:18px; vertical-align:middle;">sync</span> Menarik riwayat E-Statement...</div>';
             }
 
-            let tahunPilihan = window.esCurrentPreviewOptions || { tipe: 'tahun', format: 'simple', tahun: new Date().getFullYear() };
+            let defaultOpt = null;
+            if (!window.esCurrentPreviewOptions) {
+                let dEnd = new Date();
+                let dStart = new Date();
+                dStart.setMonth(dStart.getMonth() - 3);
+                
+                let strStart = dStart.getFullYear() + "-" + (dStart.getMonth() + 1).toString().padStart(2, '0') + "-" + dStart.getDate().toString().padStart(2, '0');
+                let strEnd = dEnd.getFullYear() + "-" + (dEnd.getMonth() + 1).toString().padStart(2, '0') + "-" + dEnd.getDate().toString().padStart(2, '0');
+                
+                defaultOpt = { tipe: 'rentang', format: 'simple', startDate: strStart, endDate: strEnd };
+            }
+            let tahunPilihan = window.esCurrentPreviewOptions || defaultOpt;
 
             fetchSupabaseAll(`${SUPA_URL}/rest/v1/view_mutasi_piutang_detail?relasi=eq.${encodeURIComponent(namaKonsumen)}&order=tanggal.asc`)
             .then(resData => {
@@ -10340,7 +10353,11 @@ function renderLiveStokDiInput() {
                     } else if (optP.tipe === 'bulan') {
                         labelPeriodeStr = namaBulan[parseInt(optP.bulan)-1].toUpperCase() + " " + optP.tahun;
                     } else if (optP.tipe === 'rentang') {
-                        labelPeriodeStr = "RENTANG TANGGAL";
+                        let d1 = new Date(optP.startDate);
+                        let d2 = new Date(optP.endDate);
+                        labelPeriodeStr = d1.getDate() + " " + namaBulan[d1.getMonth()].toUpperCase() + " " + d1.getFullYear() + " - " + d2.getDate() + " " + namaBulan[d2.getMonth()].toUpperCase() + " " + d2.getFullYear();
+                    } else if (optP.tipe === 'semua') {
+                        labelPeriodeStr = "KESELURUHAN";
                     }
 
                     rowsHTML += `
@@ -10375,6 +10392,8 @@ function renderLiveStokDiInput() {
                                 let d1 = new Date(opt.startDate); d1.setHours(0,0,0,0);
                                 let d2 = new Date(opt.endDate); d2.setHours(23,59,59,999);
                                 if (tglObj >= d1 && tglObj <= d2) isWithin = true;
+                            } else if (opt.tipe === 'semua') {
+                                isWithin = true;
                             }
                             
                             if (isWithin) {
@@ -10408,6 +10427,8 @@ function renderLiveStokDiInput() {
                                 let d1 = new Date(opt.startDate); d1.setHours(0,0,0,0);
                                 let d2 = new Date(opt.endDate); d2.setHours(23,59,59,999);
                                 if (pTglObj >= d1 && pTglObj <= d2) isWithin = true;
+                            } else if (opt.tipe === 'semua') {
+                                isWithin = true;
                             }
         
                             if (isWithin) {
@@ -10903,6 +10924,8 @@ function renderLiveStokDiInput() {
                     let strStart = dStart.getDate() + "/" + (dStart.getMonth()+1).toString().padStart(2,'0') + "/" + dStart.getFullYear();
                     let strEnd = dEnd.getDate() + "/" + (dEnd.getMonth()+1).toString().padStart(2,'0') + "/" + dEnd.getFullYear();
                     labelPeriode = strStart + " - " + strEnd;
+                } else if (printOptions.tipe === 'semua') {
+                    labelPeriode = "KESELURUHAN";
                 }
             } else {
                 labelPeriode = "Tahun " + printOptions;
@@ -10947,6 +10970,8 @@ function renderLiveStokDiInput() {
                         let d1 = new Date(opt.startDate); d1.setHours(0,0,0,0);
                         let d2 = new Date(opt.endDate); d2.setHours(23,59,59,999);
                         if (tglObj >= d1 && tglObj <= d2) isWithin = true;
+                    } else if (opt.tipe === 'semua') {
+                        isWithin = true;
                     }
                     
                     if (isWithin) {
@@ -10992,6 +11017,8 @@ function renderLiveStokDiInput() {
                         let d1 = new Date(opt.startDate); d1.setHours(0,0,0,0);
                         let d2 = new Date(opt.endDate); d2.setHours(23,59,59,999);
                         if (pTglObj >= d1 && pTglObj <= d2) isWithin = true;
+                    } else if (opt.tipe === 'semua') {
+                        isWithin = true;
                     }
 
                     if (isWithin) {
@@ -11044,6 +11071,8 @@ function renderLiveStokDiInput() {
                     let d1 = new Date(optP.startDate);
                     let d2 = new Date(optP.endDate);
                     labelFile = d1.getDate() + "-" + d2.getDate() + "_" + namaBulan[d1.getMonth()] + "_" + optP.tahun;
+                } else if (optP.tipe === 'semua') {
+                    labelFile = "SemuaRiwayat";
                 }
             } else {
                 labelFile = optP;
