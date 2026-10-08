@@ -3526,9 +3526,9 @@
         </div>
 
         <!-- MODAL ONGKIR -->
-        <div id="modal-ongkir" class="hidden"
+        <div id="modal-ongkir" class="hidden" onclick="document.getElementById('modal-ongkir').classList.add('hidden')"
             style="position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.6); z-index:9999; display:flex; justify-content:center; align-items:center; padding:20px; backdrop-filter: blur(2px);">
-            <div
+            <div onclick="event.stopPropagation()"
                 style="background:#fff; border-radius:16px; width:100%; max-width:340px; overflow:hidden; box-shadow:0 10px 25px rgba(0,0,0,0.2); animation: slideUp 0.3s ease;">
                 <div style="background:#8AA624; padding:20px 15px 15px; text-align:center; color:white;">
                     <div
@@ -3537,21 +3537,16 @@
                             style="font-size:30px; color:#8AA624;">local_shipping</span>
                     </div>
                     <h3 style="margin:0; font-size:18px;">Konfirmasi Pengiriman</h3>
-                    <p style="margin:5px 0 0; font-size:11px; opacity:0.9;">Apakah orderan ini dikirim menggunakan armada kantor?</p>
                 </div>
                 <div
                     style="padding:15px; display:flex; flex-direction:column; gap:8px; background:#fff; border-top:1px solid #eee;">
                     <button class="btn-submit" onclick="prosesOngkirKirim()"
-                        style="margin:0; background:#8AA624; padding:10px;">
-                        Ya, Dikirim Armada Kantor
+                        style="margin:0; background:#8AA624; padding:12px; font-size: 16px;">
+                        Dikirim
                     </button>
                     <button class="btn-submit" onclick="prosesOngkirAmbil()"
-                        style="margin:0; background:#FEA405; padding:10px;">
-                        Tidak, Diambil Sendiri
-                    </button>
-                    <button class="btn-submit" onclick="document.getElementById('modal-ongkir').classList.add('hidden')"
-                        style="margin:0; background:#fff; color:#F44336; border:1px solid #F44336; padding:10px;">
-                        Batal
+                        style="margin:0; background:#FEA405; padding:12px; font-size: 16px;">
+                        Diambil
                     </button>
                 </div>
             </div>
@@ -8926,7 +8921,10 @@ function renderLiveStokDiInput() {
 
             // --- TAMBAHAN POP-UP KONFIRMASI ONGKIR (CUSTOM MODAL) ---
             let inputOngkirEl = document.getElementById('ongkir');
-            if (!skipOngkirModal && statusPilihan === 'Keluar' && inputOngkirEl.value.trim() === "") {
+            let relDataObj = globalRelasi.find(r => r.nama === valRelasi);
+            let isKategoriMutasi = relDataObj && relDataObj.kategori && relDataObj.kategori.toLowerCase() === 'mutasi';
+
+            if (!skipOngkirModal && statusPilihan === 'Keluar' && inputOngkirEl.value.trim() === "" && !isKategoriMutasi && !isMutasiKandang) {
                 window.tempKirimMode = mode;
                 document.getElementById('modal-ongkir').classList.remove('hidden');
                 return;
