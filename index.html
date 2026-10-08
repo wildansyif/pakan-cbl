@@ -3414,36 +3414,37 @@
                                 </table>
                             </div>
                         </div>
-
-                        <table class="inv-table"
-                            style="width:100%; border-collapse:collapse; margin-bottom:10px; border:0.5px solid #000;">
-                            <thead>
-                                <tr style="background:#444444;">
-                                    <th
-                                        style="background:#444444 !important; color:#ffffff !important; border: 0.5px solid #000; text-align:center; width:5%; padding:4px;">
-                                        No.</th>
-                                    <th
-                                        style="background:#444444 !important; color:#ffffff !important; border: 0.5px solid #000; text-align:center; width:15%; padding:4px;">
-                                        Tanggal DO</th>
-                                    <th
-                                        style="background:#444444 !important; color:#ffffff !important; border: 0.5px solid #000; text-align:center; width:35%; padding:4px;">
-                                        Deskripsi</th>
-                                    <th
-                                        style="background:#444444 !important; color:#ffffff !important; border: 0.5px solid #000; text-align:center; width:10%; padding:4px;">
-                                        Qty</th>
-                                    <th
-                                        style="background:#444444 !important; color:#ffffff !important; border: 0.5px solid #000; text-align:center; width:8%; padding:4px;">
-                                        Satuan</th>
-                                    <th
-                                        style="background:#444444 !important; color:#ffffff !important; border: 0.5px solid #000; text-align:center; width:12%; padding:4px;">
-                                        Harga</th>
-                                    <th
-                                        style="background:#444444 !important; color:#ffffff !important; border: 0.5px solid #000; text-align:center; width:15%; padding:4px;">
-                                        Total</th>
-                                </tr>
-                            </thead>
-                            <tbody id="inv_pdf_items" style="color:#000000; font-weight:500;"></tbody>
-                        </table>
+                        <div id="inv_table_wrapper">
+                            <table class="inv-table"
+                                style="width:100%; border-collapse:collapse; margin-bottom:10px; border:0.5px solid #000;">
+                                <thead>
+                                    <tr style="background:#444444;">
+                                        <th
+                                            style="background:#444444 !important; color:#ffffff !important; border: 0.5px solid #000; text-align:center; width:5%; padding:4px;">
+                                            No.</th>
+                                        <th
+                                            style="background:#444444 !important; color:#ffffff !important; border: 0.5px solid #000; text-align:center; width:15%; padding:4px;">
+                                            Tanggal DO</th>
+                                        <th
+                                            style="background:#444444 !important; color:#ffffff !important; border: 0.5px solid #000; text-align:center; width:35%; padding:4px;">
+                                            Deskripsi</th>
+                                        <th
+                                            style="background:#444444 !important; color:#ffffff !important; border: 0.5px solid #000; text-align:center; width:10%; padding:4px;">
+                                            Qty</th>
+                                        <th
+                                            style="background:#444444 !important; color:#ffffff !important; border: 0.5px solid #000; text-align:center; width:8%; padding:4px;">
+                                            Satuan</th>
+                                        <th
+                                            style="background:#444444 !important; color:#ffffff !important; border: 0.5px solid #000; text-align:center; width:12%; padding:4px;">
+                                            Harga</th>
+                                        <th
+                                            style="background:#444444 !important; color:#ffffff !important; border: 0.5px solid #000; text-align:center; width:15%; padding:4px;">
+                                            Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="inv_pdf_items" style="color:#000000; font-weight:500;"></tbody>
+                            </table>
+                        </div>
 
                         <div style="display:flex; justify-content:space-between; margin-top: 5px; page-break-inside: avoid; break-inside: avoid;">
                             <div
@@ -3475,6 +3476,7 @@
                                     id="inv_pdf_terbilang">Terbilang: -</div>
                             </div>
                         </div>
+                        <div id="inv_halaman_2" style="text-align:right; font-size:10px; font-style:italic; font-weight:600; color:#444; margin-top:15px; border-top: 1px solid #ccc; padding-top: 5px; display:none;">Halaman 2 dari 2</div>
                     </div>
                 </div>
                 <div style="width:100%; max-width:500px; display:flex; gap:10px;">
@@ -7986,10 +7988,12 @@ function aturAksesMenu(role) {
             }
 
             document.getElementById('inv_pdf_no').innerText = displayNoInv; document.getElementById('inv_pdf_tgl').innerText = tglText; document.getElementById('inv_pdf_nama').innerText = namaKonsumenAktif.split('-')[0].trim(); document.getElementById('inv_pdf_alamat').innerText = alamatStr || "-";
-            let pad = "6px"; let fSize = "11px"; let lHeight = "1.4"; let headSize = "11px"; let len = itemInvoiceTerpilih.length; let printArea = document.getElementById('area-cetak-invoice'); 
+            let len = itemInvoiceTerpilih.length;
+            let effectiveLen = len > 11 ? Math.ceil(len / 2) : len;
+            let pad = "6px"; let fSize = "11px"; let lHeight = "1.4"; let headSize = "11px"; let printArea = document.getElementById('area-cetak-invoice'); 
             printArea.style.padding = "25px 40px 10px 40px";
-            if (len > 6) { pad = "4px"; fSize = "10px"; lHeight = "1.3"; headSize = "10px"; } 
-            if (len > 10) { pad = "3px"; fSize = "9px"; lHeight = "1.2"; headSize = "9px"; printArea.style.padding = "20px 35px 10px 35px"; } 
+            if (effectiveLen > 6) { pad = "4px"; fSize = "10px"; lHeight = "1.3"; headSize = "10px"; } 
+            if (effectiveLen > 10) { pad = "3px"; fSize = "9px"; lHeight = "1.2"; headSize = "9px"; printArea.style.padding = "20px 35px 10px 35px"; } 
 
             let ths = document.querySelectorAll('.inv-table th'); ths.forEach(th => { th.style.padding = pad; th.style.fontSize = headSize; });
             
@@ -8061,9 +8065,10 @@ function aturAksesMenu(role) {
             let barisIndex = 1;
             let uniqueTgls = [...new Set(itemInvoiceTerpilih.map(it => it.tgl))];
             
-            let htmlItems = uniqueTgls.map(tgl => {
+            let allTrs = [];
+            uniqueTgls.forEach(tgl => {
                 let group = groupedItems[tgl];
-                if (group.pakanItems.length === 0 && group.potonganItems.length === 0) return "";
+                if (group.pakanItems.length === 0 && group.potonganItems.length === 0) return;
                 
                 let sisaBersih = group.totalAsli - group.totalPotongan;
                 subtotal += sisaBersih;
@@ -8094,17 +8099,17 @@ function aturAksesMenu(role) {
                          deskripsi += `<br><span style="color:#000; font-size:0.9em;"><b>Total: Rp ${nf.format(group.totalAsli)} - Rp ${nf.format(group.totalPotongan)} ${infoKeterangan}</b></span>`;
                     }
 
-                    return `<tr style="page-break-inside: avoid; break-inside: avoid; font-size:${fSize}; line-height:${lHeight}; color:#000000; font-weight:500;">
+                    allTrs.push(`<tr style="page-break-inside: avoid; break-inside: avoid; font-size:${fSize}; line-height:${lHeight}; color:#000000; font-weight:500;">
                             <td style="padding:${pad}; border:0.5px solid #000; text-align:center;">${barisIndex++}</td>
                             <td style="padding:${pad}; border:0.5px solid #000; text-align:center;">${tgl}</td>
                             <td colspan="4" style="padding:${pad}; border:0.5px solid #000; text-align:left;">${deskripsi}</td>
                             <td style="padding:${pad}; border:0.5px solid #000; text-align:right;">${nf.format(sisaBersih)}</td>
-                        </tr>`;
+                        </tr>`);
                 } else {
-                    return group.pakanItems.map(it => {
+                    group.pakanItems.forEach(it => {
                         let harga = it.hargaSatuan > 0 ? it.hargaSatuan : (it.nominal / (it.qty || 1));
                         let safeSatuan = it.satuan || (it.pakan.toLowerCase().includes('ongkir') ? 'Rit' : 'Kg');
-                        return `<tr style="page-break-inside: avoid; break-inside: avoid; font-size:${fSize}; line-height:${lHeight}; color:#000000; font-weight:500;">
+                        allTrs.push(`<tr style="page-break-inside: avoid; break-inside: avoid; font-size:${fSize}; line-height:${lHeight}; color:#000000; font-weight:500;">
                                 <td style="padding:${pad}; border:0.5px solid #000; text-align:center;">${barisIndex++}</td>
                                 <td style="padding:${pad}; border:0.5px solid #000; text-align:center;">${tgl}</td>
                                 <td style="padding:${pad}; border:0.5px solid #000; text-align:left;">${it.pakan}</td>
@@ -8112,14 +8117,80 @@ function aturAksesMenu(role) {
                                 <td style="padding:${pad}; border:0.5px solid #000; text-align:center;">${safeSatuan}</td>
                                 <td style="padding:${pad}; border:0.5px solid #000; text-align:right;">${nf.format(harga)}</td>
                                 <td style="padding:${pad}; border:0.5px solid #000; text-align:right;">${nf.format(it.nominal)}</td>
-                            </tr>`;
-                    }).join('');
+                            </tr>`);
+                    });
                 }
-            }).join('');
+            });
+
+            // LOGIKA PEMBAGIAN HALAMAN (50/50 SPLIT)
+            let totalBaris = allTrs.length;
+            let finalHtmlItems = "";
+            let splitIndex = -1;
+            let isSplit = false;
+            
+            // Jika lebih dari 11 baris, kita bagi 2 agar proporsional dan tidak ada halaman yg isinya cuma 1 baris
+            if (totalBaris > 11) {
+                splitIndex = Math.ceil(totalBaris / 2);
+                isSplit = true;
+            }
+
+            for (let i = 0; i < totalBaris; i++) {
+                finalHtmlItems += allTrs[i];
+                if (isSplit && i === splitIndex - 1) {
+                    // Tutup table pertama, tambahkan div page break dan nomor halaman, lalu buka table kedua
+                    let table2Height = isSplit ? "height: 340px;" : "";
+                    finalHtmlItems += `</tbody></table>
+                    <div style="text-align:right; font-size:10px; font-style:italic; font-weight:600; color:#444; margin-top:20px; border-top: 1px solid #ccc; padding-top:5px;">Halaman 1 dari 2</div>
+                    <div class="html2pdf__page-break" style="height:0px; display:block; border:none; margin:0; padding:0;"></div>
+                    <table class="inv-table" style="width:100%; border-collapse:collapse; margin-bottom:10px; border:0.5px solid #000; ${table2Height}">
+                        <thead>
+                            <tr style="background:#444444;">
+                                <th style="background:#444444 !important; color:#ffffff !important; border: 0.5px solid #000; text-align:center; width:5%; padding:${pad}; font-size:${headSize};">No.</th>
+                                <th style="background:#444444 !important; color:#ffffff !important; border: 0.5px solid #000; text-align:center; width:15%; padding:${pad}; font-size:${headSize};">Tanggal DO</th>
+                                <th style="background:#444444 !important; color:#ffffff !important; border: 0.5px solid #000; text-align:center; width:35%; padding:${pad}; font-size:${headSize};">Deskripsi</th>
+                                <th style="background:#444444 !important; color:#ffffff !important; border: 0.5px solid #000; text-align:center; width:10%; padding:${pad}; font-size:${headSize};">Qty</th>
+                                <th style="background:#444444 !important; color:#ffffff !important; border: 0.5px solid #000; text-align:center; width:8%; padding:${pad}; font-size:${headSize};">Satuan</th>
+                                <th style="background:#444444 !important; color:#ffffff !important; border: 0.5px solid #000; text-align:center; width:12%; padding:${pad}; font-size:${headSize};">Harga</th>
+                                <th style="background:#444444 !important; color:#ffffff !important; border: 0.5px solid #000; text-align:center; width:15%; padding:${pad}; font-size:${headSize};">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inv_pdf_items_page2" style="color:#000000; font-weight:500;">`;
+                }
+            }
 
             let grandTotal = subtotal - diskon;
-            document.getElementById('inv_pdf_items').innerHTML = htmlItems; document.getElementById('inv_pdf_subtotal').innerText = nf.format(subtotal); document.getElementById('inv_pdf_diskon').innerText = diskon > 0 ? nf.format(diskon) : "0"; document.getElementById('inv_pdf_grandtotal').innerText = nf.format(grandTotal); document.getElementById('inv_pdf_ket').innerText = ket;
-            let teksTerbilang = terbilangRupiah(grandTotal) + " Rupiah"; document.getElementById('inv_pdf_terbilang').innerText = `Terbilang: ${teksTerbilang}`;
+            
+            let table1Height = isSplit ? "height: 340px;" : "";
+            document.getElementById('inv_table_wrapper').innerHTML = `
+                <table class="inv-table" style="width:100%; border-collapse:collapse; margin-bottom:10px; border:0.5px solid #000; ${table1Height}">
+                    <thead>
+                        <tr style="background:#444444;">
+                            <th style="background:#444444 !important; color:#ffffff !important; border: 0.5px solid #000; text-align:center; width:5%; padding:${pad}; font-size:${headSize};">No.</th>
+                            <th style="background:#444444 !important; color:#ffffff !important; border: 0.5px solid #000; text-align:center; width:15%; padding:${pad}; font-size:${headSize};">Tanggal DO</th>
+                            <th style="background:#444444 !important; color:#ffffff !important; border: 0.5px solid #000; text-align:center; width:35%; padding:${pad}; font-size:${headSize};">Deskripsi</th>
+                            <th style="background:#444444 !important; color:#ffffff !important; border: 0.5px solid #000; text-align:center; width:10%; padding:${pad}; font-size:${headSize};">Qty</th>
+                            <th style="background:#444444 !important; color:#ffffff !important; border: 0.5px solid #000; text-align:center; width:8%; padding:${pad}; font-size:${headSize};">Satuan</th>
+                            <th style="background:#444444 !important; color:#ffffff !important; border: 0.5px solid #000; text-align:center; width:12%; padding:${pad}; font-size:${headSize};">Harga</th>
+                            <th style="background:#444444 !important; color:#ffffff !important; border: 0.5px solid #000; text-align:center; width:15%; padding:${pad}; font-size:${headSize};">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inv_pdf_items" style="color:#000000; font-weight:500;">
+                        ${finalHtmlItems}
+                    </tbody>
+                </table>
+            `;
+            
+            document.getElementById('inv_pdf_subtotal').innerText = nf.format(subtotal); document.getElementById('inv_pdf_diskon').innerText = diskon > 0 ? nf.format(diskon) : "0"; document.getElementById('inv_pdf_grandtotal').innerText = nf.format(grandTotal); document.getElementById('inv_pdf_ket').innerText = ket;
+            
+            let teksTerbilang = terbilangRupiah(grandTotal) + " Rupiah"; 
+            document.getElementById('inv_pdf_terbilang').innerHTML = `Terbilang: ${teksTerbilang}`;
+            
+            let elHal2 = document.getElementById('inv_halaman_2');
+            if (elHal2) {
+                elHal2.style.display = isSplit ? "block" : "none";
+            }
+
+            
             document.getElementById('modal-invoice').setAttribute('data-no', displayNoInv); document.getElementById('modal-invoice').setAttribute('data-filename', safeFileNameNo); document.getElementById('modal-invoice').setAttribute('data-total', grandTotal);
         }
 
@@ -8165,10 +8236,23 @@ function aturAksesMenu(role) {
 
             let cetakArea = document.getElementById('area-cetak-invoice'); let modal = document.getElementById('modal-invoice'); let wrapper = document.querySelector('.invoice-wrapper');
             let oriModalPos = modal.style.position; let oriWrapperOverflow = wrapper.style.overflowX; let oriWrapperScrolling = wrapper.style.WebkitOverflowScrolling;
-            modal.style.position = 'absolute'; wrapper.style.overflowX = 'visible'; wrapper.style.WebkitOverflowScrolling = 'auto'; window.scrollTo(0, 0);
+            let oriWrapperDisplay = wrapper.style.display;
+            
+            // Simpan style original cetakArea
+            let oriPadding = cetakArea.style.padding;
+            let oriWidth = cetakArea.style.width;
+            let oriMinWidth = cetakArea.style.minWidth;
+            
+            // Hilangkan padding CSS agar tidak double margin di html2pdf, dan sesuaikan lebar konten (794 - 40 - 40 = 714)
+            cetakArea.style.padding = "0px";
+            cetakArea.style.width = "714px";
+            cetakArea.style.minWidth = "714px";
+            
+            // KUNCI: Ubah wrapper jadi block agar html2canvas tidak ngaco offset Y nya setelah page break!
+            modal.style.position = 'absolute'; wrapper.style.overflowX = 'visible'; wrapper.style.WebkitOverflowScrolling = 'auto'; wrapper.style.display = 'block'; window.scrollTo(0, 0);
 
             let opt = { 
-                margin: 0, 
+                margin: [8, 10.5, 5, 10.5], // top, right, bottom, left dalam mm
                 filename: `${fileNameInv}.pdf`, 
                 image: { type: 'jpeg', quality: 1 }, 
                 html2canvas: { scale: 2, useCORS: true }, 
@@ -8179,7 +8263,13 @@ function aturAksesMenu(role) {
             try {
                 await new Promise(r => setTimeout(r, 500));
                 const pdfBase64Data = await html2pdf().set(opt).from(cetakArea).outputPdf('datauristring');
-                modal.style.position = oriModalPos; wrapper.style.overflowX = oriWrapperOverflow; wrapper.style.WebkitOverflowScrolling = oriWrapperScrolling;
+                
+                // Kembalikan style
+                modal.style.position = oriModalPos; wrapper.style.overflowX = oriWrapperOverflow; wrapper.style.WebkitOverflowScrolling = oriWrapperScrolling; wrapper.style.display = oriWrapperDisplay;
+                cetakArea.style.padding = oriPadding;
+                cetakArea.style.width = oriWidth;
+                cetakArea.style.minWidth = oriMinWidth;
+                
                 const base64Clean = pdfBase64Data.split(',')[1]; const byteCharacters = atob(base64Clean); const byteNumbers = new Array(byteCharacters.length); for (let i = 0; i < byteCharacters.length; i++) { byteNumbers[i] = byteCharacters.charCodeAt(i); }
                 const byteArray = new Uint8Array(byteNumbers); const pdfBlob = new Blob([byteArray], { type: 'application/pdf' }); const filePdf = new File([pdfBlob], `${fileNameInv}.pdf`, { type: 'application/pdf' });
 
