@@ -5254,6 +5254,18 @@ function aturAksesMenu(role) {
         document.getElementById('nav-rekap-group').classList.remove('hidden');
         document.getElementById('sub-rekap-giling').classList.remove('hidden');
     }
+    else if (role === 'admin jurnal') {
+        // Admin Jurnal: Akses Jurnal, Piutang, Analisa, Rekap
+        // HIDE Input dan Stok
+        document.getElementById('nav-rekap-group').classList.remove('hidden');
+        document.getElementById('sub-rekap-harian').classList.remove('hidden');
+        document.getElementById('nav-piutang').classList.remove('hidden');
+        document.getElementById('nav-analytics').classList.remove('hidden'); // Analisa dibuka
+        
+        // HIDE MENU INPUT DAN STOK
+        document.getElementById('nav-input').classList.add('hidden');
+        document.getElementById('nav-stok').classList.add('hidden');
+    }
     else if (role === 'lapangan') {
         // Petugas Lapangan Lainnya
         document.getElementById('nav-rekap-group').classList.remove('hidden');
@@ -5265,12 +5277,21 @@ function aturAksesMenu(role) {
     gantiLokasi();
     if (typeof updateKategoriCashflow === 'function') updateKategoriCashflow();
     fetchMasterRelasi();
+
+    // 4. Pindah ke halaman Jurnal jika role adalah admin jurnal (karena menu input di-hide)
+    if (role === 'admin jurnal') {
+        pindahMenu('jurnal');
+    }
 }
 
         function pindahMenu(menu) {
             // Lapisan Keamanan Ekstra (Mencegah Akses Paksa)
-            if ((menu === 'analytics' || menu === 'piutang') && currentLoggedPin !== "1234") {
-                alert("Akses Ditolak: Hanya Admin Pusat (Wildan) yang dapat membuka menu ini.");
+            if (menu === 'analytics' && currentRole !== 'admin' && currentRole !== 'admin jurnal') {
+                alert("Akses Ditolak: Hanya Admin yang dapat membuka menu ini.");
+                return;
+            }
+            if (menu === 'piutang' && currentRole !== 'admin' && currentRole !== 'admin jurnal') {
+                alert("Akses Ditolak: Hanya Admin yang berwenang membuka menu Piutang.");
                 return;
             }
             if (menu === 'giling' && currentLoggedPin !== "1234" && currentLoggedPin !== "8888") {
