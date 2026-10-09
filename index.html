@@ -3491,6 +3491,116 @@
             </div>
         </div>
 
+        <!-- MULAI: HALAMAN JURNAL UMUM -->
+        <div id="page-jurnal" class="container hidden">
+            <div class="header">
+                <h2 style="margin:0;"><span class="material-symbols-outlined" style="vertical-align:bottom; font-size:24px;">menu_book</span> Buku Jurnal Umum</h2>
+                <div style="font-size: 11px; opacity: 0.8; margin-top:2px;">Sistem Akuntansi Double-Entry</div>
+            </div>
+
+            <style>
+                #page-jurnal .inv-table th { background: #1e3a8a !important; color: white !important; text-align: center !important; border: 1px solid #cbd5e1 !important; }
+                #page-jurnal .inv-table td { border: 1px solid #e2e8f0 !important; }
+            </style>
+            <!-- TAB MENU JURNAL -->
+            <div class="filter-group" style="display:flex; flex-direction:column; gap:10px; margin-bottom:15px; background:white; padding:15px; border-radius:8px; border:1px solid #ddd;">
+                <div style="display:flex; gap:10px;">
+                    <div style="flex:1;">
+                        <label style="font-size:11px; font-weight:bold; color:#555;">Bulan</label>
+                        <select id="jurnal-bulan" style="width:100%; border:1px solid #ccc; border-radius:4px; padding:8px;">
+                            <option value="ALL">Semua Bulan</option>
+                            <option value="01">Januari</option>
+                            <option value="02">Februari</option>
+                            <option value="03">Maret</option>
+                            <option value="04">April</option>
+                            <option value="05">Mei</option>
+                            <option value="06">Juni</option>
+                            <option value="07">Juli</option>
+                            <option value="08">Agustus</option>
+                            <option value="09">September</option>
+                            <option value="10">Oktober</option>
+                            <option value="11">November</option>
+                            <option value="12">Desember</option>
+                        </select>
+                    </div>
+                    <div style="flex:1;">
+                        <label style="font-size:11px; font-weight:bold; color:#555;">Tahun</label>
+                        <select id="jurnal-tahun" style="width:100%; border:1px solid #ccc; border-radius:4px; padding:8px;">
+                            <option value="2025">2025</option>
+                            <option value="2026">2026</option>
+                            <option value="2027">2027</option>
+                            <option value="2028">2028</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="display:flex; gap:10px;">
+                    <div style="flex:1;">
+                        <label style="font-size:11px; font-weight:bold; color:#555;">KODE</label>
+                        <select id="jurnal-kode" style="width:100%; border:1px solid #ccc; border-radius:4px; padding:8px;">
+                            <option value="">Semua Kode</option>
+                            <option value="1">1 - Aset / Piutang / Kas</option>
+                            <option value="2">2 - Kewajiban / Hutang</option>
+                            <option value="3">3 - Ekuitas / Modal</option>
+                            <option value="4">4 - Pendapatan Penjualan</option>
+                            <option value="5">5 - Biaya / HPP</option>
+                        </select>
+                    </div>
+                    <div style="flex:1;">
+                        <label style="font-size:11px; font-weight:bold; color:#555;">Perkiraan</label>
+                        <input type="text" id="jurnal-perkiraan" placeholder="Semua Perkiraan..." style="width:100%; border:1px solid #ccc; border-radius:4px; padding:8px; box-sizing:border-box;">
+                    </div>
+                </div>
+                <div style="display:flex; gap:10px; align-items:flex-end;">
+                    <div style="flex:2;">
+                        <label style="font-size:11px; font-weight:bold; color:#555;">Relasi</label>
+                        <div class="autocomplete-wrapper">
+                            <input type="text" id="jurnal-relasi" placeholder="Ketik nama relasi..." autocomplete="off" 
+                                oninput="tampilkanSaran(this, 'saran-relasi-jurnal', false)" 
+                                style="width:100%; border:1px solid #ccc; border-radius:4px; padding:8px; background:white;">
+                            <div id="saran-relasi-jurnal" class="autocomplete-items hidden"></div>
+                        </div>
+                    </div>
+                    <div style="flex:1; display:flex; gap:5px;">
+                        <button class="btn-submit" onclick="fetchDataJurnal()" style="margin:0; background:#8AA624; flex:1; padding:8px;"><span class="material-symbols-outlined" style="font-size:18px;">search</span></button>
+                        <button class="btn-submit" onclick="exportExcelJurnal()" style="margin:0; background:#2196F3; flex:1; padding:8px;"><span class="material-symbols-outlined" style="font-size:18px;">download</span></button>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="jurnal-loader" class="loader hidden" style="text-align:center; padding:15px; color:#8AA624; font-size:12px; font-weight:bold;">
+                <span class="material-symbols-outlined" style="animation: spin 1s linear infinite;">sync</span><br>Memuat Buku Jurnal...
+            </div>
+            
+            <div style="overflow-x:auto; background:white; border-radius:8px; border:1px solid #ddd; margin-bottom:20px; box-shadow:0 2px 4px rgba(0,0,0,0.05);">
+                <table class="inv-table" style="width:100%; min-width:900px; border-collapse:collapse;">
+                    <thead>
+                        <tr>
+                            <th style="padding:10px; font-size:11px; width:8%;">Tanggal</th>
+                            <th style="padding:10px; font-size:11px; width:5%;">KODE</th>
+                            <th style="padding:10px; font-size:11px; width:15%;">Perkiraan</th>
+                            <th style="padding:10px; font-size:11px; width:12%;">Relasi</th>
+                            <th style="padding:10px; font-size:11px; width:26%;">Uraian</th>
+                            <th style="padding:10px; font-size:11px; width:12%;">Debit</th>
+                            <th style="padding:10px; font-size:11px; width:12%;">Kredit</th>
+                            <th style="padding:10px; font-size:11px; width:10%;">Saldo</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody-jurnal" style="font-size:11px;">
+                        <tr><td colspan="8" style="text-align:center; padding:20px; color:#888;">Gunakan filter untuk menampilkan data jurnal</td></tr>
+                    </tbody>
+                    <tfoot id="tfoot-jurnal" style="font-size:12px; font-weight:bold; background:#e8f0fe; border-top:2px solid #ccc;">
+                        <tr>
+                            <td colspan="5" style="text-align:right; padding:10px; color:#333;">TOTAL BALANCE:</td>
+                            <td id="jurnal-total-debit" style="text-align:right; padding:10px; color:#1a5c40;">0</td>
+                            <td id="jurnal-total-kredit" style="text-align:right; padding:10px; color:#1a5c40;">0</td>
+                            <td id="jurnal-total-saldo" style="text-align:right; padding:10px; color:#1a5c40;">0</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+        <!-- AKHIR: HALAMAN JURNAL UMUM -->
+
         <div id="modal-confirm" class="hidden"
             style="position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.6); z-index:9999; display:flex; justify-content:center; align-items:center; padding:20px; backdrop-filter: blur(2px);">
             <div
@@ -3576,6 +3686,9 @@
             </div>
             <div class="nav-item" id="nav-piutang" onclick="pindahMenu('piutang')">
                 <span class="material-symbols-outlined nav-icon">receipt_long</span><span>Piutang</span>
+            </div>
+            <div class="nav-item" id="nav-jurnal" onclick="pindahMenu('jurnal')">
+                <span class="material-symbols-outlined nav-icon">menu_book</span><span>Jurnal</span>
             </div>
         </div>
 
@@ -4093,6 +4206,7 @@
         </div>
         
         <script src="po_logic.js"></script>
+        <script src="jurnal_logic.js"></script>
     <script>
         const APP_VERSION = "v5.7";
         if (localStorage.getItem('cbl_app_version') !== APP_VERSION) {
@@ -5142,6 +5256,18 @@ function aturAksesMenu(role) {
         document.getElementById('nav-rekap-group').classList.remove('hidden');
         document.getElementById('sub-rekap-giling').classList.remove('hidden');
     }
+    else if (role === 'admin jurnal') {
+        // Admin Jurnal: Akses Jurnal, Piutang, Analisa, Rekap
+        // HIDE Input dan Stok
+        document.getElementById('nav-rekap-group').classList.remove('hidden');
+        document.getElementById('sub-rekap-harian').classList.remove('hidden');
+        document.getElementById('nav-piutang').classList.remove('hidden');
+        document.getElementById('nav-analytics').classList.remove('hidden'); // Analisa dibuka
+        
+        // HIDE MENU INPUT DAN STOK
+        document.getElementById('nav-input').classList.add('hidden');
+        document.getElementById('nav-stok').classList.add('hidden');
+    }
     else if (role === 'lapangan') {
         // Petugas Lapangan Lainnya
         document.getElementById('nav-rekap-group').classList.remove('hidden');
@@ -5153,12 +5279,21 @@ function aturAksesMenu(role) {
     gantiLokasi();
     if (typeof updateKategoriCashflow === 'function') updateKategoriCashflow();
     fetchMasterRelasi();
+
+    // 4. Pindah ke halaman Jurnal jika role adalah admin jurnal (karena menu input di-hide)
+    if (role === 'admin jurnal') {
+        pindahMenu('jurnal');
+    }
 }
 
         function pindahMenu(menu) {
             // Lapisan Keamanan Ekstra (Mencegah Akses Paksa)
-            if ((menu === 'analytics' || menu === 'piutang') && currentLoggedPin !== "1234") {
-                alert("Akses Ditolak: Hanya Admin Pusat (Wildan) yang dapat membuka menu ini.");
+            if (menu === 'analytics' && currentRole !== 'admin' && currentRole !== 'admin jurnal') {
+                alert("Akses Ditolak: Hanya Admin yang dapat membuka menu ini.");
+                return;
+            }
+            if (menu === 'piutang' && currentRole !== 'admin' && currentRole !== 'admin jurnal') {
+                alert("Akses Ditolak: Hanya Admin yang berwenang membuka menu Piutang.");
                 return;
             }
             if (menu === 'giling' && currentLoggedPin !== "1234" && currentLoggedPin !== "8888") {
@@ -5173,6 +5308,7 @@ function aturAksesMenu(role) {
             if (menu === 'analytics' && !cacheDataGlobal) tarikDataGlobal(false);
             if (menu === 'piutang') tarikDataPiutang();
             if (menu === 'stok') tarikDataStokPWA();
+            if (menu === 'jurnal') initTanggalJurnal();
             if (menu === 'giling') {
                 let now = new Date(); document.getElementById('giling_end').valueAsDate = now;
                 let start = new Date(); start.setDate(now.getDate() - 6);
@@ -6620,7 +6756,7 @@ function aturAksesMenu(role) {
                         aging: { sehat: 0, t15: 0, t30: 0, t60: 0, total_telat: 0 }
                     };
 
-                    if (sisaPiutangDB !== 0 && mutasiGrouped[namaRelasi]) {
+                    if (mutasiGrouped[namaRelasi]) {
                         let listTagihan = mutasiGrouped[namaRelasi].tagihan;
                         let listBayar = mutasiGrouped[namaRelasi].bayar;
 
@@ -6794,6 +6930,7 @@ function aturAksesMenu(role) {
                             serverData[namaRelasi].dates["DEPO-"+tglDepo] = { isLokal: false, tgl: tglDepo, tagihan: 0, dp: sisaDeposit, sisaNyata: -sisaDeposit, jt: "", isTelat: false, items: [{ pakan: "Deposit / Uang Lebih", qty: 0, nominal: -sisaDeposit, satuan: "-" }] };
                         }
                         serverData[namaRelasi].riwayat = [...listBayar].reverse().slice(0, 5);
+                        serverData[namaRelasi].riwayat_all = [...listBayar];
                     }
                     
                     serverData[namaRelasi].total_telat = serverData[namaRelasi].aging.total_telat;
@@ -6804,12 +6941,84 @@ function aturAksesMenu(role) {
                 localStorage.setItem('piutang_ptcbl_cache', JSON.stringify(serverData));
                 renderAgingDashboard();
                 renderListPiutang();
+                
+                // 🔥 SINKRONISASI SILUMAN (UPDATE URAIAN FIFO KE CASHFLOW)
+                setTimeout(() => syncUraianFifoToDatabase(serverData), 1500); // delay dikit biar UI ga lag
+                
             }).catch(e => {
                 console.error(e); 
                 document.getElementById('piutang-loader').classList.add('hidden');
                 if (btn) btn.innerHTML = `<span class="material-symbols-outlined">sync</span>`;
                 alert("Gagal memuat rekap piutang: " + e.message);
             });
+        }
+        
+        function syncUraianFifoToDatabase(serverData) {
+            let updates = [];
+            let nf = new Intl.NumberFormat('id-ID');
+
+            for (let relasi in serverData) {
+                if (!serverData[relasi].riwayat_all) continue;
+                
+                serverData[relasi].riwayat_all.forEach(bayar => {
+                    // Hanya proses data yang asalnya dari tabel cashflow (pembayaran)
+                    if (bayar.raw && bayar.raw.sumber === 'CASHFLOW') {
+                        let idCf = bayar.raw.id_sumber;
+                        
+                        // Rakit teks potongan nota dari hasil kalkulasi memori
+                        // Cek apakah berbeda dengan di database
+                        let dbUraian = bayar.raw.uraian_fifo || "";
+                        
+                        // Rakit teks potongan nota dari hasil kalkulasi memori
+                        let uraianText = "[Deposit / Saldo Menganggur]";
+                        if (bayar.detailPotongan && bayar.detailPotongan.length > 0) {
+                            let teksPotong = bayar.detailPotongan.map(p => `Nota ${p.tglNota} (Rp ${nf.format(p.jumlah)})`).join('; ');
+                            uraianText = `[Memotong: ${teksPotong}]`;
+                        }
+
+                        if (uraianText !== dbUraian && idCf) {
+                            updates.push({ id: idCf, uraian_fifo: uraianText });
+                        }
+                    }
+                });
+            }
+
+            // Jika ada yang berubah / belum tersimpan, kirim ke database secara background
+            if (updates.length > 0) {
+                console.log(`Menyinkronkan ${updates.length} Uraian FIFO ke Database Cashflow...`);
+                
+                // Gunakan antrian Paralel Batch (Lebih aman dari Bulk Upsert jika kena block RLS)
+                async function prosesBatch() {
+                    let batchSize = 20; // 20 request bersamaan, tidak bikin macet
+                    for (let i = 0; i < updates.length; i += batchSize) {
+                        let batch = updates.slice(i, i + batchSize);
+                        
+                        let promises = batch.map(upd => 
+                            fetch(`${SUPA_URL}/rest/v1/cashflow?id=eq.${upd.id}`, {
+                                method: 'PATCH',
+                                headers: { 
+                                    'apikey': SUPA_ANON_KEY, 
+                                    'Authorization': `Bearer ${SUPA_ANON_KEY}`, 
+                                    'Content-Type': 'application/json' 
+                                },
+                                body: JSON.stringify({ uraian_fifo: upd.uraian_fifo })
+                            }).then(async res => {
+                                if (!res.ok) {
+                                    let err = await res.json().catch(()=>({}));
+                                    console.error("Gagal PATCH ID", upd.id, res.status, err);
+                                }
+                            }).catch(e => console.error("Error Network:", e))
+                        );
+                        
+                        // Tunggu 20 request ini selesai dulu sebelum gas 20 berikutnya
+                        await Promise.all(promises);
+                        console.log(`Selesai sinkronisasi ${i + batch.length} dari ${updates.length}...`);
+                    }
+                    console.log("✅ BOOM! SEMUA 100% SINKRON!");
+                }
+                
+                prosesBatch();
+            }
         }
 
         function tarikDataAnalytics() {
@@ -8687,7 +8896,7 @@ function renderLiveStokDiInput() {
         }
 
         function tampilkanSaran(inputElement, listId, isGudang) { let val = inputElement.value; let listContainer = document.getElementById(listId); listContainer.innerHTML = ""; listContainer.classList.add('hidden'); if (!val) return; let matches = globalRelasi.filter(r => r.nama.toLowerCase().includes(val.toLowerCase())); if (matches.length > 0) { listContainer.classList.remove('hidden'); matches.forEach(match => { let div = document.createElement("div"); div.className = "autocomplete-item"; let regex = new RegExp(`(${val})`, "gi"); div.innerHTML = match.nama.replace(regex, "<strong>$1</strong>"); if (match.alamat) div.innerHTML += `<span class="alamat-hint">${match.alamat}</span>`; div.addEventListener("click", function () { inputElement.value = match.nama; listContainer.innerHTML = ""; listContainer.classList.add('hidden'); if (isGudang && match.alamat && getLokasiAktif() !== '/kandang') { document.getElementById('ekor').value = match.alamat; } }); listContainer.appendChild(div); }); } }
-        document.addEventListener("click", function (e) { if (e.target.id !== "relasi") document.getElementById("saran-relasi-gudang")?.classList.add("hidden"); if (e.target.id !== "cf_relasi") document.getElementById("saran-relasi-cf")?.classList.add("hidden"); if (e.target.id !== "analytics_relasi") document.getElementById("saran-relasi-analytics")?.classList.add("hidden"); if (e.target.id !== "filter-pakan") document.getElementById("saran-pakan-stok")?.classList.add("hidden"); });
+        document.addEventListener("click", function (e) { if (e.target.id !== "relasi") document.getElementById("saran-relasi-gudang")?.classList.add("hidden"); if (e.target.id !== "cf_relasi") document.getElementById("saran-relasi-cf")?.classList.add("hidden"); if (e.target.id !== "analytics_relasi") document.getElementById("saran-relasi-analytics")?.classList.add("hidden"); if (e.target.id !== "jurnal-relasi") document.getElementById("saran-relasi-jurnal")?.classList.add("hidden"); if (e.target.id !== "filter-pakan") document.getElementById("saran-pakan-stok")?.classList.add("hidden"); });
 
         function cekStatusSJ() {
             let status = document.getElementById('status').value;
