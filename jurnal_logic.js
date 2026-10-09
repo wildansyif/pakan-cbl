@@ -65,7 +65,8 @@ function renderJurnal(data) {
         filtered = data.filter(d => {
             let matchKode = !fKode || (d.kode_akun && d.kode_akun.startsWith(fKode));
             let matchPerkiraan = !fPerkiraan || (d.nama_akun && d.nama_akun.toLowerCase().includes(fPerkiraan));
-            let matchRelasi = !fRelasi || (d.relasi && d.relasi.toLowerCase().includes(fRelasi));
+            // Autocomplete di web ini mengembalikan nama exact, tapi kalau user ngetik manual bisa sebagian
+            let matchRelasi = !fRelasi || (d.relasi && d.relasi.toLowerCase() === fRelasi);
             return matchKode && matchPerkiraan && matchRelasi;
         });
     }
@@ -85,7 +86,7 @@ function renderJurnal(data) {
     let dataPiutangCache = localStorage.getItem('piutang_ptcbl_cache');
     let piutangParsed = dataPiutangCache ? JSON.parse(dataPiutangCache) : null;
     
-    filtered.forEach(d => {
+    filtered.forEach((d, index) => {
         let tglStr = d.tanggal.split('-').reverse().join('/');
         let tglUraian = Number(d.tanggal.split('-')[2]) + '/' + Number(d.tanggal.split('-')[1]);
         
@@ -103,8 +104,13 @@ function renderJurnal(data) {
         runningSaldo += (debNum - kreNum);
         let saldoStr = runningSaldo === 0 ? "0" : nf.format(runningSaldo);
         
+        // Format nominal mentah di dalam deskripsi (seperti @5000 atau Rp 50000)
+        let deskripsiFormat = d.deskripsi ? d.deskripsi.replace(/(@|Rp\s*)(\d+)/g, (match, prefix, numStr) => {
+            return prefix + nf.format(Number(numStr));
+        }) : "";
+
         // Gabungkan Uraian Dasar
-        let uraian = `${d.nama_akun}. ${tglUraian} ${d.relasi ? d.relasi + ' ' : ''}${d.deskripsi}`;
+        let uraian = `${d.nama_akun}. ${tglUraian} ${d.relasi ? d.relasi + ' ' : ''}${deskripsiFormat}`;
         
         // 🔥 INJEKSI DETAIL NOTA PIUTANG JIKA INI ADALAH PEMBAYARAN KAS
         if (d.id_jurnal && d.id_jurnal.startsWith('CF-') && piutangParsed && d.relasi && piutangParsed[d.relasi] && piutangParsed[d.relasi].riwayat_all) {
@@ -123,17 +129,17 @@ function renderJurnal(data) {
             }
         }
         
-        let bg = debNum > 0 ? "background:#f9fdfa;" : "background:#fefafa;";
+        let bg = index % 2 === 0 ? "background:#ffffff;" : "background:#f8fafc;";
         
-        html += `<tr style="${bg} border-bottom:1px solid #eee;">
+        html += `<tr style="${bg}">
             <td style="padding:10px;">${tglStr}</td>
             <td style="padding:10px; text-align:center;">${kodeDepan}</td>
             <td style="padding:10px;">${d.nama_akun}</td>
             <td style="padding:10px;">${d.relasi || ''}</td>
-            <td style="padding:10px;">${uraian}</td>
+            <td style="padding:10px; line-height:1.4;">${uraian}</td>
             <td style="padding:10px; text-align:right;">${debStr}</td>
             <td style="padding:10px; text-align:right;">${kreStr}</td>
-            <td style="padding:10px; text-align:right;">${saldoStr}</td>
+            <td style="padding:10px; text-align:right; font-weight:bold;">${saldoStr}</td>
         </tr>`;
         
         tDebit += debNum;

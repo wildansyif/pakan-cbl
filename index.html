@@ -3496,6 +3496,10 @@
                 <div style="font-size: 11px; opacity: 0.8; margin-top:2px;">Sistem Akuntansi Double-Entry</div>
             </div>
 
+            <style>
+                #page-jurnal .inv-table th { background: #1e3a8a !important; color: white !important; text-align: center !important; border: 1px solid #cbd5e1 !important; }
+                #page-jurnal .inv-table td { border: 1px solid #e2e8f0 !important; }
+            </style>
             <!-- TAB MENU JURNAL -->
             <div class="filter-group" style="display:flex; flex-direction:column; gap:10px; margin-bottom:15px; background:white; padding:15px; border-radius:8px; border:1px solid #ddd;">
                 <div style="display:flex; gap:10px;">
@@ -3547,7 +3551,12 @@
                 <div style="display:flex; gap:10px; align-items:flex-end;">
                     <div style="flex:2;">
                         <label style="font-size:11px; font-weight:bold; color:#555;">Relasi</label>
-                        <input type="text" id="jurnal-relasi" placeholder="Cari nama relasi..." style="width:100%; margin-bottom:0; border:1px solid #ccc; border-radius:4px; padding:8px; box-sizing:border-box;">
+                        <div class="autocomplete-wrapper">
+                            <input type="text" id="jurnal-relasi" placeholder="Ketik nama relasi..." autocomplete="off" 
+                                oninput="tampilkanSaran(this, 'saran-relasi-jurnal', false)" 
+                                style="width:100%; border:1px solid #ccc; border-radius:4px; padding:8px; background:white;">
+                            <div id="saran-relasi-jurnal" class="autocomplete-items hidden"></div>
+                        </div>
                     </div>
                     <div style="flex:1; display:flex; gap:5px;">
                         <button class="btn-submit" onclick="fetchDataJurnal()" style="margin:0; background:#8AA624; flex:1; padding:8px;"><span class="material-symbols-outlined" style="font-size:18px;">search</span></button>
@@ -3563,15 +3572,15 @@
             <div style="overflow-x:auto; background:white; border-radius:8px; border:1px solid #ddd; margin-bottom:20px; box-shadow:0 2px 4px rgba(0,0,0,0.05);">
                 <table class="inv-table" style="width:100%; min-width:900px; border-collapse:collapse;">
                     <thead>
-                        <tr style="background:#2c3e50; color:white;">
-                            <th style="padding:10px; font-size:11px; width:8%; text-align:left;">Tanggal</th>
-                            <th style="padding:10px; font-size:11px; width:5%; text-align:center;">KODE</th>
-                            <th style="padding:10px; font-size:11px; width:15%; text-align:left;">Perkiraan</th>
-                            <th style="padding:10px; font-size:11px; width:12%; text-align:left;">Relasi</th>
-                            <th style="padding:10px; font-size:11px; width:26%; text-align:left;">Uraian</th>
-                            <th style="padding:10px; font-size:11px; width:12%; text-align:right;">Debit</th>
-                            <th style="padding:10px; font-size:11px; width:12%; text-align:right;">Kredit</th>
-                            <th style="padding:10px; font-size:11px; width:10%; text-align:right;">Saldo</th>
+                        <tr>
+                            <th style="padding:10px; font-size:11px; width:8%;">Tanggal</th>
+                            <th style="padding:10px; font-size:11px; width:5%;">KODE</th>
+                            <th style="padding:10px; font-size:11px; width:15%;">Perkiraan</th>
+                            <th style="padding:10px; font-size:11px; width:12%;">Relasi</th>
+                            <th style="padding:10px; font-size:11px; width:26%;">Uraian</th>
+                            <th style="padding:10px; font-size:11px; width:12%;">Debit</th>
+                            <th style="padding:10px; font-size:11px; width:12%;">Kredit</th>
+                            <th style="padding:10px; font-size:11px; width:10%;">Saldo</th>
                         </tr>
                     </thead>
                     <tbody id="tbody-jurnal" style="font-size:11px;">
@@ -8776,7 +8785,7 @@ function renderLiveStokDiInput() {
         }
 
         function tampilkanSaran(inputElement, listId, isGudang) { let val = inputElement.value; let listContainer = document.getElementById(listId); listContainer.innerHTML = ""; listContainer.classList.add('hidden'); if (!val) return; let matches = globalRelasi.filter(r => r.nama.toLowerCase().includes(val.toLowerCase())); if (matches.length > 0) { listContainer.classList.remove('hidden'); matches.forEach(match => { let div = document.createElement("div"); div.className = "autocomplete-item"; let regex = new RegExp(`(${val})`, "gi"); div.innerHTML = match.nama.replace(regex, "<strong>$1</strong>"); if (match.alamat) div.innerHTML += `<span class="alamat-hint">${match.alamat}</span>`; div.addEventListener("click", function () { inputElement.value = match.nama; listContainer.innerHTML = ""; listContainer.classList.add('hidden'); if (isGudang && match.alamat && getLokasiAktif() !== '/kandang') { document.getElementById('ekor').value = match.alamat; } }); listContainer.appendChild(div); }); } }
-        document.addEventListener("click", function (e) { if (e.target.id !== "relasi") document.getElementById("saran-relasi-gudang")?.classList.add("hidden"); if (e.target.id !== "cf_relasi") document.getElementById("saran-relasi-cf")?.classList.add("hidden"); if (e.target.id !== "analytics_relasi") document.getElementById("saran-relasi-analytics")?.classList.add("hidden"); if (e.target.id !== "filter-pakan") document.getElementById("saran-pakan-stok")?.classList.add("hidden"); });
+        document.addEventListener("click", function (e) { if (e.target.id !== "relasi") document.getElementById("saran-relasi-gudang")?.classList.add("hidden"); if (e.target.id !== "cf_relasi") document.getElementById("saran-relasi-cf")?.classList.add("hidden"); if (e.target.id !== "analytics_relasi") document.getElementById("saran-relasi-analytics")?.classList.add("hidden"); if (e.target.id !== "jurnal-relasi") document.getElementById("saran-relasi-jurnal")?.classList.add("hidden"); if (e.target.id !== "filter-pakan") document.getElementById("saran-pakan-stok")?.classList.add("hidden"); });
 
         function cekStatusSJ() {
             let status = document.getElementById('status').value;
