@@ -465,6 +465,26 @@
             gap: 6px;
         }
 
+        @media (max-width: 650px) {
+            .desktop-col-kg, .desktop-col-omzet {
+                display: none !important;
+            }
+            .mobile-only-sub {
+                display: block !important;
+            }
+        }
+        @media (min-width: 651px) {
+            .desktop-col-kg, .desktop-col-omzet {
+                display: table-cell !important;
+            }
+            .mobile-only-sub {
+                display: none !important;
+            }
+        }
+        .row-top-konsumen:hover {
+            background-color: #f8fafc !important;
+        }
+
         .rekap-item {
             display: flex;
             justify-content: space-between;
@@ -1211,27 +1231,29 @@
                 grid-row: 3;
             }
 
-            /* Tren Pakan (Di bawah Vol Growth) */
+            /* Perbandingan Gudang (50% kiri di Row 4) */
             #gl_result>div:nth-child(3) {
-                grid-column: 1 / 10;
-                grid-row: 4 / 6;
+                grid-column: 1 / 7;
+                grid-row: 4;
                 display: flex;
                 flex-direction: column;
             }
 
             #gl_result>div:nth-child(3)>div:last-child {
                 flex: 1;
-                min-height: 380px !important;
+                min-height: 220px !important;
                 height: auto !important;
             }
 
+            /* Kesehatan Arus Kas Piutang (50% kanan di Row 4) */
             #gl_result>div:nth-child(2) {
-                grid-column: 10 / 13;
+                grid-column: 7 / 13;
                 grid-row: 4;
             }
 
+            /* Top Konsumen & Proporsi Pakan (100% full width di Row 5) */
             #gl_result>div:nth-child(4) {
-                grid-column: 10 / 13;
+                grid-column: 1 / 13;
                 grid-row: 5;
             }
 
@@ -2867,19 +2889,57 @@
                         <div style="height: 200px; position: relative;"><canvas id="chartGudang"></canvas></div>
                     </div>
 
-                    <div class="rekap-card">
-                        <div class="rekap-title"><span class="material-symbols-outlined"
-                                style="font-size:18px;">military_tech</span> Top 5 Konsumen Omzet</div>
-                        <table id="table-top-konsumen">
-                            <thead>
-                                <tr>
-                                    <th>Nama Relasi</th>
-                                    <th>Total (Kg)</th>
-                                    <th style="text-align:right">Omzet</th>
-                                </tr>
-                            </thead>
-                            <tbody></tbody>
-                        </table>
+                    <div class="rekap-card" id="card-top-konsumen">
+                        <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:10px; margin-bottom:12px; border-bottom:1px solid #DBE4C9; padding-bottom:10px;">
+                            <div class="rekap-title" style="margin:0; border:none; padding:0; display:flex; align-items:center; gap:6px;">
+                                <span class="material-symbols-outlined" style="font-size:20px; color:#8AA624;">military_tech</span>
+                                <span id="title-top-konsumen">Top Konsumen & Proporsi Pakan</span>
+                            </div>
+
+                            <!-- Toolbar Kontrol: Pilihan Limit, Sort, & Cari -->
+                            <div style="display:flex; flex-wrap:wrap; align-items:center; gap:8px;">
+                                <!-- Filter Limit (Top 5, 10, 20, Semua) -->
+                                <div style="display:inline-flex; background:#f1f5f9; border-radius:8px; padding:2px; border:1px solid #cbd5e1;">
+                                    <button type="button" class="btn-top-limit" id="btn-top-5" onclick="setTopKonsumenLimit(5, this)" style="padding:4px 9px; font-size:11px; font-weight:700; border:none; background:#8AA624; color:#fff; border-radius:6px; cursor:pointer;">Top 5</button>
+                                    <button type="button" class="btn-top-limit" id="btn-top-10" onclick="setTopKonsumenLimit(10, this)" style="padding:4px 9px; font-size:11px; font-weight:600; border:none; background:transparent; color:#64748b; border-radius:6px; cursor:pointer;">Top 10</button>
+                                    <button type="button" class="btn-top-limit" id="btn-top-20" onclick="setTopKonsumenLimit(20, this)" style="padding:4px 9px; font-size:11px; font-weight:600; border:none; background:transparent; color:#64748b; border-radius:6px; cursor:pointer;">Top 20</button>
+                                    <button type="button" class="btn-top-limit" id="btn-top-all" onclick="setTopKonsumenLimit('ALL', this)" style="padding:4px 9px; font-size:11px; font-weight:600; border:none; background:transparent; color:#64748b; border-radius:6px; cursor:pointer;">Semua</button>
+                                </div>
+
+                                <!-- Sort By -->
+                                <select id="select-top-sort" onchange="setTopKonsumenSort(this.value)" style="padding:4px 8px; font-size:11px; font-weight:600; border:1px solid #cbd5e1; border-radius:8px; background:#fff; color:#334155; cursor:pointer;">
+                                    <option value="omzet">Sort: Omzet Pakan ▼</option>
+                                    <option value="volume">Sort: Volume (Kg) ▼</option>
+                                </select>
+
+                                <!-- Search Input -->
+                                <div style="position:relative; display:inline-flex; align-items:center;">
+                                    <input type="text" id="input-top-search" placeholder="Cari relasi..." oninput="setTopKonsumenSearch(this.value)" style="padding:4px 8px 4px 24px; font-size:11px; border:1px solid #cbd5e1; border-radius:8px; width:100px; background:#fff;">
+                                    <span class="material-symbols-outlined" style="position:absolute; left:6px; font-size:14px; color:#94a3b8; pointer-events:none;">search</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Container Tabel Scroll Vertikal -->
+                        <div style="max-height:480px; overflow-y:auto; overflow-x:auto;">
+                            <table id="table-top-konsumen" style="width:100%; border-collapse:collapse; font-size:12px;">
+                                <thead>
+                                    <tr style="background:#f8fafc; border-bottom:2px solid #e2e8f0; position:sticky; top:0; z-index:2;">
+                                        <th style="padding:8px 8px; text-align:center; width:38px; color:#475569; font-size:11px;">#</th>
+                                        <th style="padding:8px 8px; text-align:left; color:#475569; font-size:11px;">Nama Relasi</th>
+                                        <th class="desktop-col-kg" style="padding:8px 8px; text-align:right; width:110px; color:#475569; font-size:11px;">Total (Kg)</th>
+                                        <th class="desktop-col-omzet" style="padding:8px 8px; text-align:right; width:130px; color:#475569; font-size:11px;">Omzet Pakan</th>
+                                        <th style="padding:8px 8px; text-align:left; min-width:170px; color:#475569; font-size:11px;">Proporsi Pengambilan Pakan</th>
+                                        <th style="padding:8px 4px; text-align:center; width:32px; color:#475569;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+
+                        <!-- Mini Legend warna pakan di bawah tabel -->
+                        <div id="top-konsumen-legend" style="display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; padding-top:8px; border-top:1px dashed #e2e8f0; font-size:10px; color:#64748b;">
+                        </div>
                     </div>
 
                     <div class="rekap-card">
@@ -8465,11 +8525,12 @@ function aturAksesMenu(role) {
 
                         if (isKeluar && isPenjualan) {
                             let r = row.r || "Tanpa Nama";
-                            if (!konsumenMap[r]) konsumenMap[r] = { o: 0, q: 0 };
+                            if (!konsumenMap[r]) konsumenMap[r] = { o: 0, q: 0, ongkir: 0, items: {} };
                             
                             if (isOngkir) {
                                 tOngkir += row.o;
-                                konsumenMap[r].o += row.o; // Ongkir tetap dihitung sbg omzet si konsumen
+                                konsumenMap[r].ongkir = (konsumenMap[r].ongkir || 0) + row.o;
+                                // Ongkir dicatat terpisah agar fokus omzet murni pakan
                             } else {
                                 tOmzet += row.o; tHPP += row.h; tQty += row.q;
                                 if (chartHari[row.d]) { chartHari[row.d].o += row.o; chartHari[row.d].q += row.q; }
@@ -8477,7 +8538,13 @@ function aturAksesMenu(role) {
                                 if (!produkMap[p]) produkMap[p] = { q: 0, o: 0, h: 0 };
                                 produkMap[p].q += row.q; produkMap[p].o += row.o; produkMap[p].h += row.h;
 
-                                konsumenMap[r].o += row.o; konsumenMap[r].q += row.q;
+                                konsumenMap[r].o += row.o; 
+                                konsumenMap[r].q += row.q;
+
+                                if (!konsumenMap[r].items) konsumenMap[r].items = {};
+                                if (!konsumenMap[r].items[p]) konsumenMap[r].items[p] = { q: 0, o: 0 };
+                                konsumenMap[r].items[p].q += row.q;
+                                konsumenMap[r].items[p].o += row.o;
 
                                 if (!lossGainMap[r]) lossGainMap[r] = { curr: 0, prev: 0, items: {} };
                                 if (!lossGainMap[r].items[p]) lossGainMap[r].items[p] = { curr: 0, prev: 0 };
@@ -8566,7 +8633,23 @@ function aturAksesMenu(role) {
                 chartMix: { label: ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Ags", "Sep", "Okt", "Nov", "Des"], omzet: arrOmzet, qty: arrQty },
                 chartDaily: { label: dailyLabels, omzet: dailyOmzet, qty: dailyQty }, chartDonut: { label: dnLabel, data: dnData },
                 chartOpr: { label: Object.keys(oprMap), data: Object.values(oprMap) }, dailyCF: rincianCF.reverse().slice(0, 50),
-                topKonsumen: Object.keys(konsumenMap).map(k => ({ n: k, v: konsumenMap[k].o, q: konsumenMap[k].q })).sort((a, b) => b.v - a.v).slice(0, 5),
+                topKonsumen: Object.keys(konsumenMap).map(k => {
+                    let km = konsumenMap[k];
+                    let itemsArr = Object.keys(km.items || {}).map(pName => ({
+                        name: pName,
+                        q: km.items[pName].q,
+                        o: km.items[pName].o,
+                        pct: km.q > 0 ? (km.items[pName].q / km.q * 100) : 0
+                    })).sort((a, b) => b.q - a.q);
+
+                    return {
+                        n: k,
+                        v: km.o,
+                        q: km.q,
+                        ongkir: km.ongkir || 0,
+                        items: itemsArr
+                    };
+                }),
                 gudangData: gudangQty, isFiltered: isFiltered, lossGainData: lossGainArr,
                 rankingPakan: arrProdFull, chartTrend: datasetsTrend
             };
@@ -8604,8 +8687,8 @@ function aturAksesMenu(role) {
             elSehat.innerHTML = pSehat > 5 ? `<span style="color:#333; font-size:10px; font-weight:bold;">${pSehat.toFixed(1)}%</span>` : "";
             elTelat.innerHTML = pTelat > 5 ? `<span style="color:#fff; font-size:10px; font-weight:bold;">${pTelat.toFixed(1)}%</span>` : "";
 
-            let htmlTop = (d.topKonsumen.length > 0) ? d.topKonsumen.map(k => `<tr><td>${k.n}</td><td>${nf.format(k.q)} Kg</td><td style="text-align:right; font-weight:bold; color:#8AA624;">Rp ${nf.format(k.v)}</td></tr>`).join('') : "<tr><td colspan='3' style='text-align:center'>Belum ada transaksi</td></tr>";
-            document.querySelector('#table-top-konsumen tbody').innerHTML = htmlTop;
+            window.allTopKonsumenData = d.topKonsumen || [];
+            renderTopKonsumenView();
 
             let sumIn = 0, sumOut = 0;
             let htmlCF = (d.dailyCF.length > 0) ? d.dailyCF.map(c => { 
@@ -8847,6 +8930,243 @@ function aturAksesMenu(role) {
 
             document.getElementById('teks-auto-narasi').innerText = nTeks;
             document.getElementById('gl_result').classList.remove('hidden');
+        }
+
+        // ==========================================
+        // FITUR TOP KONSUMEN & PROPORSI PAKAN
+        // ==========================================
+        const PAKAN_COLOR_PALETTE = {
+            'Mako A-20': '#ea580c',          // Oranye
+            'Mako S-20': '#2563eb',          // Biru
+            'Mako C-20': '#0284c7',          // Biru Langit
+            'Silase Jagung Manis': '#65a30d', // Hijau Limau
+            'Silase Jagung': '#65a30d',
+            'Pongkol Singkong': '#d97706',    // Amber / Kuning Tua
+            'Rapen Kedelai': '#9333ea',       // Ungu
+            'Mako SP-15': '#78350f',          // Coklat
+            'Kopra': '#0d9488',               // Teal
+            'Mako KF3': '#e11d48',            // Rose
+            'KFZS': '#4338ca',                // Indigo
+            'Mix Calf': '#059669',            // Hijau Zamrud
+            'Lainnya': '#94a3b8'              // Abu-abu
+        };
+
+        function getPakanColor(name, idx) {
+            if (!name) return '#94a3b8';
+            let clean = name.trim().toLowerCase();
+            for (let k in PAKAN_COLOR_PALETTE) {
+                if (clean.includes(k.toLowerCase())) return PAKAN_COLOR_PALETTE[k];
+            }
+            const fallback = ['#10b981', '#f59e0b', '#6366f1', '#ec4899', '#14b8a6', '#8b5cf6', '#f97316', '#06b6d4'];
+            return fallback[(idx || 0) % fallback.length];
+        }
+
+        window.currentTopLimit = 5;
+        window.currentTopSort = 'omzet'; // 'omzet' | 'volume'
+        window.currentTopSearch = '';
+        window.expandedTopKonsumen = new Set();
+        window.currentDisplayedTopKonsumen = [];
+
+        window.setTopKonsumenLimit = function(limit, btnEl) {
+            window.currentTopLimit = limit;
+            document.querySelectorAll('.btn-top-limit').forEach(b => {
+                b.style.background = 'transparent';
+                b.style.color = '#64748b';
+                b.style.fontWeight = '600';
+            });
+            if (btnEl) {
+                btnEl.style.background = '#8AA624';
+                btnEl.style.color = '#fff';
+                btnEl.style.fontWeight = '700';
+            }
+            renderTopKonsumenView();
+        };
+
+        window.setTopKonsumenSort = function(sortMode) {
+            window.currentTopSort = sortMode;
+            renderTopKonsumenView();
+        };
+
+        window.setTopKonsumenSearch = function(val) {
+            window.currentTopSearch = (val || '').trim().toLowerCase();
+            renderTopKonsumenView();
+        };
+
+        window.toggleExpandTopKonsumenIdx = function(idx) {
+            let k = window.currentDisplayedTopKonsumen ? window.currentDisplayedTopKonsumen[idx] : null;
+            if (!k) return;
+            if (window.expandedTopKonsumen.has(k.n)) {
+                window.expandedTopKonsumen.delete(k.n);
+            } else {
+                window.expandedTopKonsumen.add(k.n);
+            }
+            renderTopKonsumenView();
+        };
+
+        function renderTopKonsumenView() {
+            let tbody = document.querySelector('#table-top-konsumen tbody');
+            if (!tbody) return;
+
+            let data = window.allTopKonsumenData || [];
+            let nf = new Intl.NumberFormat('id-ID');
+
+            // 1. Filter pencarian relasi
+            if (window.currentTopSearch) {
+                data = data.filter(k => (k.n || '').toLowerCase().includes(window.currentTopSearch));
+            }
+
+            // 2. Sorting (Omzet Pakan atau Volume Kg)
+            data = [...data].sort((a, b) => {
+                if (window.currentTopSort === 'volume') {
+                    return (b.q || 0) - (a.q || 0);
+                } else {
+                    return (b.v || 0) - (a.v || 0); // Pure feed omzet
+                }
+            });
+
+            // 3. Batasan Top (Limit)
+            let totalFound = data.length;
+            let limit = window.currentTopLimit;
+            let displayedData = (limit === 'ALL') ? data : data.slice(0, parseInt(limit) || 5);
+            window.currentDisplayedTopKonsumen = displayedData;
+
+            // 4. Update Header Card Title
+            let titleEl = document.getElementById('title-top-konsumen');
+            if (titleEl) {
+                let labelLimit = (limit === 'ALL') ? `Semua Konsumen (${totalFound})` : `Top ${limit} Konsumen`;
+                let labelSort = (window.currentTopSort === 'volume') ? 'Volume Pakan (Kg)' : 'Omzet Pakan (Rp)';
+                titleEl.innerHTML = `${labelLimit} <span style="font-size:11px; font-weight:600; color:#888;">(Berdasarkan ${labelSort})</span>`;
+            }
+
+            if (displayedData.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:24px; color:#94a3b8;">Tidak ada data konsumen yang sesuai filter.</td></tr>`;
+                let legEl = document.getElementById('top-konsumen-legend');
+                if (legEl) legEl.innerHTML = '';
+                return;
+            }
+
+            let pakanDiambilSet = new Map();
+            let html = "";
+
+            displayedData.forEach((k, idx) => {
+                let rank = idx + 1;
+                let badgeRankStyle = "color:#64748b; font-weight:700;";
+                if (rank === 1) badgeRankStyle = "background:#fef3c7; color:#b45309; border:1px solid #fde68a; font-weight:800; border-radius:6px; padding:2px 7px;";
+                else if (rank === 2) badgeRankStyle = "background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; font-weight:800; border-radius:6px; padding:2px 7px;";
+                else if (rank === 3) badgeRankStyle = "background:#ffedd5; color:#c2410c; border:1px solid #fed7aa; font-weight:800; border-radius:6px; padding:2px 7px;";
+
+                // Segment progress bar & chip proporsi pakan
+                let segmentsHtml = "";
+                let chipsHtml = "";
+                (k.items || []).forEach((it, i) => {
+                    let color = getPakanColor(it.name, i);
+                    pakanDiambilSet.set(it.name, color);
+
+                    let pct = it.pct || 0;
+                    if (pct > 0) {
+                        segmentsHtml += `<div style="width:${pct}%; background:${color}; height:100%;" title="${it.name}: ${nf.format(it.q)} Kg (${pct.toFixed(1)}%)"></div>`;
+                    }
+                    if (i < 3) {
+                        chipsHtml += `<span style="display:inline-flex; align-items:center; gap:3px; font-size:10px; color:#475569; background:#f8fafc; border:1px solid #e2e8f0; border-radius:4px; padding:1px 5px;"><span style="width:6px; height:6px; border-radius:50%; background:${color}; flex-shrink:0;"></span><b>${it.name}:</b> ${pct.toFixed(0)}%</span>`;
+                    }
+                });
+
+                if ((k.items || []).length > 3) {
+                    chipsHtml += `<span style="font-size:9.5px; color:#94a3b8; align-self:center;">+${k.items.length - 3} lagi</span>`;
+                }
+
+                let isExpanded = window.expandedTopKonsumen.has(k.n);
+                let chevronIcon = isExpanded ? 'expand_less' : 'expand_more';
+
+                // Baris Utama Konsumen
+                html += `
+                    <tr class="row-top-konsumen" onclick="toggleExpandTopKonsumenIdx(${idx})" style="cursor:pointer; border-bottom:1px solid #f1f5f9; transition:background 0.15s; ${isExpanded ? 'background:#f8fafc;' : ''}">
+                        <td style="padding:10px 8px; vertical-align:middle; text-align:center;">
+                            <span style="${badgeRankStyle}">#${rank}</span>
+                        </td>
+                        <td style="padding:10px 8px; vertical-align:middle;">
+                            <div style="font-weight:750; color:#0f172a; font-size:12.5px;">${k.n}</div>
+                            <!-- Teks bantu tampilan HP -->
+                            <div class="mobile-only-sub" style="font-size:11px; color:#64748b; margin-top:2px;">
+                                ${nf.format(k.q)} Kg &nbsp;•&nbsp; <b style="color:#15803d;">Rp ${nf.format(k.v)}</b>
+                            </div>
+                        </td>
+                        <td class="desktop-col-kg" style="padding:10px 8px; text-align:right; font-weight:700; color:#334155; vertical-align:middle;">
+                            ${nf.format(k.q)} Kg
+                        </td>
+                        <td class="desktop-col-omzet" style="padding:10px 8px; text-align:right; font-weight:800; color:#15803d; vertical-align:middle;">
+                            Rp ${nf.format(k.v)}
+                        </td>
+                        <td style="padding:10px 8px; vertical-align:middle; min-width:170px;">
+                            <div style="display:flex; width:100%; height:9px; border-radius:5px; overflow:hidden; background:#f1f5f9; box-shadow:inset 0 1px 2px rgba(0,0,0,0.06); margin-bottom:4px;">
+                                ${segmentsHtml || '<div style="width:100%; background:#e2e8f0;"></div>'}
+                            </div>
+                            <div style="display:flex; flex-wrap:wrap; gap:4px;">
+                                ${chipsHtml || '<span style="font-size:10px; color:#94a3b8;">-</span>'}
+                            </div>
+                        </td>
+                        <td style="padding:10px 4px; text-align:center; vertical-align:middle;">
+                            <span class="material-symbols-outlined" style="font-size:18px; color:#64748b;">${chevronIcon}</span>
+                        </td>
+                    </tr>
+                `;
+
+                // Baris Detail Akordeon
+                if (isExpanded) {
+                    let itemBoxes = (k.items || []).map(it => {
+                        let color = getPakanColor(it.name);
+                        return `
+                            <div style="background:#ffffff; border:1px solid #e2e8f0; border-left:3px solid ${color}; border-radius:6px; padding:7px 10px;">
+                                <div style="font-size:11px; font-weight:700; color:#0f172a; margin-bottom:2px;">${it.name}</div>
+                                <div style="font-size:11px; color:#334155;">
+                                    <b>${nf.format(it.q)} Kg</b> <span style="color:#64748b;">(${it.pct.toFixed(1)}%)</span>
+                                </div>
+                                <div style="font-size:11px; font-weight:700; color:#15803d; margin-top:1px;">
+                                    Rp ${nf.format(it.o)}
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+
+                    html += `
+                        <tr style="background:#f8fafc; border-bottom:2px solid #e2e8f0;">
+                            <td colspan="6" style="padding:10px 14px;">
+                                <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:10px; padding:12px 14px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; border-bottom:1px solid #f1f5f9; padding-bottom:6px;">
+                                        <div style="font-size:11.5px; font-weight:800; color:#0f172a;">
+                                            Rincian Pakan: <span style="color:#0284c7;">${k.n}</span>
+                                        </div>
+                                        <div style="font-size:10.5px; color:#64748b;">
+                                            Total: <b>${nf.format(k.q)} Kg</b> • Omzet Pakan: <b style="color:#15803d;">Rp ${nf.format(k.v)}</b>
+                                        </div>
+                                    </div>
+                                    <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:8px;">
+                                        ${itemBoxes || '<div style="color:#94a3b8; font-size:11px;">Tidak ada rincian item.</div>'}
+                                    </div>
+                                    ${k.ongkir > 0 ? `
+                                        <div style="margin-top:8px; padding-top:6px; border-top:1px dashed #e2e8f0; font-size:10.5px; color:#64748b; display:flex; align-items:center; gap:4px;">
+                                            <span class="material-symbols-outlined" style="font-size:14px; color:#0284c7;">local_shipping</span>
+                                            <span>Transaksi ongkir terpisah: <b>Rp ${nf.format(k.ongkir)}</b> (tidak digabung ke omzet pakan).</span>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }
+            });
+
+            tbody.innerHTML = html;
+
+            // Render Legend Warna Pakan
+            let legEl = document.getElementById('top-konsumen-legend');
+            if (legEl) {
+                let legHtml = '<span style="font-weight:700; color:#475569; margin-right:4px;">Keterangan Warna:</span>';
+                pakanDiambilSet.forEach((color, pName) => {
+                    legHtml += `<span style="display:inline-flex; align-items:center; gap:3px; margin-right:8px;"><span style="width:8px; height:8px; border-radius:50%; background:${color};"></span>${pName}</span>`;
+                });
+                legEl.innerHTML = legHtml;
+            }
         }
 
         function renderChartMix() {
