@@ -1,9 +1,10 @@
-const CACHE_NAME = 'pakan-cbl-v22';
+const CACHE_NAME = 'pakan-cbl-v26';
 const urlsToCache = [
   './',
   './index.html',
   './manifest.json',
-  './bapera_logic.js'
+  './bapera_logic.js',
+  './pakan_analytic_logic.js'
 ];
 
 // Install & paksa versi baru langsung aktif
