@@ -795,13 +795,11 @@ function tutupModalFotoBuktiBapera() {
 }
 
 // -----------------------------------------------------------------------------
-// 6. Cetak Laporan Rekapitulasi Tahunan & Semua Tahun (A4 Portrait - 1 Halaman Pas)
+// 5. Format Pesan WhatsApp & Share Laporan BAPERA (Disertai Tautan Audit)
 // -----------------------------------------------------------------------------
-function cetakLaporanBaperaA4() {
+function getTeksPesanWABapera(tahun = baperaCurrentYear) {
     let nf = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 });
-    let isAll = (baperaCurrentYear === 'ALL');
-    let tahun = baperaCurrentYear;
-
+    let isAll = (tahun === 'ALL');
     let baseUrl = window.location.href.split('?')[0];
     let auditUrl = `${baseUrl}?audit_bapera=${tahun}`;
 
@@ -810,24 +808,167 @@ function cetakLaporanBaperaA4() {
     let totalKredit = 0;
     let totalKg = 0;
 
-    if (isAll) {
-        baperaYearlySummary.forEach(y => {
-            totalSharing += y.sharingRp;
-            totalDebit += y.debitRp;
-            totalKredit += y.kreditRp;
-            totalKg += y.totalKgSharing;
-        });
-    } else {
-        baperaMonthlySummary.forEach(m => {
-            totalSharing += m.sharingRp;
-            totalDebit += m.debitRp;
-            totalKredit += m.kreditRp;
-            totalKg += m.totalKgSharing;
-        });
+    let totMakoA = 0, totMakoS = 0, totMakoC = 0, totPongkol = 0, totSilase = 0;
+
+    let rows = isAll ? baperaYearlySummary : baperaMonthlySummary;
+    rows.forEach(r => {
+        let f = r.feeds || {};
+        totMakoA += f['Mako A-20'] || 0;
+        totMakoS += f['Mako S-20'] || 0;
+        totMakoC += f['Mako C-20'] || 0;
+        totPongkol += f['Pongkol Singkong'] || 0;
+        totSilase += f['Silase Jagung Manis'] || 0;
+
+        totalSharing += r.sharingRp || 0;
+        totalDebit += r.debitRp || 0;
+        totalKredit += r.kreditRp || 0;
+        totalKg += r.totalKgSharing || 0;
+    });
+
+    let tglCetak = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+    let periodeLabel = isAll ? "Semua Tahun (Rekap Lengkap)" : `Tahun Buku ${tahun}`;
+
+    let lines = [
+        `*LAPORAN REKAPITULASI KAS BAPERA*`,
+        `*PT CITA BENGGALA LESTARI*`,
+        `----------------------------------------`,
+        `📅 Periode: *${periodeLabel}*`,
+        `⏱️ Tanggal: ${tglCetak}`,
+        ``,
+        `*I. RINGKASAN EKSEKUTIF KAS:*`,
+        `• Saldo Awal: Rp ${nf.format(baperaSaldoAwalTahun)}`,
+        `• Total Sharing Pakan: Rp ${nf.format(totalSharing)}`,
+        `• Pemasukan Lain (Debit): Rp ${nf.format(totalDebit)}`,
+        `• Pengeluaran (Kredit): Rp ${nf.format(totalKredit)}`,
+        `• *Saldo Akhir Kas: Rp ${nf.format(baperaSaldoAkhirTahun)}*`,
+        ``,
+        `*II. VOLUME SHARING PENJUALAN PAKAN:*`,
+        `• Total Terjual: *${nf.format(totalKg)} Kg*`,
+        `• Mako A-20 (@Rp 20): ${nf.format(totMakoA)} Kg`,
+        `• Mako S-20 (@Rp 20): ${nf.format(totMakoS)} Kg`,
+        `• Mako C-20 (@Rp 20): ${nf.format(totMakoC)} Kg`,
+        `• Pongkol Singkong (@Rp 20): ${nf.format(totPongkol)} Kg`,
+        `• Silase Jagung (@Rp 10): ${nf.format(totSilase)} Kg`,
+        ``,
+        `*III. BUKU KAS OPERASIONAL & BUKTI NOTA:*`,
+        `Klik tautan resmi berikut untuk memeriksa rincian riwayat mutasi uang masuk/keluar harian beserta foto kuitansi/nota belanja asli dari brankas cloud:`,
+        `🔗 ${auditUrl}`,
+        ``,
+        `_Laporan resmi digenerate otomatis oleh Sistem CBL Connect._`
+    ];
+
+    return lines.join('\n');
+}
+
+async function bagikanLaporanBaperaWA(isCopyOnly = false) {
+    let docData = buildDataLaporanBaperaA4(baperaCurrentYear);
+    let pesan = docData.teksWA;
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(pesan).catch(() => {});
     }
 
-    // Baris Tabel Rekapitulasi Kas & Penjualan Pakan (10 Kolom: Periode, 5 Pakan, Debit, Kredit, Kas, Saldo)
+    if (isCopyOnly) {
+        alert("✅ Teks ringkasan kas & link audit berhasil disalin ke clipboard! Silakan paste di WhatsApp.");
+        return;
+    }
+
+    let btnShare = document.getElementById('btn-bapera-share-wa');
+    let oriTxt = btnShare ? btnShare.innerHTML : '';
+    if (btnShare) {
+        btnShare.innerHTML = `<span class="material-symbols-outlined icon-spin" style="font-size:16px;">sync</span> Menyiapkan PDF...`;
+        btnShare.disabled = true;
+    }
+
+    try {
+        let virtualDoc = document.createElement('div');
+        virtualDoc.style.position = 'fixed';
+        virtualDoc.style.left = '-9999px';
+        virtualDoc.style.top = '0';
+        virtualDoc.style.width = '794px';
+        virtualDoc.style.background = '#ffffff';
+        virtualDoc.style.padding = '16px 20px';
+        virtualDoc.innerHTML = docData.printableDocHtml;
+        document.body.appendChild(virtualDoc);
+
+        let opt = {
+            margin: [8, 8, 8, 8],
+            filename: docData.pdfFilename,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true, width: 794, windowWidth: 794, scrollY: 0 },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+
+        let worker = html2pdf().set(opt).from(virtualDoc);
+        let pdfBlob = await worker.outputPdf('blob').catch(() => null);
+        if (!pdfBlob || !(pdfBlob instanceof Blob)) {
+            let dataUri = await html2pdf().set(opt).from(virtualDoc).outputPdf('datauristring');
+            const base64Clean = dataUri.split(',')[1];
+            const byteCharacters = atob(base64Clean);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) { byteNumbers[i] = byteCharacters.charCodeAt(i); }
+            pdfBlob = new Blob([new Uint8Array(byteNumbers)], { type: 'application/pdf' });
+        }
+        virtualDoc.remove();
+
+        let filePdf = new File([pdfBlob], docData.pdfFilename, { type: 'application/pdf' });
+
+        if (navigator.canShare && navigator.canShare({ files: [filePdf] })) {
+            await navigator.share({
+                files: [filePdf],
+                title: docData.docTitle,
+                text: pesan
+            });
+        } else {
+            let url = URL.createObjectURL(pdfBlob);
+            let a = document.createElement('a');
+            a.href = url;
+            a.download = docData.pdfFilename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(url), 10000);
+
+            alert(`✅ Dokumen PDF (${docData.pdfFilename}) telah diunduh otomatis ke komputer/laptop.\n✅ Ringkasan teks laporan & tautan audit resmi telah disalin ke clipboard.\n\nWhatsApp Web akan terbuka. Silakan lampirkan file PDF yang baru terunduh tersebut lalu Paste keterangannya!`);
+
+            let waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(pesan)}`;
+            window.open(waUrl, '_blank') || (window.location.href = waUrl);
+        }
+    } catch (e) {
+        console.error("Gagal share PDF BAPERA:", e);
+        let waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(pesan)}`;
+        window.open(waUrl, '_blank') || (window.location.href = waUrl);
+    } finally {
+        if (btnShare) {
+            btnShare.innerHTML = oriTxt;
+            btnShare.disabled = false;
+        }
+    }
+}
+
+// -----------------------------------------------------------------------------
+// 6. Cetak Laporan Rekapitulasi Tahunan & Semua Tahun (A4 Portrait - 1 Halaman Pas)
+// -----------------------------------------------------------------------------
+function buildDataLaporanBaperaA4(tahun = baperaCurrentYear) {
+    let nf = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 });
+    let isAll = (tahun === 'ALL');
+    let baseUrl = window.location.href.split('?')[0];
+    let auditUrl = `${baseUrl}?audit_bapera=${tahun}`;
+    let teksWA = getTeksPesanWABapera(tahun);
+
+    let totalSharing = 0;
+    let totalDebit = 0;
+    let totalKredit = 0;
+    let totalKg = 0;
+
     let rowsToRender = isAll ? baperaYearlySummary : baperaMonthlySummary;
+    rowsToRender.forEach(r => {
+        totalSharing += r.sharingRp || 0;
+        totalDebit += r.debitRp || 0;
+        totalKredit += r.kreditRp || 0;
+        totalKg += r.totalKgSharing || 0;
+    });
+
     let totMakoA = 0, totMakoS = 0, totMakoC = 0, totPongkol = 0, totSilase = 0;
     let totDebit = 0, totKredit = 0, totKas = 0;
 
@@ -881,7 +1022,6 @@ function cetakLaporanBaperaA4() {
         `;
     }).join('');
 
-    // Baris Tabel Pengeluaran & Pemasukan Lain-Lain (Diagregasi per Kategori)
     let katKeluarKeys = Object.keys(baperaCategorySummary.keluar);
     let katMasukKeys = Object.keys(baperaCategorySummary.masuk);
     let mutasiRowsHtml = "";
@@ -917,12 +1057,6 @@ function cetakLaporanBaperaA4() {
         });
     }
 
-    let printWin = window.open('', '_blank', 'width=850,height=950');
-    if (!printWin) {
-        alert("Pop-up browser terblokir. Izinkan pop-up untuk mencetak dokumen.");
-        return;
-    }
-
     let tglCetak = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
     let rentangDataText = "";
     let periodeDocText = "";
@@ -947,12 +1081,186 @@ function cetakLaporanBaperaA4() {
         pdfFilename = `Laporan_Kas_BAPERA_${tahun}.pdf`;
     }
 
+    let printableDocHtml = `
+        <div id="printable-doc" style="width:714px; margin:0 auto; box-sizing:border-box; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background:#ffffff; color:#0f172a;">
+            <!-- KOP SURAT DENGAN LOGO PT CBL -->
+            <div class="kop-header" style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #0f172a; padding-bottom:8px; margin-bottom:10px;">
+                <div style="display:flex; align-items:center; gap:16px;">
+                    <img src="https://raw.githubusercontent.com/wildansyif/pakan-cbl/2e732398572a6ac7d3512559c4344d40ab0902f9/Logo%20CBL.png" 
+                         alt="Logo PT CBL" 
+                         onerror="this.onerror=null; this.src='Logo%20CBL.png';"
+                         style="height:65px; width:auto; max-width:180px; object-fit:contain;" />
+                    <div>
+                        <div class="kop-title" style="font-size:16px; font-weight:800; color:#0f172a; letter-spacing:0.5px; text-transform:uppercase;">LAPORAN REKAPITULASI KAS BAPERA</div>
+                        <div style="font-size:12px; font-weight:800; color:#0f172a; margin-top:3px;">${periodeDocText}</div>
+                        <div style="font-size:10px; color:#475569; margin-top:2px; font-weight:600;">
+                            Rentang Data: <span style="color:#0f172a;">${rentangDataText}</span>
+                        </div>
+                    </div>
+                </div>
+                <div style="text-align:right;">
+                    <div style="background:#0f172a; color:#ffffff; font-size:9.5px; font-weight:800; padding:4px 8px; border-radius:4px; display:inline-block; margin-bottom:3px;">
+                        DOKUMEN RESMI
+                    </div>
+                    <div style="font-size:9.5px; color:#64748b;">Tanggal Cetak: ${tglCetak}</div>
+                </div>
+            </div>
+
+            <!-- 1. RINGKASAN EKSEKUTIF -->
+            <div class="section-title" style="font-size:10.5px; font-weight:800; color:#0f172a; text-transform:uppercase; letter-spacing:0.4px; margin:8px 0 4px 0;">I. Ringkasan Eksekutif Kas BAPERA</div>
+            <table style="width:100%; border-collapse:collapse; margin-bottom:8px;">
+                <thead>
+                    <tr style="background:#f1f5f9; font-size:9.5px; text-transform:uppercase;">
+                        <th style="border:1px solid #cbd5e1; padding:5px 6px; text-align:center; width:20%;">${isAll ? 'Saldo Awal (Des 2024)' : 'Saldo Awal'}</th>
+                        <th style="border:1px solid #cbd5e1; padding:5px 6px; text-align:center; width:20%;">Total Sharing Pakan</th>
+                        <th style="border:1px solid #cbd5e1; padding:5px 6px; text-align:center; width:20%;">Pemasukan Lain (Debit)</th>
+                        <th style="border:1px solid #cbd5e1; padding:5px 6px; text-align:center; width:20%;">Pengeluaran (Kredit)</th>
+                        <th style="border:1px solid #cbd5e1; padding:5px 6px; text-align:center; width:20%; background:#e2e8f0;">Saldo Akhir Kas</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="font-size:11px; font-weight:800;">
+                        <td style="border:1px solid #cbd5e1; padding:6px 6px; text-align:center; color:#0f172a;">Rp ${nf.format(baperaSaldoAwalTahun)}</td>
+                        <td style="border:1px solid #cbd5e1; padding:6px 6px; text-align:center; color:#0f172a;">Rp ${nf.format(totalSharing)}</td>
+                        <td style="border:1px solid #cbd5e1; padding:6px 6px; text-align:center; color:#0f172a;">Rp ${nf.format(totalDebit)}</td>
+                        <td style="border:1px solid #cbd5e1; padding:6px 6px; text-align:center; color:#0f172a;">Rp ${nf.format(totalKredit)}</td>
+                        <td style="border:1px solid #cbd5e1; padding:6px 6px; text-align:center; color:#0f172a; background:#f8fafc;">Rp ${nf.format(baperaSaldoAkhirTahun)}</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- 2. TABEL REKAPITULASI PENJUALAN PAKAN & ARUS KAS (10 KOLOM) -->
+            <div style="display:flex; justify-content:space-between; align-items:baseline; margin:8px 0 4px 0;">
+                <div class="section-title" style="font-size:10.5px; font-weight:800; color:#0f172a; text-transform:uppercase; letter-spacing:0.4px; margin:0;">
+                    II. ${isAll ? 'Rekapitulasi Penjualan Pakan & Arus Kas per Tahun Buku' : 'Rekapitulasi Penjualan Pakan & Arus Kas Bulanan'}
+                </div>
+                <div style="font-size:8px; color:#475569; font-weight:600;">
+                    Tarif Sharing: Mako & Pongkol @ Rp 20/kg | Silase @ Rp 10/kg
+                </div>
+            </div>
+            <table style="width:100%; border-collapse:collapse; margin-bottom:8px;">
+                <thead>
+                    <tr style="background:#f1f5f9; font-size:8px; text-transform:uppercase;">
+                        <th style="border:1px solid #cbd5e1; padding:4px 3px; text-align:center; width:68px;">${isAll ? 'Tahun Buku' : 'Bulan'}</th>
+                        <th style="border:1px solid #cbd5e1; padding:4px 3px; text-align:center; width:52px;">Mako A-20</th>
+                        <th style="border:1px solid #cbd5e1; padding:4px 3px; text-align:center; width:52px;">Mako S-20</th>
+                        <th style="border:1px solid #cbd5e1; padding:4px 3px; text-align:center; width:52px;">Mako C-20</th>
+                        <th style="border:1px solid #cbd5e1; padding:4px 3px; text-align:center; width:48px;">Pongkol</th>
+                        <th style="border:1px solid #cbd5e1; padding:4px 3px; text-align:center; width:58px;">Silase Jagung</th>
+                        <th style="border:1px solid #cbd5e1; padding:4px 3px; text-align:center; width:56px;">Debit (Rp)</th>
+                        <th style="border:1px solid #cbd5e1; padding:4px 3px; text-align:center; width:66px;">Kredit (Rp)</th>
+                        <th style="border:1px solid #cbd5e1; padding:4px 3px; text-align:center; width:72px;">Kas (Rp)</th>
+                        <th style="border:1px solid #cbd5e1; padding:4px 3px; text-align:center; width:82px; background:#e2e8f0;">Saldo (Rp)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${saldoAwalRowHtml}
+                    ${rekapRowsHtml}
+                </tbody>
+                <tfoot>
+                    <tr style="background:#f8fafc; font-size:8px; font-weight:800;">
+                        <td style="border:1px solid #cbd5e1; padding:4px 3px; color:#0f172a;">GRAND TOTAL</td>
+                        <td style="border:1px solid #cbd5e1; padding:4px 3px; text-align:right; color:#0f172a;">${nf.format(totMakoA)}</td>
+                        <td style="border:1px solid #cbd5e1; padding:4px 3px; text-align:right; color:#0f172a;">${nf.format(totMakoS)}</td>
+                        <td style="border:1px solid #cbd5e1; padding:4px 3px; text-align:right; color:#0f172a;">${nf.format(totMakoC)}</td>
+                        <td style="border:1px solid #cbd5e1; padding:4px 3px; text-align:right; color:#0f172a;">${nf.format(totPongkol)}</td>
+                        <td style="border:1px solid #cbd5e1; padding:4px 3px; text-align:right; color:#0f172a;">${nf.format(totSilase)}</td>
+                        <td style="border:1px solid #cbd5e1; padding:4px 3px; text-align:right; color:#0f172a;">${nf.format(totDebit)}</td>
+                        <td style="border:1px solid #cbd5e1; padding:4px 3px; text-align:right; color:#0f172a;">${nf.format(totKredit)}</td>
+                        <td style="border:1px solid #cbd5e1; padding:4px 3px; text-align:right; ${totKas < 0 ? 'color:#dc2626;' : 'color:#0f172a;'}">
+                            ${totKas < 0 ? `(${nf.format(Math.abs(totKas))})` : nf.format(totKas)}
+                        </td>
+                        <td style="border:1px solid #cbd5e1; padding:4px 3px; text-align:right; color:#0f172a; background:#f1f5f9;">Rp ${nf.format(baperaSaldoAkhirTahun)}</td>
+                    </tr>
+                </tfoot>
+            </table>
+
+            <!-- 3. TABEL MUTASI OPERASIONAL LAIN-LAIN -->
+            <div class="section-title" style="font-size:10.5px; font-weight:800; color:#0f172a; text-transform:uppercase; letter-spacing:0.4px; margin:8px 0 4px 0;">III. Rincian Pengeluaran & Pemasukan Lain-Lain (Operasional) ${isAll ? '(Kumulatif)' : ''}</div>
+            <table style="width:100%; border-collapse:collapse; margin-bottom:8px;">
+                <thead>
+                    <tr style="background:#f1f5f9; font-size:8.5px; text-transform:uppercase;">
+                        <th style="border:1px solid #cbd5e1; padding:4px 6px; text-align:center;">Kategori Transaksi</th>
+                        <th style="border:1px solid #cbd5e1; padding:4px 6px; text-align:center; width:130px;">Jenis Arus Kas</th>
+                        <th style="border:1px solid #cbd5e1; padding:4px 6px; text-align:center; width:140px;">Total Nominal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${mutasiRowsHtml}
+                </tbody>
+                <tfoot>
+                    <tr style="background:#f8fafc; font-size:9px; font-weight:800;">
+                        <td colspan="2" style="border:1px solid #cbd5e1; padding:4px 6px; color:#0f172a;">TOTAL PENGELUARAN LAIN (KREDIT)</td>
+                        <td style="border:1px solid #cbd5e1; padding:4px 6px; text-align:right; color:#0f172a;">Rp ${nf.format(totalKredit)}</td>
+                    </tr>
+                    <tr style="background:#f8fafc; font-size:9px; font-weight:800;">
+                        <td colspan="2" style="border:1px solid #cbd5e1; padding:4px 6px; color:#0f172a;">TOTAL PEMASUKAN LAIN (DEBIT)</td>
+                        <td style="border:1px solid #cbd5e1; padding:4px 6px; text-align:right; color:#0f172a;">Rp ${nf.format(totalDebit)}</td>
+                    </tr>
+                </tfoot>
+            </table>
+
+            <!-- 5. KOTAK VERIFIKASI QR CODE -->
+            <div class="qr-box" style="display:flex; align-items:center; gap:12px; background:#f8fafc; border:1px solid #0f172a; border-radius:6px; padding:8px 12px; margin:8px 0 10px 0; page-break-inside:avoid;">
+                <div style="flex-shrink:0; background:#ffffff; padding:3px; border:1px solid #cbd5e1; border-radius:5px;">
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=90x90&margin=0&data=${encodeURIComponent(auditUrl)}" 
+                         alt="QR Code Cashflow Kas BAPERA" 
+                         width="72" height="72" 
+                         style="display:block; width:72px; height:72px;" />
+                </div>
+                <div style="flex:1;">
+                    <div style="display:inline-block; background:#0f172a; color:#ffffff; font-size:8.5px; font-weight:800; padding:3px 6px; border-radius:3px; margin-bottom:4px;">
+                        SCAN UNTUK CEK CATATAN BUKU KAS IN/OUT LENGKAP
+                    </div>
+                    <div style="font-size:9.5px; color:#475569; line-height:1.35; margin-bottom:4px;">
+                        Gunakan kamera HP, Google Lens, atau pemindai browser (Chrome/Google) untuk melihat seluruh rincian riwayat pemasukan/pengeluaran kas beserta foto nota dan kuitansi aslinya.
+                    </div>
+                    <div style="font-size:8.5px; color:#0f172a; font-weight:700; word-break:break-all;">
+                        🔗 ${auditUrl}
+                    </div>
+                </div>
+            </div>
+
+            <!-- 6. TANDA TANGAN -->
+            <div class="signatures" style="display:grid; grid-template-columns:1fr 1fr; text-align:center; margin-top:14px; font-size:11px; page-break-inside:avoid;">
+                <div>
+                    <div>Pengelola Distribusi Pakan CBL,</div>
+                    <div class="sig-line" style="margin-top:40px; font-weight:800; text-decoration:underline;">( Admin Pusat / PT CBL )</div>
+                </div>
+                <div>
+                    <div>Mengetahui / Menyetujui,</div>
+                    <div class="sig-line" style="margin-top:40px; font-weight:800; text-decoration:underline;">( Pengurus BAPERA )</div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    return {
+        isAll,
+        tahun,
+        docTitle,
+        pdfFilename,
+        teksWA,
+        auditUrl,
+        printableDocHtml
+    };
+}
+
+function cetakLaporanBaperaA4() {
+    let data = buildDataLaporanBaperaA4(baperaCurrentYear);
+
+    let printWin = window.open('', '_blank', 'width=850,height=950');
+    if (!printWin) {
+        alert("Pop-up browser terblokir. Izinkan pop-up untuk mencetak dokumen.");
+        return;
+    }
+
     printWin.document.write(`
         <!DOCTYPE html>
         <html>
         <head>
             <meta charset="utf-8">
-            <title>${docTitle}</title>
+            <title>${data.docTitle}</title>
             <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
             <style>
                 body {
@@ -1026,176 +1334,126 @@ function cetakLaporanBaperaA4() {
             </style>
         </head>
         <body>
-            <div class="no-print" style="margin-bottom:12px; display:flex; justify-content:flex-end; gap:8px;">
+            <div class="no-print" style="margin-bottom:12px; display:flex; justify-content:flex-end; gap:8px; flex-wrap:wrap;">
+                <button id="btn-share-wa-preview" onclick="shareWaDoc()" style="padding:7px 14px; background:#25d366; color:white; border:none; border-radius:6px; font-weight:bold; font-size:11px; cursor:pointer; display:inline-flex; align-items:center; gap:5px;">
+                    <span style="font-size:13px;">📲</span> Share PDF WA
+                </button>
+                <button onclick="salinTeksWaDoc()" style="padding:7px 12px; background:#475569; color:white; border:none; border-radius:6px; font-weight:bold; font-size:11px; cursor:pointer; display:inline-flex; align-items:center; gap:5px;">
+                    <span style="font-size:13px;">📋</span> Salin Teks WA
+                </button>
                 <button onclick="downloadPdfDoc()" style="padding:7px 12px; background:#0284c7; color:white; border:none; border-radius:6px; font-weight:bold; font-size:11px; cursor:pointer;">
                     📥 Download PDF (1 Halaman)
                 </button>
                 <button onclick="window.print()" style="padding:7px 12px; background:#0f172a; color:white; border:none; border-radius:6px; font-weight:bold; font-size:11px; cursor:pointer;">
                     🖨️ Cetak Dokumen
                 </button>
-                <button onclick="window.close()" style="padding:7px 12px; background:#64748b; color:white; border:none; border-radius:6px; font-size:11px; cursor:pointer;">
+                <button onclick="window.close()" style="padding:7px 12px; background:#94a3b8; color:white; border:none; border-radius:6px; font-size:11px; cursor:pointer;">
                     Tutup
                 </button>
             </div>
 
-            <div id="printable-doc">
-                <!-- KOP SURAT DENGAN LOGO PT CBL (DIPERBESAR & ELEGAN) -->
-                <div class="kop-header">
-                    <div style="display:flex; align-items:center; gap:16px;">
-                        <img src="https://raw.githubusercontent.com/wildansyif/pakan-cbl/2e732398572a6ac7d3512559c4344d40ab0902f9/Logo%20CBL.png" 
-                             alt="Logo PT CBL" 
-                             onerror="this.onerror=null; this.src='Logo%20CBL.png';"
-                             style="height:65px; width:auto; max-width:180px; object-fit:contain;" />
-                        <div>
-                            <div class="kop-title">LAPORAN REKAPITULASI KAS BAPERA</div>
-                            <div style="font-size:12px; font-weight:800; color:#0f172a; margin-top:3px;">${periodeDocText}</div>
-                            <div style="font-size:10px; color:#475569; margin-top:2px; font-weight:600;">
-                                Rentang Data: <span style="color:#0f172a;">${rentangDataText}</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div style="text-align:right;">
-                        <div style="background:#0f172a; color:#ffffff; font-size:9.5px; font-weight:800; padding:4px 8px; border-radius:4px; display:inline-block; margin-bottom:3px;">
-                            DOKUMEN RESMI
-                        </div>
-                        <div style="font-size:9.5px; color:#64748b;">Tanggal Cetak: ${tglCetak}</div>
-                    </div>
-                </div>
-
-                <!-- 1. RINGKASAN EKSEKUTIF (TABEL HORIZONTAL MONOKROM) -->
-                <div class="section-title">I. Ringkasan Eksekutif Kas BAPERA</div>
-                <table style="margin-bottom:8px;">
-                    <thead>
-                        <tr style="background:#f1f5f9; font-size:9.5px; text-transform:uppercase;">
-                            <th style="border:1px solid #cbd5e1; padding:5px 6px; text-align:center; width:20%;">${isAll ? 'Saldo Awal (Des 2024)' : 'Saldo Awal'}</th>
-                            <th style="border:1px solid #cbd5e1; padding:5px 6px; text-align:center; width:20%;">Total Sharing Pakan</th>
-                            <th style="border:1px solid #cbd5e1; padding:5px 6px; text-align:center; width:20%;">Pemasukan Lain (Debit)</th>
-                            <th style="border:1px solid #cbd5e1; padding:5px 6px; text-align:center; width:20%;">Pengeluaran (Kredit)</th>
-                            <th style="border:1px solid #cbd5e1; padding:5px 6px; text-align:center; width:20%; background:#e2e8f0;">Saldo Akhir Kas</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr style="font-size:11px; font-weight:800;">
-                            <td style="border:1px solid #cbd5e1; padding:6px 6px; text-align:center; color:#0f172a;">Rp ${nf.format(baperaSaldoAwalTahun)}</td>
-                            <td style="border:1px solid #cbd5e1; padding:6px 6px; text-align:center; color:#0f172a;">Rp ${nf.format(totalSharing)}</td>
-                            <td style="border:1px solid #cbd5e1; padding:6px 6px; text-align:center; color:#0f172a;">Rp ${nf.format(totalDebit)}</td>
-                            <td style="border:1px solid #cbd5e1; padding:6px 6px; text-align:center; color:#0f172a;">Rp ${nf.format(totalKredit)}</td>
-                            <td style="border:1px solid #cbd5e1; padding:6px 6px; text-align:center; color:#0f172a; background:#f8fafc;">Rp ${nf.format(baperaSaldoAkhirTahun)}</td>
-                        </tr>
-                    </tbody>
-                </table>
-
-                <!-- 2. TABEL REKAPITULASI PENJUALAN PAKAN & ARUS KAS (10 KOLOM) -->
-                <div style="display:flex; justify-content:space-between; align-items:baseline; margin:8px 0 4px 0;">
-                    <div class="section-title" style="margin:0;">
-                        II. ${isAll ? 'Rekapitulasi Penjualan Pakan & Arus Kas per Tahun Buku' : 'Rekapitulasi Penjualan Pakan & Arus Kas Bulanan'}
-                    </div>
-                    <div style="font-size:8px; color:#475569; font-weight:600;">
-                        Tarif Sharing: Mako & Pongkol @ Rp 20/kg | Silase @ Rp 10/kg
-                    </div>
-                </div>
-                <table style="margin-bottom:8px;">
-                    <thead>
-                        <tr style="background:#f1f5f9; font-size:8px; text-transform:uppercase;">
-                            <th style="border:1px solid #cbd5e1; padding:4px 3px; text-align:center; width:68px;">${isAll ? 'Tahun Buku' : 'Bulan'}</th>
-                            <th style="border:1px solid #cbd5e1; padding:4px 3px; text-align:center; width:52px;">Mako A-20</th>
-                            <th style="border:1px solid #cbd5e1; padding:4px 3px; text-align:center; width:52px;">Mako S-20</th>
-                            <th style="border:1px solid #cbd5e1; padding:4px 3px; text-align:center; width:52px;">Mako C-20</th>
-                            <th style="border:1px solid #cbd5e1; padding:4px 3px; text-align:center; width:48px;">Pongkol</th>
-                            <th style="border:1px solid #cbd5e1; padding:4px 3px; text-align:center; width:58px;">Silase Jagung</th>
-                            <th style="border:1px solid #cbd5e1; padding:4px 3px; text-align:center; width:56px;">Debit (Rp)</th>
-                            <th style="border:1px solid #cbd5e1; padding:4px 3px; text-align:center; width:66px;">Kredit (Rp)</th>
-                            <th style="border:1px solid #cbd5e1; padding:4px 3px; text-align:center; width:72px;">Kas (Rp)</th>
-                            <th style="border:1px solid #cbd5e1; padding:4px 3px; text-align:center; width:82px; background:#e2e8f0;">Saldo (Rp)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${saldoAwalRowHtml}
-                        ${rekapRowsHtml}
-                    </tbody>
-                    <tfoot>
-                        <tr style="background:#f8fafc; font-size:8px; font-weight:800;">
-                            <td style="border:1px solid #cbd5e1; padding:4px 3px; color:#0f172a;">GRAND TOTAL</td>
-                            <td style="border:1px solid #cbd5e1; padding:4px 3px; text-align:right; color:#0f172a;">${nf.format(totMakoA)}</td>
-                            <td style="border:1px solid #cbd5e1; padding:4px 3px; text-align:right; color:#0f172a;">${nf.format(totMakoS)}</td>
-                            <td style="border:1px solid #cbd5e1; padding:4px 3px; text-align:right; color:#0f172a;">${nf.format(totMakoC)}</td>
-                            <td style="border:1px solid #cbd5e1; padding:4px 3px; text-align:right; color:#0f172a;">${nf.format(totPongkol)}</td>
-                            <td style="border:1px solid #cbd5e1; padding:4px 3px; text-align:right; color:#0f172a;">${nf.format(totSilase)}</td>
-                            <td style="border:1px solid #cbd5e1; padding:4px 3px; text-align:right; color:#0f172a;">${nf.format(totDebit)}</td>
-                            <td style="border:1px solid #cbd5e1; padding:4px 3px; text-align:right; color:#0f172a;">${nf.format(totKredit)}</td>
-                            <td style="border:1px solid #cbd5e1; padding:4px 3px; text-align:right; ${totKas < 0 ? 'color:#dc2626;' : 'color:#0f172a;'}">
-                                ${totKas < 0 ? `(${nf.format(Math.abs(totKas))})` : nf.format(totKas)}
-                            </td>
-                            <td style="border:1px solid #cbd5e1; padding:4px 3px; text-align:right; color:#0f172a; background:#f1f5f9;">Rp ${nf.format(baperaSaldoAkhirTahun)}</td>
-                        </tr>
-                    </tfoot>
-                </table>
-
-                <!-- 3. TABEL MUTASI OPERASIONAL LAIN-LAIN -->
-                <div class="section-title">III. Rincian Pengeluaran & Pemasukan Lain-Lain (Operasional) ${isAll ? '(Kumulatif)' : ''}</div>
-                <table style="margin-bottom:8px;">
-                    <thead>
-                        <tr style="background:#f1f5f9; font-size:8.5px; text-transform:uppercase;">
-                            <th style="border:1px solid #cbd5e1; padding:4px 6px; text-align:center;">Kategori Transaksi</th>
-                            <th style="border:1px solid #cbd5e1; padding:4px 6px; text-align:center; width:130px;">Jenis Arus Kas</th>
-                            <th style="border:1px solid #cbd5e1; padding:4px 6px; text-align:center; width:140px;">Total Nominal</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${mutasiRowsHtml}
-                    </tbody>
-                    <tfoot>
-                        <tr style="background:#f8fafc; font-size:9px; font-weight:800;">
-                            <td colspan="2" style="border:1px solid #cbd5e1; padding:4px 6px; color:#0f172a;">TOTAL PENGELUARAN LAIN (KREDIT)</td>
-                            <td style="border:1px solid #cbd5e1; padding:4px 6px; text-align:right; color:#0f172a;">Rp ${nf.format(totalKredit)}</td>
-                        </tr>
-                        <tr style="background:#f8fafc; font-size:9px; font-weight:800;">
-                            <td colspan="2" style="border:1px solid #cbd5e1; padding:4px 6px; color:#0f172a;">TOTAL PEMASUKAN LAIN (DEBIT)</td>
-                            <td style="border:1px solid #cbd5e1; padding:4px 6px; text-align:right; color:#0f172a;">Rp ${nf.format(totalDebit)}</td>
-                        </tr>
-                    </tfoot>
-                </table>
-
-                <!-- 5. KOTAK VERIFIKASI QR CODE -->
-                <div class="qr-box">
-                    <div style="flex-shrink:0; background:#ffffff; padding:3px; border:1px solid #cbd5e1; border-radius:5px;">
-                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=90x90&margin=0&data=${encodeURIComponent(auditUrl)}" 
-                             alt="QR Code Cashflow Kas BAPERA" 
-                             width="72" height="72" 
-                             style="display:block; width:72px; height:72px;" />
-                    </div>
-                    <div style="flex:1;">
-                        <div style="display:inline-block; background:#0f172a; color:#ffffff; font-size:8.5px; font-weight:800; padding:3px 6px; border-radius:3px; margin-bottom:4px;">
-                            SCAN UNTUK CEK CATATAN BUKU KAS IN/OUT LENGKAP
-                        </div>
-                        <div style="font-size:9.5px; color:#475569; line-height:1.35; margin-bottom:4px;">
-                            Gunakan kamera HP, Google Lens, atau pemindai browser (Chrome/Google) untuk melihat seluruh rincian riwayat pemasukan/pengeluaran kas beserta foto nota dan kuitansi aslinya.
-                        </div>
-                        <div style="font-size:8.5px; color:#0f172a; font-weight:700; word-break:break-all;">
-                            🔗 ${auditUrl}
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 6. TANDA TANGAN -->
-                <div class="signatures">
-                    <div>
-                        <div>Pengelola Distribusi Pakan CBL,</div>
-                        <div class="sig-line">( Admin Pusat / PT CBL )</div>
-                    </div>
-                    <div>
-                        <div>Mengetahui / Menyetujui,</div>
-                        <div class="sig-line">( Pengurus BAPERA )</div>
-                    </div>
-                </div>
-            </div>
+            ${data.printableDocHtml}
 
             <script>
+                const pesanWaText = ${JSON.stringify(data.teksWA)};
+                const pdfFilename = ${JSON.stringify(data.pdfFilename)};
+                const docTitle = ${JSON.stringify(data.docTitle)};
+
+                async function shareWaDoc() {
+                    const btn = document.getElementById('btn-share-wa-preview');
+                    const oriTxt = btn ? btn.innerHTML : '';
+                    if (btn) {
+                        btn.innerHTML = '<span style="font-size:13px;">⏳</span> Menyiapkan PDF...';
+                        btn.disabled = true;
+                    }
+
+                    try {
+                        const el = document.getElementById('printable-doc');
+                        const opt = {
+                            margin: [8, 8, 8, 8],
+                            filename: pdfFilename,
+                            image: { type: 'jpeg', quality: 0.98 },
+                            html2canvas: { scale: 2, useCORS: true },
+                            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                        };
+
+                        if (navigator.clipboard && navigator.clipboard.writeText) {
+                            await navigator.clipboard.writeText(pesanWaText).catch(() => {});
+                        }
+
+                        let worker = html2pdf().set(opt).from(el);
+                        let pdfBlob = await worker.outputPdf('blob').catch(() => null);
+                        if (!pdfBlob || !(pdfBlob instanceof Blob)) {
+                            let dataUri = await html2pdf().set(opt).from(el).outputPdf('datauristring');
+                            const base64Clean = dataUri.split(',')[1];
+                            const byteCharacters = atob(base64Clean);
+                            const byteNumbers = new Array(byteCharacters.length);
+                            for (let i = 0; i < byteCharacters.length; i++) { byteNumbers[i] = byteCharacters.charCodeAt(i); }
+                            pdfBlob = new Blob([new Uint8Array(byteNumbers)], { type: 'application/pdf' });
+                        }
+
+                        const filePdf = new File([pdfBlob], pdfFilename, { type: 'application/pdf' });
+
+                        if (navigator.canShare && navigator.canShare({ files: [filePdf] })) {
+                            await navigator.share({
+                                files: [filePdf],
+                                title: docTitle,
+                                text: pesanWaText
+                            });
+                        } else {
+                            const url = URL.createObjectURL(pdfBlob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = pdfFilename;
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                            setTimeout(() => URL.revokeObjectURL(url), 10000);
+
+                            alert("Browser desktop tidak dapat melampirkan file PDF secara langsung ke WhatsApp Web.\\n\\n✅ Dokumen PDF (" + pdfFilename + ") telah diunduh otomatis.\\n✅ Ringkasan teks & tautan audit resmi sudah disalin ke clipboard.\\n\\nWhatsApp Web akan terbuka, silakan lampirkan file PDF yang baru terunduh tersebut lalu Paste keterangannya!");
+
+                            const waUrl = "https://api.whatsapp.com/send?text=" + encodeURIComponent(pesanWaText);
+                            window.open(waUrl, '_blank');
+                        }
+                    } catch (err) {
+                        console.error("Gagal share PDF:", err);
+                        const waUrl = "https://api.whatsapp.com/send?text=" + encodeURIComponent(pesanWaText);
+                        window.open(waUrl, '_blank');
+                    } finally {
+                        if (btn) {
+                            btn.innerHTML = oriTxt;
+                            btn.disabled = false;
+                        }
+                    }
+                }
+
+                function salinTeksWaDoc() {
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText(pesanWaText).then(() => {
+                            alert("✅ Pesan ringkasan kas & link audit berhasil disalin ke clipboard! Silakan paste di WhatsApp.");
+                        }).catch(() => {
+                            fallbackCopy(pesanWaText);
+                        });
+                    } else {
+                        fallbackCopy(pesanWaText);
+                    }
+                }
+
+                function fallbackCopy(text) {
+                    const ta = document.createElement('textarea');
+                    ta.value = text;
+                    document.body.appendChild(ta);
+                    ta.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(ta);
+                    alert("✅ Pesan ringkasan kas & link audit berhasil disalin ke clipboard! Silakan paste di WhatsApp.");
+                }
+
                 function downloadPdfDoc() {
                     const el = document.getElementById('printable-doc');
                     const opt = {
                         margin: [8, 8, 8, 8],
-                        filename: '${pdfFilename}',
+                        filename: pdfFilename,
                         image: { type: 'jpeg', quality: 0.98 },
                         html2canvas: { scale: 2, useCORS: true },
                         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
@@ -1223,6 +1481,9 @@ async function bukaLayarAuditBaperaPublik(tahun) {
     if (loginScreen) loginScreen.style.setProperty('display', 'none', 'important');
     if (appScreen) appScreen.classList.remove('hidden');
 
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+
     let isAll = (String(tahun).toUpperCase() === 'ALL');
 
     let existing = document.getElementById('screen-audit-bapera-digital');
@@ -1231,9 +1492,10 @@ async function bukaLayarAuditBaperaPublik(tahun) {
     let screenEl = document.createElement('div');
     screenEl.id = 'screen-audit-bapera-digital';
     screenEl.style.cssText = `
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: #f8fafc; z-index: 999999; overflow-y: auto; padding: 16px 12px;
-        box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; height: 100dvh;
+        background: #f8fafc; z-index: 999999; display: flex; flex-direction: column;
+        overflow: hidden; box-sizing: border-box;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     `;
 
     let subJudulAudit = isAll
@@ -1241,38 +1503,52 @@ async function bukaLayarAuditBaperaPublik(tahun) {
         : `Rincian Mutasi Cashflow Lain-lain Tahun Buku <b>${tahun}</b>`;
 
     screenEl.innerHTML = `
-        <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 4px 20px rgba(0,0,0,0.06); padding: 18px;">
-            <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:1px solid #e2e8f0; padding-bottom:12px; margin-bottom:14px;">
-                <div>
-                    <span style="background:#0284c7; color:#fff; font-size:10px; font-weight:800; padding:3px 8px; border-radius:4px;">VERIFIKASI RESMI CLOUD</span>
-                    <h2 style="font-size:17px; font-weight:800; color:#0f172a; margin:6px 0 2px 0;">Cashflow Kas BAPERA</h2>
-                    <div style="font-size:11px; color:#64748b;">${subJudulAudit}</div>
+        <!-- Header Tetap (Fixed Top Bar) -->
+        <header style="background: #ffffff; border-bottom: 1px solid #e2e8f0; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 4px rgba(0,0,0,0.05); flex-shrink: 0; z-index: 10;">
+            <div>
+                <span style="background:#0284c7; color:#fff; font-size:9.5px; font-weight:800; padding:2px 7px; border-radius:4px; letter-spacing:0.3px;">VERIFIKASI RESMI CLOUD</span>
+                <h2 style="font-size:16px; font-weight:800; color:#0f172a; margin:4px 0 1px 0;">Cashflow Kas BAPERA</h2>
+                <div style="font-size:11px; color:#64748b;">${subJudulAudit}</div>
+            </div>
+            <button type="button" onclick="tutupLayarAuditBaperaPublik()" style="background:#f1f5f9; border:1px solid #cbd5e1; color:#334155; padding:6px 12px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:4px;">
+                <span>Tutup</span> ✕
+            </button>
+        </header>
+
+        <!-- Area Konten Utama yang Dapat Di-scroll Halus (Smooth Scrolling) -->
+        <main id="audit-bapera-scroll-container" style="flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-y: contain; padding: 14px 12px 30px 12px; box-sizing: border-box;">
+            <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 2px 12px rgba(0,0,0,0.04); padding: 16px;">
+                <div id="audit-bapera-loader" style="text-align:center; padding:40px 10px; color:#0284c7;">
+                    <span class="material-symbols-outlined icon-spin" style="font-size:32px;">sync</span>
+                    <div style="font-size:12px; font-weight:700; margin-top:8px;">Memverifikasi Data dari Brankas Cloud CBL...</div>
                 </div>
-                <button onclick="tutupLayarAuditBaperaPublik()" style="background:#f1f5f9; border:none; color:#64748b; padding:6px 12px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer;">
-                    ✕ Tutup
-                </button>
-            </div>
 
-            <div id="audit-bapera-loader" style="text-align:center; padding:40px 10px; color:#0284c7;">
-                <span class="material-symbols-outlined icon-spin" style="font-size:32px;">sync</span>
-                <div style="font-size:12px; font-weight:700; margin-top:8px;">Memverifikasi Data dari Brankas Cloud CBL...</div>
+                <div id="audit-bapera-content" class="hidden">
+                    <!-- Diisi via JS -->
+                </div>
             </div>
-
-            <div id="audit-bapera-content" class="hidden">
-                <!-- Diisi via JS -->
-            </div>
-        </div>
+        </main>
     `;
 
     document.body.appendChild(screenEl);
 
     try {
         let fnFetch = (typeof fetchSupabaseAll === 'function') ? fetchSupabaseAll : null;
+        let sUrl = (typeof SUPA_URL !== 'undefined') ? SUPA_URL : 'https://hwpbkdmaeqovhxttkrmj.supabase.co';
+        let sKey = (typeof SUPA_ANON_KEY !== 'undefined') ? SUPA_ANON_KEY : 'sb_publishable_JAhHcT-Z-SZfLa3p9m3qvQ_WFAOew5A';
+
         let url = isAll
-            ? `${SUPA_URL}/rest/v1/cashflow?relasi=ilike.*BAPERA*&order=tanggal.desc,id.desc`
-            : `${SUPA_URL}/rest/v1/cashflow?relasi=ilike.*BAPERA*&tanggal=gte.${tahun}-01-01&tanggal=lte.${tahun}-12-31&order=tanggal.desc,id.desc`;
+            ? `${sUrl}/rest/v1/cashflow?relasi=ilike.*BAPERA*&order=tanggal.desc,id.desc`
+            : `${sUrl}/rest/v1/cashflow?relasi=ilike.*BAPERA*&tanggal=gte.${tahun}-01-01&tanggal=lte.${tahun}-12-31&order=tanggal.desc,id.desc`;
         
-        let rawData = fnFetch ? await fnFetch(url) : await fetch(url, { headers: { 'apikey': SUPA_ANON_KEY, 'Authorization': `Bearer ${SUPA_ANON_KEY}` } }).then(r => r.json());
+        let rawData;
+        if (fnFetch) {
+            rawData = await fnFetch(url);
+        } else {
+            let res = await fetch(url, { headers: { 'apikey': sKey, 'Authorization': `Bearer ${sKey}` } });
+            if (!res.ok) throw new Error("Status " + res.status);
+            rawData = await res.json();
+        }
         let data = (rawData || []).filter(row => String(row.kategori || '').trim() !== 'Saldo Awal');
 
         // Urutkan transaksi secara kronologis terbalik (terbaru di atas seperti di BCA Activity)
@@ -1390,7 +1666,23 @@ async function bukaLayarAuditBaperaPublik(tahun) {
         `;
 
     } catch (e) {
-        alert("Gagal memuat audit: " + e.message);
+        console.error("Gagal memuat audit:", e);
+        let loader = document.getElementById('audit-bapera-loader');
+        let content = document.getElementById('audit-bapera-content');
+        if (loader) loader.classList.add('hidden');
+        if (content) {
+            content.classList.remove('hidden');
+            content.innerHTML = `
+                <div style="text-align:center; padding:30px 15px; color:#dc2626;">
+                    <span class="material-symbols-outlined" style="font-size:40px; color:#ef4444; margin-bottom:8px;">wifi_off</span>
+                    <div style="font-size:14px; font-weight:800; color:#0f172a; margin-bottom:4px;">Gagal Memuat Data Audit</div>
+                    <div style="font-size:11.5px; color:#64748b; margin-bottom:16px;">Koneksi internet terputus atau lambat (${e.message || 'Load failed'}).</div>
+                    <button type="button" onclick="bukaLayarAuditBaperaPublik('${tahun}')" style="background:#0284c7; color:#ffffff; border:none; padding:8px 18px; border-radius:8px; font-weight:700; font-size:12px; cursor:pointer; display:inline-flex; align-items:center; gap:5px; margin:0 auto;">
+                        <span class="material-symbols-outlined" style="font-size:16px;">refresh</span> Coba Muat Ulang
+                    </button>
+                </div>
+            `;
+        }
     }
 }
 
@@ -1409,6 +1701,9 @@ function aksiTutupTabBrowser() {
 function tutupLayarAuditBaperaPublik() {
     let el = document.getElementById('screen-audit-bapera-digital');
     if (el) el.remove();
+
+    document.body.style.overflow = '';
+    document.documentElement.style.overflow = '';
 
     // Hapus parameter URL tanpa memicu reload halaman
     if (window.history && window.history.replaceState) {
@@ -1565,3 +1860,6 @@ window.bukaLayarAuditBaperaPublik = bukaLayarAuditBaperaPublik;
 window.tutupLayarAuditBaperaPublik = tutupLayarAuditBaperaPublik;
 window.aksiTutupTabBrowser = aksiTutupTabBrowser;
 window.importDataHistorisBapera = importDataHistorisBapera;
+window.getTeksPesanWABapera = getTeksPesanWABapera;
+window.bagikanLaporanBaperaWA = bagikanLaporanBaperaWA;
+window.buildDataLaporanBaperaA4 = buildDataLaporanBaperaA4;
