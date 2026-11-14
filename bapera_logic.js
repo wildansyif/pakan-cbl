@@ -445,7 +445,7 @@ function kalkulasiDataBapera(tahun) {
 // 4. Render Komponen UI PWA
 // -----------------------------------------------------------------------------
 function renderBaperaCards() {
-    let nf = new Intl.NumberFormat('id-ID');
+    let nf = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 });
 
     let totalSharing = 0;
     let totalDebit = 0;
@@ -501,13 +501,32 @@ function renderBaperaTabelRekap() {
         btnTabRekapText.textContent = (baperaCurrentYear === 'ALL') ? "Rekap Tahunan" : "Rekap Bulanan";
     }
 
-    let nf = new Intl.NumberFormat('id-ID');
+    let nf = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 });
     let html = "";
 
     let totMakoA = 0, totMakoS = 0, totMakoC = 0, totPongkol = 0, totSilase = 0;
     let totDebit = 0, totKredit = 0, totKas = 0;
 
     let rowsToRender = (baperaCurrentYear === 'ALL') ? baperaYearlySummary : baperaMonthlySummary;
+
+    // Baris Saldo Awal sebelum Januari (atau sebelum tahun pertama jika ALL)
+    let saldoAwalLabel = (baperaCurrentYear === 'ALL') ? "Saldo Awal (Des 2024)" : "Saldo Awal";
+    html += `
+        <tr style="border-bottom:1px solid #f1f5f9; font-size:12px; background:#f8fafc; font-style:italic;">
+            <td style="padding:10px 8px; font-weight:700; color:#475569;">${saldoAwalLabel}</td>
+            <td style="padding:10px 8px; text-align:right; color:#94a3b8;">-</td>
+            <td style="padding:10px 8px; text-align:right; color:#94a3b8;">-</td>
+            <td style="padding:10px 8px; text-align:right; color:#94a3b8;">-</td>
+            <td style="padding:10px 8px; text-align:right; color:#94a3b8;">-</td>
+            <td style="padding:10px 8px; text-align:right; color:#94a3b8;">-</td>
+            <td style="padding:10px 8px; text-align:right; color:#94a3b8;">-</td>
+            <td style="padding:10px 8px; text-align:right; color:#94a3b8;">-</td>
+            <td style="padding:10px 8px; text-align:right; color:#94a3b8;">-</td>
+            <td style="padding:10px 8px; text-align:right; font-weight:800; color:#0f172a; background:#f1f5f9;">
+                ${nf.format(baperaSaldoAwalTahun)}
+            </td>
+        </tr>
+    `;
 
     rowsToRender.forEach(row => {
         let f = row.feeds;
@@ -572,7 +591,7 @@ function renderBaperaTabelMutasi() {
     let tbody = document.getElementById('bapera-tbody-mutasi');
     if (!tbody) return;
 
-    let nf = new Intl.NumberFormat('id-ID');
+    let nf = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 });
     let cfList = (baperaCurrentYear === 'ALL')
         ? baperaCashflowRaw.filter(cf => String(cf.kategori || '').trim() !== 'Saldo Awal')
         : baperaCashflowRaw.filter(cf => {
@@ -779,7 +798,7 @@ function tutupModalFotoBuktiBapera() {
 // 6. Cetak Laporan Rekapitulasi Tahunan & Semua Tahun (A4 Portrait - 1 Halaman Pas)
 // -----------------------------------------------------------------------------
 function cetakLaporanBaperaA4() {
-    let nf = new Intl.NumberFormat('id-ID');
+    let nf = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 });
     let isAll = (baperaCurrentYear === 'ALL');
     let tahun = baperaCurrentYear;
 
@@ -807,39 +826,60 @@ function cetakLaporanBaperaA4() {
         });
     }
 
-    // Baris Tabel Pakan (Monokrom #0f172a)
-    let pakanKeys = ['Mako A-20', 'Mako S-20', 'Mako C-20', 'Pongkol Singkong', 'Silase Jagung Manis'];
-    let pakanRowsHtml = pakanKeys.map(key => {
-        let item = baperaFeedSummary[key] || { kg: 0, tarif: 20, totalRp: 0 };
+    // Baris Tabel Rekapitulasi Kas & Penjualan Pakan (10 Kolom: Periode, 5 Pakan, Debit, Kredit, Kas, Saldo)
+    let rowsToRender = isAll ? baperaYearlySummary : baperaMonthlySummary;
+    let totMakoA = 0, totMakoS = 0, totMakoC = 0, totPongkol = 0, totSilase = 0;
+    let totDebit = 0, totKredit = 0, totKas = 0;
+
+    let saldoAwalLabel = isAll ? "Saldo Awal (Des 2024)" : "Saldo Awal";
+    let saldoAwalRowHtml = `
+        <tr style="font-size:8.5px; background:#f8fafc; font-style:italic;">
+            <td style="border:1px solid #cbd5e1; padding:3px 4px; font-weight:700; color:#475569;">${saldoAwalLabel}</td>
+            <td style="border:1px solid #cbd5e1; padding:3px 4px; text-align:right; color:#94a3b8;">-</td>
+            <td style="border:1px solid #cbd5e1; padding:3px 4px; text-align:right; color:#94a3b8;">-</td>
+            <td style="border:1px solid #cbd5e1; padding:3px 4px; text-align:right; color:#94a3b8;">-</td>
+            <td style="border:1px solid #cbd5e1; padding:3px 4px; text-align:right; color:#94a3b8;">-</td>
+            <td style="border:1px solid #cbd5e1; padding:3px 4px; text-align:right; color:#94a3b8;">-</td>
+            <td style="border:1px solid #cbd5e1; padding:3px 4px; text-align:right; color:#94a3b8;">-</td>
+            <td style="border:1px solid #cbd5e1; padding:3px 4px; text-align:right; color:#94a3b8;">-</td>
+            <td style="border:1px solid #cbd5e1; padding:3px 4px; text-align:right; color:#94a3b8;">-</td>
+            <td style="border:1px solid #cbd5e1; padding:3px 4px; text-align:right; font-weight:800; color:#0f172a; background:#f1f5f9;">Rp ${nf.format(baperaSaldoAwalTahun)}</td>
+        </tr>
+    `;
+
+    let rekapRowsHtml = rowsToRender.map(row => {
+        let f = row.feeds;
+        let periodeLabel = isAll ? row.label : row.namaBulan;
+        let netKas = isAll ? row.netKas : row.netKasBulan;
+        let saldo = isAll ? row.saldoAkhir : row.saldoAkumulatif;
+
+        totMakoA += f['Mako A-20'] || 0;
+        totMakoS += f['Mako S-20'] || 0;
+        totMakoC += f['Mako C-20'] || 0;
+        totPongkol += f['Pongkol Singkong'] || 0;
+        totSilase += f['Silase Jagung Manis'] || 0;
+        totDebit += row.debitRp || 0;
+        totKredit += row.kreditRp || 0;
+        totKas += netKas || 0;
+
+        let kasStyle = netKas < 0 ? "color:#dc2626;" : "color:#0f172a;";
+        let netKasFormatted = netKas !== 0 ? (netKas < 0 ? `(${nf.format(Math.abs(netKas))})` : nf.format(netKas)) : '-';
+
         return `
-            <tr style="font-size:10.5px;">
-                <td style="border:1px solid #cbd5e1; padding:5px 8px; font-weight:600; color:#0f172a;">${key}</td>
-                <td style="border:1px solid #cbd5e1; padding:5px 8px; text-align:right; color:#0f172a;">${nf.format(item.kg)} Kg</td>
-                <td style="border:1px solid #cbd5e1; padding:5px 8px; text-align:center; color:#0f172a;">Rp ${nf.format(item.tarif)} / kg</td>
-                <td style="border:1px solid #cbd5e1; padding:5px 8px; text-align:right; font-weight:700; color:#0f172a;">Rp ${nf.format(item.totalRp)}</td>
+            <tr style="font-size:8.5px;">
+                <td style="border:1px solid #cbd5e1; padding:3px 4px; font-weight:600; color:#0f172a;">${periodeLabel}</td>
+                <td style="border:1px solid #cbd5e1; padding:3px 4px; text-align:right; color:#0f172a;">${f['Mako A-20'] > 0 ? nf.format(f['Mako A-20']) : '-'}</td>
+                <td style="border:1px solid #cbd5e1; padding:3px 4px; text-align:right; color:#0f172a;">${f['Mako S-20'] > 0 ? nf.format(f['Mako S-20']) : '-'}</td>
+                <td style="border:1px solid #cbd5e1; padding:3px 4px; text-align:right; color:#0f172a;">${f['Mako C-20'] > 0 ? nf.format(f['Mako C-20']) : '-'}</td>
+                <td style="border:1px solid #cbd5e1; padding:3px 4px; text-align:right; color:#0f172a;">${f['Pongkol Singkong'] > 0 ? nf.format(f['Pongkol Singkong']) : '-'}</td>
+                <td style="border:1px solid #cbd5e1; padding:3px 4px; text-align:right; color:#0f172a;">${f['Silase Jagung Manis'] > 0 ? nf.format(f['Silase Jagung Manis']) : '-'}</td>
+                <td style="border:1px solid #cbd5e1; padding:3px 4px; text-align:right; color:#0f172a; font-weight:600;">${row.debitRp > 0 ? nf.format(row.debitRp) : '-'}</td>
+                <td style="border:1px solid #cbd5e1; padding:3px 4px; text-align:right; color:#0f172a; font-weight:600;">${row.kreditRp > 0 ? nf.format(row.kreditRp) : '-'}</td>
+                <td style="border:1px solid #cbd5e1; padding:3px 4px; text-align:right; font-weight:700; ${kasStyle}">${netKasFormatted}</td>
+                <td style="border:1px solid #cbd5e1; padding:3px 4px; text-align:right; font-weight:800; color:#0f172a; background:#f8fafc;">Rp ${nf.format(saldo)}</td>
             </tr>
         `;
     }).join('');
-
-    // Baris Tabel Ringkasan Pertumbuhan per Tahun (Khusus SEMUA TAHUN)
-    let yearlyRowsHtml = "";
-    if (isAll) {
-        yearlyRowsHtml = baperaYearlySummary.map(y => {
-            let netKas = y.netKas;
-            let netKasStr = (netKas < 0) ? `(${nf.format(Math.abs(netKas))})` : nf.format(netKas);
-            return `
-                <tr style="font-size:10.5px;">
-                    <td style="border:1px solid #cbd5e1; padding:5px 8px; font-weight:700; color:#0f172a;">${y.label}</td>
-                    <td style="border:1px solid #cbd5e1; padding:5px 8px; text-align:right; color:#0f172a;">${nf.format(y.totalKgSharing)} Kg</td>
-                    <td style="border:1px solid #cbd5e1; padding:5px 8px; text-align:right; font-weight:600; color:#0f172a;">Rp ${nf.format(y.sharingRp)}</td>
-                    <td style="border:1px solid #cbd5e1; padding:5px 8px; text-align:right; color:#0f172a;">${y.debitRp > 0 ? `Rp ${nf.format(y.debitRp)}` : '-'}</td>
-                    <td style="border:1px solid #cbd5e1; padding:5px 8px; text-align:right; color:#0f172a;">${y.kreditRp > 0 ? `Rp ${nf.format(y.kreditRp)}` : '-'}</td>
-                    <td style="border:1px solid #cbd5e1; padding:5px 8px; text-align:right; font-weight:700; color:#0f172a;">Rp ${netKasStr}</td>
-                    <td style="border:1px solid #cbd5e1; padding:5px 8px; text-align:right; font-weight:800; color:#0f172a; background:#f8fafc;">Rp ${nf.format(y.saldoAkhir)}</td>
-                </tr>
-            `;
-        }).join('');
-    }
 
     // Baris Tabel Pengeluaran & Pemasukan Lain-Lain (Diagregasi per Kategori)
     let katKeluarKeys = Object.keys(baperaCategorySummary.keluar);
@@ -848,8 +888,8 @@ function cetakLaporanBaperaA4() {
 
     if (katMasukKeys.length === 0 && katKeluarKeys.length === 0) {
         mutasiRowsHtml = `
-            <tr style="font-size:10.5px;">
-                <td colspan="3" style="border:1px solid #cbd5e1; padding:6px; text-align:center; color:#64748b; font-style:italic;">
+            <tr style="font-size:9px;">
+                <td colspan="3" style="border:1px solid #cbd5e1; padding:5px; text-align:center; color:#64748b; font-style:italic;">
                     Tidak ada transaksi operasional lain pada periode ini.
                 </td>
             </tr>
@@ -858,20 +898,20 @@ function cetakLaporanBaperaA4() {
         katMasukKeys.forEach(k => {
             let nom = baperaCategorySummary.masuk[k];
             mutasiRowsHtml += `
-                <tr style="font-size:10.5px;">
-                    <td style="border:1px solid #cbd5e1; padding:4px 8px; font-weight:600; color:#0f172a;">${k}</td>
-                    <td style="border:1px solid #cbd5e1; padding:4px 8px; text-align:center; color:#0f172a; font-weight:600;">Masuk (Debit)</td>
-                    <td style="border:1px solid #cbd5e1; padding:4px 8px; text-align:right; font-weight:700; color:#0f172a;">Rp ${nf.format(nom)}</td>
+                <tr style="font-size:9px;">
+                    <td style="border:1px solid #cbd5e1; padding:3px 6px; font-weight:600; color:#0f172a;">${k}</td>
+                    <td style="border:1px solid #cbd5e1; padding:3px 6px; text-align:center; color:#0f172a; font-weight:600;">Masuk (Debit)</td>
+                    <td style="border:1px solid #cbd5e1; padding:3px 6px; text-align:right; font-weight:700; color:#0f172a;">Rp ${nf.format(nom)}</td>
                 </tr>
             `;
         });
         katKeluarKeys.forEach(k => {
             let nom = baperaCategorySummary.keluar[k];
             mutasiRowsHtml += `
-                <tr style="font-size:10.5px;">
-                    <td style="border:1px solid #cbd5e1; padding:4px 8px; font-weight:600; color:#0f172a;">${k}</td>
-                    <td style="border:1px solid #cbd5e1; padding:4px 8px; text-align:center; color:#0f172a; font-weight:600;">Keluar (Kredit)</td>
-                    <td style="border:1px solid #cbd5e1; padding:4px 8px; text-align:right; font-weight:700; color:#0f172a;">Rp ${nf.format(nom)}</td>
+                <tr style="font-size:9px;">
+                    <td style="border:1px solid #cbd5e1; padding:3px 6px; font-weight:600; color:#0f172a;">${k}</td>
+                    <td style="border:1px solid #cbd5e1; padding:3px 6px; text-align:center; color:#0f172a; font-weight:600;">Keluar (Kredit)</td>
+                    <td style="border:1px solid #cbd5e1; padding:3px 6px; text-align:right; font-weight:700; color:#0f172a;">Rp ${nf.format(nom)}</td>
                 </tr>
             `;
         });
@@ -906,43 +946,6 @@ function cetakLaporanBaperaA4() {
         }
         pdfFilename = `Laporan_Kas_BAPERA_${tahun}.pdf`;
     }
-
-    // Bagian Rangkuman Pertumbuhan Tahunan jika mencetak SEMUA TAHUN
-    let sectionYearlyGrowthHtml = "";
-    if (isAll) {
-        sectionYearlyGrowthHtml = `
-            <div class="section-title">III. Rangkuman Pertumbuhan Kas per Tahun Buku</div>
-            <table style="margin-bottom:8px;">
-                <thead>
-                    <tr style="background:#f1f5f9; font-size:9.5px; text-transform:uppercase;">
-                        <th style="border:1px solid #cbd5e1; padding:5px 8px; text-align:left;">Tahun Buku</th>
-                        <th style="border:1px solid #cbd5e1; padding:5px 8px; text-align:right; width:95px;">Volume (Kg)</th>
-                        <th style="border:1px solid #cbd5e1; padding:5px 8px; text-align:right; width:110px;">Sharing Pakan</th>
-                        <th style="border:1px solid #cbd5e1; padding:5px 8px; text-align:right; width:90px;">Masuk Lain</th>
-                        <th style="border:1px solid #cbd5e1; padding:5px 8px; text-align:right; width:90px;">Pengeluaran</th>
-                        <th style="border:1px solid #cbd5e1; padding:5px 8px; text-align:right; width:95px;">Kas Bersih</th>
-                        <th style="border:1px solid #cbd5e1; padding:5px 8px; text-align:right; width:100px;">Saldo Akhir</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${yearlyRowsHtml}
-                </tbody>
-                <tfoot>
-                    <tr style="background:#f8fafc; font-size:10.5px; font-weight:800;">
-                        <td style="border:1px solid #cbd5e1; padding:5px 8px; color:#0f172a;">GRAND TOTAL</td>
-                        <td style="border:1px solid #cbd5e1; padding:5px 8px; text-align:right; color:#0f172a;">${nf.format(totalKg)} Kg</td>
-                        <td style="border:1px solid #cbd5e1; padding:5px 8px; text-align:right; color:#0f172a;">Rp ${nf.format(totalSharing)}</td>
-                        <td style="border:1px solid #cbd5e1; padding:5px 8px; text-align:right; color:#0f172a;">Rp ${nf.format(totalDebit)}</td>
-                        <td style="border:1px solid #cbd5e1; padding:5px 8px; text-align:right; color:#0f172a;">Rp ${nf.format(totalKredit)}</td>
-                        <td style="border:1px solid #cbd5e1; padding:5px 8px; text-align:right; color:#0f172a;">Rp ${nf.format(totalSharing + totalDebit - totalKredit)}</td>
-                        <td style="border:1px solid #cbd5e1; padding:5px 8px; text-align:right; color:#0f172a; background:#f1f5f9;">Rp ${nf.format(baperaSaldoAkhirTahun)}</td>
-                    </tr>
-                </tfoot>
-            </table>
-        `;
-    }
-
-    let sectionNumberOperasional = isAll ? "IV" : "III";
 
     printWin.document.write(`
         <!DOCTYPE html>
@@ -1082,54 +1085,73 @@ function cetakLaporanBaperaA4() {
                     </tbody>
                 </table>
 
-                <!-- 2. TABEL KONTRIBUSI SHARING PAKAN -->
-                <div class="section-title">II. Rincian Kontribusi Sharing Penjualan per Jenis Pakan ${isAll ? '(Kumulatif)' : ''}</div>
+                <!-- 2. TABEL REKAPITULASI PENJUALAN PAKAN & ARUS KAS (10 KOLOM) -->
+                <div style="display:flex; justify-content:space-between; align-items:baseline; margin:8px 0 4px 0;">
+                    <div class="section-title" style="margin:0;">
+                        II. ${isAll ? 'Rekapitulasi Penjualan Pakan & Arus Kas per Tahun Buku' : 'Rekapitulasi Penjualan Pakan & Arus Kas Bulanan'}
+                    </div>
+                    <div style="font-size:8px; color:#475569; font-weight:600;">
+                        Tarif Sharing: Mako & Pongkol @ Rp 20/kg | Silase @ Rp 10/kg
+                    </div>
+                </div>
                 <table style="margin-bottom:8px;">
                     <thead>
-                        <tr style="background:#f1f5f9; font-size:9.5px; text-transform:uppercase;">
-                            <th style="border:1px solid #cbd5e1; padding:5px 8px; text-align:left;">Jenis Pakan</th>
-                            <th style="border:1px solid #cbd5e1; padding:5px 8px; text-align:right; width:120px;">Total Terjual</th>
-                            <th style="border:1px solid #cbd5e1; padding:5px 8px; text-align:center; width:110px;">Tarif Sharing</th>
-                            <th style="border:1px solid #cbd5e1; padding:5px 8px; text-align:right; width:140px;">Total Hak BAPERA</th>
+                        <tr style="background:#f1f5f9; font-size:8px; text-transform:uppercase;">
+                            <th style="border:1px solid #cbd5e1; padding:4px 3px; text-align:center; width:68px;">${isAll ? 'Tahun Buku' : 'Bulan'}</th>
+                            <th style="border:1px solid #cbd5e1; padding:4px 3px; text-align:center; width:52px;">Mako A-20</th>
+                            <th style="border:1px solid #cbd5e1; padding:4px 3px; text-align:center; width:52px;">Mako S-20</th>
+                            <th style="border:1px solid #cbd5e1; padding:4px 3px; text-align:center; width:52px;">Mako C-20</th>
+                            <th style="border:1px solid #cbd5e1; padding:4px 3px; text-align:center; width:48px;">Pongkol</th>
+                            <th style="border:1px solid #cbd5e1; padding:4px 3px; text-align:center; width:58px;">Silase Jagung</th>
+                            <th style="border:1px solid #cbd5e1; padding:4px 3px; text-align:center; width:56px;">Debit (Rp)</th>
+                            <th style="border:1px solid #cbd5e1; padding:4px 3px; text-align:center; width:66px;">Kredit (Rp)</th>
+                            <th style="border:1px solid #cbd5e1; padding:4px 3px; text-align:center; width:72px;">Kas (Rp)</th>
+                            <th style="border:1px solid #cbd5e1; padding:4px 3px; text-align:center; width:82px; background:#e2e8f0;">Saldo (Rp)</th>
                         </tr>
                     </thead>
                     <tbody>
-                        ${pakanRowsHtml}
+                        ${saldoAwalRowHtml}
+                        ${rekapRowsHtml}
                     </tbody>
                     <tfoot>
-                        <tr style="background:#f8fafc; font-size:10.5px; font-weight:800;">
-                            <td style="border:1px solid #cbd5e1; padding:5px 8px; color:#0f172a;">TOTAL KONTRIBUSI PAKAN</td>
-                            <td style="border:1px solid #cbd5e1; padding:5px 8px; text-align:right; color:#0f172a;">${nf.format(totalKg)} Kg</td>
-                            <td style="border:1px solid #cbd5e1; padding:5px 8px; text-align:center; color:#0f172a;">-</td>
-                            <td style="border:1px solid #cbd5e1; padding:5px 8px; text-align:right; color:#0f172a;">Rp ${nf.format(totalSharing)}</td>
+                        <tr style="background:#f8fafc; font-size:8px; font-weight:800;">
+                            <td style="border:1px solid #cbd5e1; padding:4px 3px; color:#0f172a;">GRAND TOTAL</td>
+                            <td style="border:1px solid #cbd5e1; padding:4px 3px; text-align:right; color:#0f172a;">${nf.format(totMakoA)}</td>
+                            <td style="border:1px solid #cbd5e1; padding:4px 3px; text-align:right; color:#0f172a;">${nf.format(totMakoS)}</td>
+                            <td style="border:1px solid #cbd5e1; padding:4px 3px; text-align:right; color:#0f172a;">${nf.format(totMakoC)}</td>
+                            <td style="border:1px solid #cbd5e1; padding:4px 3px; text-align:right; color:#0f172a;">${nf.format(totPongkol)}</td>
+                            <td style="border:1px solid #cbd5e1; padding:4px 3px; text-align:right; color:#0f172a;">${nf.format(totSilase)}</td>
+                            <td style="border:1px solid #cbd5e1; padding:4px 3px; text-align:right; color:#0f172a;">${nf.format(totDebit)}</td>
+                            <td style="border:1px solid #cbd5e1; padding:4px 3px; text-align:right; color:#0f172a;">${nf.format(totKredit)}</td>
+                            <td style="border:1px solid #cbd5e1; padding:4px 3px; text-align:right; ${totKas < 0 ? 'color:#dc2626;' : 'color:#0f172a;'}">
+                                ${totKas < 0 ? `(${nf.format(Math.abs(totKas))})` : nf.format(totKas)}
+                            </td>
+                            <td style="border:1px solid #cbd5e1; padding:4px 3px; text-align:right; color:#0f172a; background:#f1f5f9;">Rp ${nf.format(baperaSaldoAkhirTahun)}</td>
                         </tr>
                     </tfoot>
                 </table>
 
-                <!-- 3. TABEL RANGKUMAN PERTUMBUHAN PER TAHUN BUKU (HANYA UNTUK SEMUA TAHUN) -->
-                ${sectionYearlyGrowthHtml}
-
-                <!-- 4. TABEL MUTASI OPERASIONAL LAIN-LAIN -->
-                <div class="section-title">${sectionNumberOperasional}. Rincian Pengeluaran & Pemasukan Lain-Lain (Operasional) ${isAll ? 'Kumulatif' : ''}</div>
+                <!-- 3. TABEL MUTASI OPERASIONAL LAIN-LAIN -->
+                <div class="section-title">III. Rincian Pengeluaran & Pemasukan Lain-Lain (Operasional) ${isAll ? '(Kumulatif)' : ''}</div>
                 <table style="margin-bottom:8px;">
                     <thead>
-                        <tr style="background:#f1f5f9; font-size:9.5px; text-transform:uppercase;">
-                            <th style="border:1px solid #cbd5e1; padding:5px 8px; text-align:left;">Kategori Transaksi</th>
-                            <th style="border:1px solid #cbd5e1; padding:5px 8px; text-align:center; width:140px;">Jenis Arus Kas</th>
-                            <th style="border:1px solid #cbd5e1; padding:5px 8px; text-align:right; width:140px;">Total Nominal</th>
+                        <tr style="background:#f1f5f9; font-size:8.5px; text-transform:uppercase;">
+                            <th style="border:1px solid #cbd5e1; padding:4px 6px; text-align:center;">Kategori Transaksi</th>
+                            <th style="border:1px solid #cbd5e1; padding:4px 6px; text-align:center; width:130px;">Jenis Arus Kas</th>
+                            <th style="border:1px solid #cbd5e1; padding:4px 6px; text-align:center; width:140px;">Total Nominal</th>
                         </tr>
                     </thead>
                     <tbody>
                         ${mutasiRowsHtml}
                     </tbody>
                     <tfoot>
-                        <tr style="background:#f8fafc; font-size:10.5px; font-weight:800;">
-                            <td colspan="2" style="border:1px solid #cbd5e1; padding:5px 8px; color:#0f172a;">TOTAL PENGELUARAN LAIN (KREDIT)</td>
-                            <td style="border:1px solid #cbd5e1; padding:5px 8px; text-align:right; color:#0f172a;">Rp ${nf.format(totalKredit)}</td>
+                        <tr style="background:#f8fafc; font-size:9px; font-weight:800;">
+                            <td colspan="2" style="border:1px solid #cbd5e1; padding:4px 6px; color:#0f172a;">TOTAL PENGELUARAN LAIN (KREDIT)</td>
+                            <td style="border:1px solid #cbd5e1; padding:4px 6px; text-align:right; color:#0f172a;">Rp ${nf.format(totalKredit)}</td>
                         </tr>
-                        <tr style="background:#f8fafc; font-size:10.5px; font-weight:800;">
-                            <td colspan="2" style="border:1px solid #cbd5e1; padding:5px 8px; color:#0f172a;">TOTAL PEMASUKAN LAIN (DEBIT)</td>
-                            <td style="border:1px solid #cbd5e1; padding:5px 8px; text-align:right; color:#0f172a;">Rp ${nf.format(totalDebit)}</td>
+                        <tr style="background:#f8fafc; font-size:9px; font-weight:800;">
+                            <td colspan="2" style="border:1px solid #cbd5e1; padding:4px 6px; color:#0f172a;">TOTAL PEMASUKAN LAIN (DEBIT)</td>
+                            <td style="border:1px solid #cbd5e1; padding:4px 6px; text-align:right; color:#0f172a;">Rp ${nf.format(totalDebit)}</td>
                         </tr>
                     </tfoot>
                 </table>
@@ -1143,12 +1165,11 @@ function cetakLaporanBaperaA4() {
                              style="display:block; width:72px; height:72px;" />
                     </div>
                     <div style="flex:1;">
-                        <div style="display:inline-block; background:#0f172a; color:#ffffff; font-size:8.5px; font-weight:800; padding:2px 5px; border-radius:3px; margin-bottom:2px;">
-                            SCAN UNTUK AUDIT DIGITAL LENGKAP
+                        <div style="display:inline-block; background:#0f172a; color:#ffffff; font-size:8.5px; font-weight:800; padding:3px 6px; border-radius:3px; margin-bottom:4px;">
+                            SCAN UNTUK CEK CATATAN BUKU KAS IN/OUT LENGKAP
                         </div>
-                        <div style="font-size:11px; font-weight:800; color:#0f172a; margin-bottom:2px;">Verifikasi Cashflow Kas Operasional Per Tanggal ${isAll ? '(Semua Periode)' : ''}</div>
-                        <div style="font-size:9.5px; color:#64748b; line-height:1.3; margin-bottom:3px;">
-                            Arahkan kamera HP ke barcode untuk melihat rincian tanggal transaksi pengeluaran dan pemasukan lain-lain beserta foto kuitansi/nota belanja dari brankas cloud.
+                        <div style="font-size:9.5px; color:#475569; line-height:1.35; margin-bottom:4px;">
+                            Gunakan kamera HP, Google Lens, atau pemindai browser (Chrome/Google) untuk melihat seluruh rincian riwayat pemasukan/pengeluaran kas beserta foto nota dan kuitansi aslinya.
                         </div>
                         <div style="font-size:8.5px; color:#0f172a; font-weight:700; word-break:break-all;">
                             🔗 ${auditUrl}
@@ -1262,7 +1283,7 @@ async function bukaLayarAuditBaperaPublik(tahun) {
         if (loader) loader.classList.add('hidden');
         if (content) content.classList.remove('hidden');
 
-        let nf = new Intl.NumberFormat('id-ID');
+        let nf = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 });
         let totMasuk = 0;
         let totKeluar = 0;
 
