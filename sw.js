@@ -1,15 +1,18 @@
-const CACHE_NAME = 'pakan-cbl-v26';
+const CACHE_NAME = 'pakan-cbl-v32';
 const urlsToCache = [
   './',
   './index.html',
   './manifest.json',
   './bapera_logic.js',
-  './pakan_analytic_logic.js'
+  './pakan_analytic_logic.js',
+  './jurnal_logic.js',
+  './po_logic.js',
+  './trip_logic.js'
 ];
 
 // Install & paksa versi baru langsung aktif
 self.addEventListener('install', event => {
-  self.skipWaiting(); 
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache))
   );
